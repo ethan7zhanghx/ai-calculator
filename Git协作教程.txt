@@ -45,7 +45,7 @@ GitLab 用户：
    cd /Users/zhanghaoxin/Desktop/Baidu/AI企业需求计算器/ai-calculator
 
 2. 添加远程仓库地址（将下面的地址替换为您的仓库地址）：
-   git remote add origin https://github.com/你的用户名/ai-calculator.git
+   git remote add origin https://github.com/ethan7zhanghx/ai-calculator.git
 
 3. 推送代码到远程仓库：
    git push -u origin main
@@ -72,7 +72,7 @@ GitLab 用户：
    cd ~/Documents（或其他目录）
 
 3. 克隆项目：
-   git clone https://github.com/用户名/ai-calculator.git
+   git clone https://github.com/ethan7zhanghx/ai-calculator.git
 
 4. 进入项目目录：
    cd ai-calculator
