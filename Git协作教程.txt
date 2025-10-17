@@ -1,0 +1,338 @@
+========================================
+  Git 协作教程 - 团队协作指南
+========================================
+
+本教程将教您如何将项目推送到GitHub/GitLab，以及如何与团队成员协作。
+
+
+一、准备工作
+========================================
+
+确保您已经：
+1. 安装了 Node.js（参考"使用教程.txt"）
+2. 项目可以正常运行
+3. 已经创建了 GitHub 或 GitLab 账号
+
+
+二、第一次推送到远程仓库（项目负责人操作）
+========================================
+
+步骤1：在 GitHub/GitLab 上创建远程仓库
+-----------------------------------------
+GitHub 用户：
+1. 访问 https://github.com
+2. 点击右上角的 "+" 号，选择 "New repository"
+3. 填写仓库信息：
+   - Repository name: ai-calculator（或其他名称）
+   - Description: AI企业需求计算器
+   - 选择 Private（私有，仅团队可见）或 Public（公开）
+4. 不要勾选 "Initialize this repository with a README"
+5. 点击 "Create repository"
+6. 复制仓库地址（类似：https://github.com/你的用户名/ai-calculator.git）
+
+GitLab 用户：
+1. 访问 https://gitlab.com
+2. 点击 "New project" > "Create blank project"
+3. 填写项目信息：
+   - Project name: ai-calculator
+   - Visibility Level: 选择 Private 或 Internal
+4. 点击 "Create project"
+5. 复制仓库地址
+
+步骤2：连接本地仓库到远程仓库
+-----------------------------------------
+1. 打开终端，进入项目目录：
+   cd /Users/zhanghaoxin/Desktop/Baidu/AI企业需求计算器/ai-calculator
+
+2. 添加远程仓库地址（将下面的地址替换为您的仓库地址）：
+   git remote add origin https://github.com/你的用户名/ai-calculator.git
+
+3. 推送代码到远程仓库：
+   git push -u origin main
+
+4. 如果提示需要登录：
+   - GitHub: 输入用户名和 Personal Access Token（不是密码）
+   - GitLab: 输入用户名和密码或 Access Token
+
+提示：如何生成 GitHub Personal Access Token
+- 访问 GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+- 点击 "Generate new token (classic)"
+- 勾选 "repo" 权限
+- 生成后复制 token（只显示一次，请妥善保存）
+
+
+三、团队成员获取项目代码
+========================================
+
+步骤1：克隆项目到本地
+-----------------------------------------
+1. 获取项目仓库地址（向项目负责人索取）
+
+2. 打开终端，进入您想要存放项目的目录：
+   cd ~/Documents（或其他目录）
+
+3. 克隆项目：
+   git clone https://github.com/用户名/ai-calculator.git
+
+4. 进入项目目录：
+   cd ai-calculator
+
+5. 安装依赖：
+   npm install --legacy-peer-deps
+
+6. 启动项目：
+   npm run dev
+
+步骤2：配置 Git 用户信息（首次使用 Git 需要）
+-----------------------------------------
+git config --global user.name "您的姓名"
+git config --global user.email "您的邮箱"
+
+
+四、日常协作工作流程
+========================================
+
+场景1：开始工作前 - 拉取最新代码
+-----------------------------------------
+每次开始工作前，先获取团队其他成员的最新代码：
+
+git pull origin main
+
+
+场景2：完成工作后 - 提交并推送代码
+-----------------------------------------
+步骤1：查看修改了哪些文件
+   git status
+
+步骤2：添加修改的文件到暂存区
+   方式A：添加所有修改
+   git add .
+
+   方式B：只添加特定文件
+   git add 文件名
+
+步骤3：提交修改
+   git commit -m "描述您做了什么修改"
+
+   示例：
+   git commit -m "修复了数据类型多选框的显示问题"
+   git commit -m "添加了新的评估算法"
+   git commit -m "优化了移动端布局"
+
+步骤4：推送到远程仓库
+   git push origin main
+
+
+场景3：处理代码冲突
+-----------------------------------------
+如果 git push 时提示冲突：
+
+步骤1：先拉取最新代码
+   git pull origin main
+
+步骤2：如果有冲突，Git 会提示哪些文件有冲突
+   打开冲突文件，会看到类似这样的标记：
+   <<<<<<< HEAD
+   您的代码
+   =======
+   别人的代码
+   >>>>>>> branch-name
+
+步骤3：手动解决冲突
+   - 保留您需要的代码
+   - 删除不需要的代码和冲突标记（<<<<<<< HEAD 等）
+   - 保存文件
+
+步骤4：标记冲突已解决
+   git add 冲突的文件名
+
+步骤5：完成合并
+   git commit -m "解决了代码冲突"
+
+步骤6：推送
+   git push origin main
+
+
+五、常用 Git 命令速查
+========================================
+
+查看状态：
+   git status                    # 查看当前修改状态
+
+查看历史：
+   git log                       # 查看提交历史
+   git log --oneline             # 查看简化的提交历史
+
+撤销修改：
+   git checkout -- 文件名        # 撤销单个文件的修改
+   git checkout .                # 撤销所有未提交的修改
+
+分支操作：
+   git branch                    # 查看所有分支
+   git branch 分支名             # 创建新分支
+   git checkout 分支名           # 切换到某个分支
+   git checkout -b 分支名        # 创建并切换到新分支
+
+查看远程仓库：
+   git remote -v                 # 查看远程仓库地址
+
+
+六、最佳实践和注意事项
+========================================
+
+1. 提交前的检查清单
+   ✓ 代码能正常运行吗？（npm run dev 测试）
+   ✓ 有没有遗留的 console.log 或调试代码？
+   ✓ 提交信息是否清晰描述了修改内容？
+
+2. 提交信息规范
+   推荐格式：[类型] 简短描述
+
+   类型示例：
+   [新增] 添加了用户反馈功能
+   [修复] 修复了登录页面的样式问题
+   [优化] 优化了评估算法的性能
+   [文档] 更新了使用教程
+   [重构] 重构了数据处理逻辑
+
+3. 工作习惯
+   ✓ 每天开始工作前先 git pull
+   ✓ 及时提交代码，不要积累太多修改
+   ✓ 提交前先测试，确保代码能运行
+   ✓ 遇到问题及时沟通，不要强制推送（git push -f）
+
+4. 什么时候需要创建分支？
+   对于小团队和简单项目，可以都在 main 分支上工作。
+   如果要开发大功能或实验性功能，建议创建新分支：
+
+   git checkout -b feature/新功能名称
+   # 完成开发和测试后
+   git checkout main
+   git merge feature/新功能名称
+
+5. 不要提交的文件
+   以下文件/文件夹已经在 .gitignore 中配置，不会被提交：
+   - node_modules/（依赖包，太大且可以重新安装）
+   - .next/（编译输出，自动生成）
+   - .env（环境变量，可能包含敏感信息）
+   - .DS_Store（Mac 系统文件）
+
+
+七、团队协作示例场景
+========================================
+
+示例：小明和小红同时修改代码
+-----------------------------------------
+
+1. 周一早上，小明和小红都执行：
+   git pull origin main
+
+2. 小明修改了 page.tsx 的布局
+   小红修改了 auth-dialog.tsx 的样式
+
+3. 小明先完成，提交并推送：
+   git add .
+   git commit -m "[优化] 改进了主页布局"
+   git push origin main
+
+4. 小红完成后，先拉取小明的代码：
+   git pull origin main
+   # 因为修改了不同的文件，自动合并成功
+
+5. 小红推送自己的代码：
+   git push origin main
+
+6. 现在远程仓库包含了两人的修改
+
+
+示例：解决真实冲突
+-----------------------------------------
+
+1. 小明和小红都修改了同一个文件的同一位置
+
+2. 小明先推送成功
+
+3. 小红执行 git pull 时出现冲突：
+   CONFLICT (content): Merge conflict in components/auth-dialog.tsx
+
+4. 小红打开 auth-dialog.tsx，看到：
+   <<<<<<< HEAD
+   <Label>手机号码</Label>
+   =======
+   <Label>联系电话</Label>
+   >>>>>>> origin/main
+
+5. 小红和小明讨论后，决定使用"手机号"：
+   <Label>手机号</Label>
+   （删除冲突标记和另一个版本）
+
+6. 小红标记冲突已解决：
+   git add components/auth-dialog.tsx
+   git commit -m "[修复] 解决了标签文字的冲突"
+   git push origin main
+
+
+八、常见问题
+========================================
+
+Q1: push 时提示 "Permission denied"
+A1: 检查：
+    - 是否有仓库的访问权限？联系项目负责人添加您为协作者
+    - Token 是否正确？重新生成 Personal Access Token
+
+Q2: push 时提示 "Updates were rejected"
+A2: 先执行 git pull origin main 拉取最新代码，解决冲突后再推送
+
+Q3: 不小心提交了错误的代码
+A3: 如果还没有 push：
+    git reset HEAD~1              # 撤销最后一次提交，保留修改
+    git reset --hard HEAD~1       # 撤销最后一次提交，丢弃修改
+
+    如果已经 push，联系团队讨论解决方案
+
+Q4: 想撤销某个文件的修改
+A4: git checkout -- 文件名
+
+Q5: 想查看某次提交改了什么
+A5: git show 提交ID（从 git log 获取）
+
+Q6: 忘记先 pull 就修改了代码
+A6: 没关系，先提交本地修改，然后 git pull 合并远程代码
+
+Q7: 合并时总是出现冲突
+A7: 建议：
+    - 团队成员负责不同的文件/模块
+    - 增加沟通，避免同时修改同一个地方
+    - 及时提交和拉取代码
+
+
+九、GitHub/GitLab 网页操作
+========================================
+
+除了命令行，您也可以在网页上：
+- 查看代码和提交历史
+- 查看团队成员的修改
+- 创建 Issue（问题跟踪）
+- 使用 Pull Request / Merge Request 进行代码审查
+- 查看项目统计信息
+
+
+十、获取帮助
+========================================
+
+遇到 Git 问题时：
+1. 先尝试搜索错误信息
+2. 查看 Git 官方文档：https://git-scm.com/doc
+3. 向团队有经验的成员求助
+4. 不要使用强制推送（git push -f）除非完全清楚后果
+
+
+========================================
+重要提醒：
+- 永远不要提交包含密码、密钥等敏感信息的文件
+- 定期备份重要代码
+- 遇到不确定的操作，先问再做
+========================================
+
+最后更新时间：2025-10-17
+========================================
