@@ -34,9 +34,15 @@ export function FeedbackButton() {
     setIsLoading(true)
 
     try {
+      const token = localStorage.getItem("token")
+      const headers: HeadersInit = { "Content-Type": "application/json" }
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
       const response = await fetch("/api/feedback/general", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ type, title, description, email: email || undefined }),
       })
 
