@@ -8,6 +8,10 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
   try {
     const body: ModuleFeedbackRequest = await request.json()
 
+    // 调试日志
+    console.log("Module feedback - user:", user)
+    console.log("Module feedback - body:", body)
+
     // 验证必填字段
     if (!body.evaluationId || !body.moduleType || !body.feedbackType) {
       return NextResponse.json<ApiResponse>(
