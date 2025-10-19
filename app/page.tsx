@@ -62,6 +62,13 @@ export default function AIRequirementsCalculator() {
   // 待评估标记 - 用于登录后自动评估
   const [pendingEvaluation, setPendingEvaluation] = useState(false)
 
+  // 反馈状态跟踪 - 记录每个模块的反馈状态
+  const [moduleFeedbacks, setModuleFeedbacks] = useState<Record<ModuleType, FeedbackType | null>>({
+    resource: null,
+    technical: null,
+    business: null,
+  })
+
   // 检查登录状态
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -103,6 +110,7 @@ export default function AIRequirementsCalculator() {
     setIsAuthenticated(false)
     setUsername("")
     setEvaluation(null) // 登出时清除评估结果
+    setModuleFeedbacks({ resource: null, technical: null, business: null }) // 清除反馈状态
     toast({ title: "已登出" })
   }
 
@@ -141,6 +149,7 @@ export default function AIRequirementsCalculator() {
 
       if (data.success) {
         setEvaluation(data.data)
+        setModuleFeedbacks({ resource: null, technical: null, business: null }) // 重置反馈状态
         toast({
           title: "评估完成",
           description: "AI分析报告已生成"
@@ -207,6 +216,15 @@ export default function AIRequirementsCalculator() {
   const handleModuleFeedback = async (moduleType: ModuleType, feedbackType: FeedbackType) => {
     if (!evaluation) return
 
+    // 如果点击的是已经选中的反馈,则取消选择
+    if (moduleFeedbacks[moduleType] === feedbackType) {
+      setModuleFeedbacks(prev => ({ ...prev, [moduleType]: null }))
+      return
+    }
+
+    // 更新UI状态
+    setModuleFeedbacks(prev => ({ ...prev, [moduleType]: feedbackType }))
+
     try {
       const token = localStorage.getItem("token")
       const headers: HeadersInit = { "Content-Type": "application/json" }
@@ -231,9 +249,23 @@ export default function AIRequirementsCalculator() {
           title: feedbackType === "like" ? "感谢您的点赞" : "感谢您的反馈",
           description: "您的意见对我们很重要",
         })
+      } else {
+        // 如果保存失败,恢复UI状态
+        setModuleFeedbacks(prev => ({ ...prev, [moduleType]: null }))
+        toast({
+          title: "反馈失败",
+          description: data.error?.message || "请稍后重试",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      // 静默失败
+      // 如果出错,恢复UI状态
+      setModuleFeedbacks(prev => ({ ...prev, [moduleType]: null }))
+      toast({
+        title: "反馈失败",
+        description: "网络错误,请稍后重试",
+        variant: "destructive",
+      })
     }
   }
 
@@ -624,16 +656,18 @@ export default function AIRequirementsCalculator() {
                   <CardContent className="pt-0">
                     <div className="flex gap-2 justify-end">
                       <Button
-                        variant="ghost"
+                        variant={moduleFeedbacks.resource === "like" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleModuleFeedback("resource", "like")}
+                        className={moduleFeedbacks.resource === "like" ? "bg-green-600 hover:bg-green-700" : ""}
                       >
                         <ThumbsUp className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant={moduleFeedbacks.resource === "dislike" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleModuleFeedback("resource", "dislike")}
+                        className={moduleFeedbacks.resource === "dislike" ? "bg-red-600 hover:bg-red-700" : ""}
                       >
                         <ThumbsDown className="h-4 w-4" />
                       </Button>
@@ -709,16 +743,18 @@ export default function AIRequirementsCalculator() {
                   <CardContent className="pt-0">
                     <div className="flex gap-2 justify-end">
                       <Button
-                        variant="ghost"
+                        variant={moduleFeedbacks.technical === "like" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleModuleFeedback("technical", "like")}
+                        className={moduleFeedbacks.technical === "like" ? "bg-green-600 hover:bg-green-700" : ""}
                       >
                         <ThumbsUp className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant={moduleFeedbacks.technical === "dislike" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleModuleFeedback("technical", "dislike")}
+                        className={moduleFeedbacks.technical === "dislike" ? "bg-red-600 hover:bg-red-700" : ""}
                       >
                         <ThumbsDown className="h-4 w-4" />
                       </Button>
@@ -751,16 +787,18 @@ export default function AIRequirementsCalculator() {
                   <CardContent className="pt-0">
                     <div className="flex gap-2 justify-end">
                       <Button
-                        variant="ghost"
+                        variant={moduleFeedbacks.business === "like" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleModuleFeedback("business", "like")}
+                        className={moduleFeedbacks.business === "like" ? "bg-green-600 hover:bg-green-700" : ""}
                       >
                         <ThumbsUp className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant={moduleFeedbacks.business === "dislike" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleModuleFeedback("business", "dislike")}
+                        className={moduleFeedbacks.business === "dislike" ? "bg-red-600 hover:bg-red-700" : ""}
                       >
                         <ThumbsDown className="h-4 w-4" />
                       </Button>
