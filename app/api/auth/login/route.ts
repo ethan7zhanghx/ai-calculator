@@ -1,27 +1,39 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, AuthRequest, AuthResponse } from "@/lib/types"
+import { prisma } from "@/lib/prisma"
+import { verifyPassword } from "@/lib/password"
+import { signToken } from "@/lib/jwt"
 
 export async function POST(request: NextRequest) {
   try {
     const body: AuthRequest = await request.json()
-    const { phone, password } = body
+    const { email, phone, password } = body
 
-    // 验证必填字段
-    if (!phone || !password) {
+    // 验证必填字段 (email 或 phone 二选一)
+    if ((!email && !phone) || !password) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
           error: {
             code: "MISSING_FIELDS",
-            message: "手机号和密码为必填项",
+            message: "邮箱或手机号以及密码为必填项",
           },
         },
         { status: 400 }
       )
     }
 
-    // 演示逻辑：模拟用户不存在的情况 (演示用,实际中应该查询数据库)
-    if (phone === "10000000000") {
+    // 查找用户
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email } : {},
+          phone ? { phone } : {},
+        ].filter(obj => Object.keys(obj).length > 0),
+      },
+    })
+
+    if (!user) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
@@ -34,8 +46,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 演示逻辑：模拟密码错误的情况
-    if (password === "wrongpassword") {
+    // 验证密码
+    const isPasswordValid = await verifyPassword(password, user.password)
+    if (!isPasswordValid) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
@@ -48,29 +61,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 演示逻辑：模拟登录成功，使用手机号作为用户名
-    const mockUserId = `user_${Date.now()}`
-    const mockToken = `token_${Math.random().toString(36).substring(7)}`
-    const mockUsername = phone // 使用手机号作为用户名
+    // 生成 JWT token
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+    })
 
     const response: ApiResponse<AuthResponse> = {
       success: true,
       message: "登录成功",
       data: {
-        userId: mockUserId,
-        username: mockUsername,
-        token: mockToken,
+        userId: user.id,
+        username: user.name || user.email,
+        token,
       },
     }
 
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
+    console.error("Login error:", error)
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
           message: "服务器内部错误",
+          details: error instanceof Error ? error.message : "未知错误",
         },
       },
       { status: 500 }

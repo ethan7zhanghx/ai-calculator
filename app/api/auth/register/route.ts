@@ -1,41 +1,63 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, AuthRequest, AuthResponse } from "@/lib/types"
+import { prisma } from "@/lib/prisma"
+import { hashPassword } from "@/lib/password"
+import { signToken } from "@/lib/jwt"
 
 export async function POST(request: NextRequest) {
   try {
     const body: AuthRequest = await request.json()
-    const { phone, password } = body
+    const { email, phone, password } = body
 
-    // 验证必填字段
-    if (!phone || !password) {
+    // 验证必填字段 (email 或 phone 二选一)
+    if ((!email && !phone) || !password) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
           error: {
             code: "MISSING_FIELDS",
-            message: "手机号和密码为必填项",
+            message: "邮箱或手机号以及密码为必填项",
           },
         },
         { status: 400 }
       )
     }
 
-    // 演示逻辑：简单的手机号格式验证
-    const phoneRegex = /^1[3-9]\d{9}$/
-    if (!phoneRegex.test(phone)) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: {
-            code: "INVALID_PHONE",
-            message: "手机号格式不正确",
+    // 邮箱格式验证
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: {
+              code: "INVALID_EMAIL",
+              message: "邮箱格式不正确",
+            },
           },
-        },
-        { status: 400 }
-      )
+          { status: 400 }
+        )
+      }
     }
 
-    // 演示逻辑：密码长度验证
+    // 手机号格式验证
+    if (phone) {
+      const phoneRegex = /^1[3-9]\d{9}$/
+      if (!phoneRegex.test(phone)) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: {
+              code: "INVALID_PHONE",
+              message: "手机号格式不正确",
+            },
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // 密码强度验证
     if (password.length < 6) {
       return NextResponse.json<ApiResponse>(
         {
@@ -49,29 +71,68 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 演示逻辑：模拟注册成功，使用手机号作为用户名
-    const mockUserId = `user_${Date.now()}`
-    const mockToken = `token_${Math.random().toString(36).substring(7)}`
-    const username = phone // 使用手机号作为用户名
+    // 检查邮箱或手机号是否已存在
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email } : {},
+          phone ? { phone } : {},
+        ].filter(obj => Object.keys(obj).length > 0),
+      },
+    })
+
+    if (existingUser) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: {
+            code: "USER_EXISTS",
+            message: existingUser.email === email ? "该邮箱已被注册" : "该手机号已被注册",
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    // 对密码进行加密
+    const hashedPassword = await hashPassword(password)
+
+    // 创建新用户
+    const user = await prisma.user.create({
+      data: {
+        email: email || `${phone}@placeholder.com`, // 如果没有邮箱,使用手机号生成占位邮箱
+        phone: phone || null,
+        password: hashedPassword,
+        name: phone || email?.split("@")[0], // 使用手机号或邮箱前缀作为默认用户名
+      },
+    })
+
+    // 生成 JWT token
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+    })
 
     const response: ApiResponse<AuthResponse> = {
       success: true,
       message: "注册成功",
       data: {
-        userId: mockUserId,
-        username,
-        token: mockToken,
+        userId: user.id,
+        username: user.name || user.email,
+        token,
       },
     }
 
-    return NextResponse.json(response, { status: 200 })
+    return NextResponse.json(response, { status: 201 })
   } catch (error) {
+    console.error("Registration error:", error)
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
           message: "服务器内部错误",
+          details: error instanceof Error ? error.message : "未知错误",
         },
       },
       { status: 500 }
