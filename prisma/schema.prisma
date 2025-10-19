@@ -1,0 +1,83 @@
+// Prisma Schema for AI Calculator
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt hashed password
+  phone     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  evaluations Evaluation[]
+  feedbacks   Feedback[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+// 评估历史表
+model Evaluation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 评估输入参数 (JSON存储)
+  model                  String
+  hardware               String
+  cardCount              Int
+  businessDataVolume     Int?
+  businessDataTypes      String? // JSON array: ["text", "qa_pair", "image"]
+  businessDataQuality    String? // "low" | "medium" | "high"
+  businessScenario       String?
+  performanceQPS         Int?
+  performanceConcurrency Int?
+
+  // 评估结果 (JSON存储完整结果)
+  resourceFeasibility  String // JSON
+  technicalFeasibility String // JSON
+  businessValue        String // JSON
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// 反馈表
+model Feedback {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 反馈类型
+  type String // "module" | "general"
+
+  // 模块反馈相关字段
+  evaluationId String?
+  moduleName   String? // "resource" | "technical" | "business"
+  rating       String? // "positive" | "negative"
+
+  // 通用反馈相关字段
+  feedbackType String? // "bug" | "feature" | "improvement" | "other"
+  title        String?
+  description  String?
+  contactEmail String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([evaluationId])
+}

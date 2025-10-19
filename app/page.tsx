@@ -59,6 +59,9 @@ export default function AIRequirementsCalculator() {
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null)
   const [isEvaluating, setIsEvaluating] = useState(false)
 
+  // 待评估标记 - 用于登录后自动评估
+  const [pendingEvaluation, setPendingEvaluation] = useState(false)
+
   // 检查登录状态
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -72,6 +75,14 @@ export default function AIRequirementsCalculator() {
   const handleAuthSuccess = (userData: { username: string; token: string }) => {
     setIsAuthenticated(true)
     setUsername(userData.username)
+    // 登录成功后,如果有待评估的请求,自动执行评估
+    if (pendingEvaluation) {
+      setPendingEvaluation(false)
+      // 延迟一下,等待状态更新
+      setTimeout(() => {
+        performEvaluation(userData.token)
+      }, 300)
+    }
   }
 
   const handleLogout = async () => {
@@ -91,35 +102,19 @@ export default function AIRequirementsCalculator() {
     localStorage.removeItem("username")
     setIsAuthenticated(false)
     setUsername("")
+    setEvaluation(null) // 登出时清除评估结果
     toast({ title: "已登出" })
   }
 
-  const handleEvaluate = async () => {
-    if (!model || !hardware || !cardCount || !dataVolume || !businessScenario || !qps || !concurrency) {
-      toast({
-        title: "请填写完整信息",
-        description: "所有字段均为必填项",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (dataTypes.length === 0) {
-      toast({
-        title: "请选择数据类型",
-        description: "至少选择一种数据类型",
-        variant: "destructive",
-      })
-      return
-    }
-
+  // 核心评估函数 - 实际调用API
+  const performEvaluation = async (token?: string) => {
     setIsEvaluating(true)
 
     try {
-      const token = localStorage.getItem("token")
+      const authToken = token || localStorage.getItem("token")
       const headers: HeadersInit = { "Content-Type": "application/json" }
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
       }
 
       const response = await fetch("/api/evaluate", {
@@ -146,7 +141,10 @@ export default function AIRequirementsCalculator() {
 
       if (data.success) {
         setEvaluation(data.data)
-        toast({ title: "评估完成" })
+        toast({
+          title: "评估完成",
+          description: "AI分析报告已生成"
+        })
         // 自动滚动到结果
         setTimeout(() => {
           document.getElementById("evaluation-results")?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -167,6 +165,43 @@ export default function AIRequirementsCalculator() {
     } finally {
       setIsEvaluating(false)
     }
+  }
+
+  const handleEvaluate = async () => {
+    if (!model || !hardware || !cardCount || !dataVolume || !businessScenario || !qps || !concurrency) {
+      toast({
+        title: "请填写完整信息",
+        description: "所有字段均为必填项",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (dataTypes.length === 0) {
+      toast({
+        title: "请选择数据类型",
+        description: "至少选择一种数据类型",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // 检查是否已登录
+    if (!isAuthenticated) {
+      // 未登录,标记为待评估并打开登录对话框
+      setPendingEvaluation(true)
+      setAuthDialogTab("login")
+      setAuthDialogOpen(true)
+      toast({
+        title: "请先登录",
+        description: "登录后即可查看AI评估报告,您填写的信息已保留",
+        variant: "default",
+      })
+      return
+    }
+
+    // 已登录,直接评估
+    await performEvaluation()
   }
 
   const handleModuleFeedback = async (moduleType: ModuleType, feedbackType: FeedbackType) => {
@@ -467,10 +502,39 @@ export default function AIRequirementsCalculator() {
               <Card className="shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                   <Calculator className="h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">等待评估</h3>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {isAuthenticated ? "等待评估" : "AI评估报告"}
+                  </h3>
                   <p className="text-muted-foreground max-w-md">
-                    完成左侧表单并点击"开始评估"以获取详细分析
+                    {isAuthenticated
+                      ? '完成左侧表单并点击"开始评估"以获取详细分析'
+                      : "请填写左侧表单,登录后即可获取AI智能分析报告"}
                   </p>
+                  {!isAuthenticated && (
+                    <div className="mt-6 flex gap-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setAuthDialogTab("login")
+                          setAuthDialogOpen(true)
+                        }}
+                      >
+                        <LogIn className="mr-2 h-4 w-4" />
+                        登录查看报告
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setAuthDialogTab("register")
+                          setAuthDialogOpen(true)
+                        }}
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        注册账号
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, ModuleFeedbackRequest } from "@/lib/types"
+import { withOptionalAuth } from "@/lib/auth-middleware"
+import { prisma } from "@/lib/prisma"
+import type { JWTPayload } from "@/lib/jwt"
 
-export async function POST(request: NextRequest) {
+export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPayload | null) => {
   try {
     const body: ModuleFeedbackRequest = await request.json()
 
@@ -49,13 +52,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 演示逻辑：模拟保存反馈成功
-    console.log("Module feedback received:", {
-      evaluationId: body.evaluationId,
-      moduleType: body.moduleType,
-      feedbackType: body.feedbackType,
-      comment: body.comment,
-      timestamp: new Date().toISOString(),
+    // 对于模块反馈,如果用户未登录,创建匿名用户或使用特殊用户ID
+    // 这里我们要求模块反馈必须登录
+    if (!user) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: {
+            code: "AUTH_REQUIRED",
+            message: "模块反馈需要登录",
+          },
+        },
+        { status: 401 }
+      )
+    }
+
+    // 保存反馈到数据库
+    const feedbackId = `fb_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+    await prisma.feedback.create({
+      data: {
+        id: feedbackId,
+        userId: user.userId,
+        type: "module",
+        evaluationId: body.evaluationId,
+        moduleName: body.moduleType,
+        rating: body.feedbackType === "like" ? "positive" : "negative",
+      },
     })
 
     const response: ApiResponse = {
@@ -65,15 +88,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
+    console.error("Module feedback error:", error)
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
           message: "服务器内部错误",
+          details: error instanceof Error ? error.message : "未知错误",
         },
       },
       { status: 500 }
     )
   }
-}
+})

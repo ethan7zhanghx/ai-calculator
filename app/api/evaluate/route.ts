@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, EvaluationRequest, EvaluationResponse } from "@/lib/types"
+import { withOptionalAuth } from "@/lib/auth-middleware"
+import { prisma } from "@/lib/prisma"
+import type { JWTPayload } from "@/lib/jwt"
 
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
@@ -27,7 +30,7 @@ const modelSpecs: Record<string, {
   "Mistral 7B": { vramPerGPU: 14, minGPUs: 1, paramSize: "7B" },
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPayload | null) => {
   try {
     const body: EvaluationRequest = await request.json()
 
@@ -139,64 +142,97 @@ export async function POST(request: NextRequest) {
 
     const evaluationId = `eval_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
+    const resourceFeasibility = {
+      pretraining: {
+        feasible: pretrainingFeasible,
+        memoryUsagePercent: Math.round(pretrainingPercent),
+        memoryRequired: pretrainingRequired,
+        memoryAvailable: totalVRAM,
+        suggestions: pretrainingFeasible
+          ? ["硬件资源充足,可以进行预训练"]
+          : ["显存不足,建议增加GPU数量或选择更小的模型"],
+      },
+      fineTuning: {
+        feasible: finetuningFeasible,
+        memoryUsagePercent: Math.round(finetuningPercent),
+        memoryRequired: finetuningRequired,
+        memoryAvailable: totalVRAM,
+        loraFeasible,
+        qloraFeasible,
+        suggestions: finetuningFeasible
+          ? ["硬件资源可以支持全量微调"]
+          : loraFeasible
+          ? ["建议使用LoRA进行参数高效微调"]
+          : qloraFeasible
+          ? ["建议使用QLoRA进行量化微调"]
+          : ["当前硬件无法支持微调,建议采购更多硬件或选择更小的模型"],
+      },
+      inference: {
+        feasible: inferenceFeasible,
+        memoryUsagePercent: Math.round(inferencePercent),
+        memoryRequired: inferenceRequired,
+        memoryAvailable: totalVRAM,
+        supportedThroughput: Math.round(supportedQPS * 10),
+        supportedQPS: Math.round(supportedQPS),
+        meetsRequirements: meetsQPSRequirements,
+        quantizationOptions,
+        suggestions: meetsQPSRequirements
+          ? ["当前配置可以满足QPS要求"]
+          : quantizationOptions.find(q => q.meetsRequirements)
+          ? [`建议使用${quantizationOptions.find(q => q.meetsRequirements)?.type}量化以满足QPS要求`]
+          : ["即使使用量化也无法满足QPS要求,建议增加GPU数量"],
+      },
+    }
+
+    const technicalFeasibility = {
+      appropriate: technicalIssues.length === 0,
+      score: technicalScore,
+      issues: technicalIssues,
+      recommendations: technicalRecommendations,
+    }
+
+    const businessValue = {
+      score: businessScore,
+      analysis: businessAnalysis,
+      risks: generateRisks(body),
+      opportunities: generateOpportunities(body),
+    }
+
+    // 如果用户已登录,保存评估历史到数据库
+    if (user) {
+      try {
+        await prisma.evaluation.create({
+          data: {
+            id: evaluationId,
+            userId: user.userId,
+            model: body.model,
+            hardware: body.hardware,
+            cardCount: body.cardCount,
+            businessDataVolume: body.businessData?.volume || null,
+            businessDataTypes: JSON.stringify(body.businessData?.dataTypes || []),
+            businessDataQuality: body.businessData?.quality || null,
+            businessScenario: body.businessScenario || null,
+            performanceQPS: body.performanceRequirements?.qps || null,
+            performanceConcurrency: body.performanceRequirements?.concurrency || null,
+            resourceFeasibility: JSON.stringify(resourceFeasibility),
+            technicalFeasibility: JSON.stringify(technicalFeasibility),
+            businessValue: JSON.stringify(businessValue),
+          },
+        })
+      } catch (dbError) {
+        console.error("Failed to save evaluation to database:", dbError)
+        // 不中断流程,即使保存失败也返回评估结果
+      }
+    }
+
     const response: ApiResponse<EvaluationResponse> = {
       success: true,
       message: "评估完成",
       data: {
         evaluationId,
-        resourceFeasibility: {
-          pretraining: {
-            feasible: pretrainingFeasible,
-            memoryUsagePercent: Math.round(pretrainingPercent),
-            memoryRequired: pretrainingRequired,
-            memoryAvailable: totalVRAM,
-            suggestions: pretrainingFeasible
-              ? ["硬件资源充足,可以进行预训练"]
-              : ["显存不足,建议增加GPU数量或选择更小的模型"],
-          },
-          fineTuning: {
-            feasible: finetuningFeasible,
-            memoryUsagePercent: Math.round(finetuningPercent),
-            memoryRequired: finetuningRequired,
-            memoryAvailable: totalVRAM,
-            loraFeasible,
-            qloraFeasible,
-            suggestions: finetuningFeasible
-              ? ["硬件资源可以支持全量微调"]
-              : loraFeasible
-              ? ["建议使用LoRA进行参数高效微调"]
-              : qloraFeasible
-              ? ["建议使用QLoRA进行量化微调"]
-              : ["当前硬件无法支持微调,建议采购更多硬件或选择更小的模型"],
-          },
-          inference: {
-            feasible: inferenceFeasible,
-            memoryUsagePercent: Math.round(inferencePercent),
-            memoryRequired: inferenceRequired,
-            memoryAvailable: totalVRAM,
-            supportedThroughput: Math.round(supportedQPS * 10),
-            supportedQPS: Math.round(supportedQPS),
-            meetsRequirements: meetsQPSRequirements,
-            quantizationOptions,
-            suggestions: meetsQPSRequirements
-              ? ["当前配置可以满足QPS要求"]
-              : quantizationOptions.find(q => q.meetsRequirements)
-              ? [`建议使用${quantizationOptions.find(q => q.meetsRequirements)?.type}量化以满足QPS要求`]
-              : ["即使使用量化也无法满足QPS要求,建议增加GPU数量"],
-          },
-        },
-        technicalFeasibility: {
-          appropriate: technicalIssues.length === 0,
-          score: technicalScore,
-          issues: technicalIssues,
-          recommendations: technicalRecommendations,
-        },
-        businessValue: {
-          score: businessScore,
-          analysis: businessAnalysis,
-          risks: generateRisks(body),
-          opportunities: generateOpportunities(body),
-        },
+        resourceFeasibility,
+        technicalFeasibility,
+        businessValue,
         createdAt: new Date().toISOString(),
       },
     }
@@ -216,7 +252,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // 演示用的商业价值分析生成函数
 function generateBusinessAnalysis(req: EvaluationRequest): string {

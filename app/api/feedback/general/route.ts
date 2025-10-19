@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, GeneralFeedbackRequest } from "@/lib/types"
+import { withOptionalAuth } from "@/lib/auth-middleware"
+import { prisma } from "@/lib/prisma"
+import type { JWTPayload } from "@/lib/jwt"
 
-export async function POST(request: NextRequest) {
+export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPayload | null) => {
   try {
     const body: GeneralFeedbackRequest = await request.json()
 
@@ -34,16 +37,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 演示逻辑：模拟保存反馈
-    const feedbackId = `feedback_${Date.now()}_${Math.random().toString(36).substring(7)}`
+    // 通用反馈也要求登录
+    if (!user) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: {
+            code: "AUTH_REQUIRED",
+            message: "提交反馈需要登录",
+          },
+        },
+        { status: 401 }
+      )
+    }
 
-    console.log("General feedback received:", {
-      feedbackId,
-      type: body.type,
-      title: body.title,
-      description: body.description,
-      email: body.email,
-      timestamp: new Date().toISOString(),
+    // 保存反馈到数据库
+    const feedbackId = `fb_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+    await prisma.feedback.create({
+      data: {
+        id: feedbackId,
+        userId: user.userId,
+        type: "general",
+        feedbackType: body.type,
+        title: body.title,
+        description: body.description,
+        contactEmail: body.email || null,
+      },
     })
 
     const response: ApiResponse<{ feedbackId: string }> = {
@@ -56,15 +76,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
+    console.error("General feedback error:", error)
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
           message: "服务器内部错误",
+          details: error instanceof Error ? error.message : "未知错误",
         },
       },
       { status: 500 }
     )
   }
-}
+})
