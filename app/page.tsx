@@ -26,6 +26,7 @@ import { EvaluationDashboard } from "@/components/evaluation-dashboard"
 import { BusinessValueChart } from "@/components/business-value-chart"
 import { TechnicalEvaluationDetailed } from "@/components/technical-evaluation-detailed"
 import { EvaluationProgress } from "@/components/evaluation-progress"
+import { BusinessEvaluationDetailed } from "@/components/business-evaluation-detailed"
 import { MultiSelect, type Option } from "@/components/multi-select"
 import { InputSummary } from "@/components/input-summary"
 import { useToast } from "@/hooks/use-toast"
@@ -777,27 +778,65 @@ export default function AIRequirementsCalculator() {
                   </CardContent>
                 </Card>
 
-                {/* 商业价值评估 - 使用增强图表 */}
+                {/* 商业价值评估 */}
                 <Card className="shadow-lg">
                   <CardHeader>
-                    <CardTitle>商业价值评估</CardTitle>
-                    <CardDescription>AI评估该业务的价值</CardDescription>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>商业价值评估</span>
+                      {/* 评分显示 */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">评分:</span>
+                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
+                          <span className="text-lg font-bold">{evaluation.businessValue.score}</span>
+                          <span className="text-sm">/100</span>
+                        </div>
+                      </div>
+                    </CardTitle>
+                    <CardDescription>AI深度评估该方案的商业价值</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <BusinessValueChart
-                      score={evaluation.businessValue.score}
-                      risks={evaluation.businessValue.risks}
-                      opportunities={evaluation.businessValue.opportunities}
-                    />
-
-                    <Separator />
-
-                    <div>
-                      <h4 className="font-semibold text-sm mb-3">详细分析:</h4>
-                      <p className="text-sm whitespace-pre-line leading-relaxed text-muted-foreground">
-                        {evaluation.businessValue.analysis}
-                      </p>
+                  <CardContent>
+                    {/* 评分条 */}
+                    <div className="relative py-4 mb-6">
+                      <div className="flex h-3 rounded-full overflow-hidden">
+                        <div className="flex-1 bg-red-500 opacity-30" />
+                        <div className="flex-1 bg-amber-500 opacity-30" />
+                        <div className="flex-1 bg-blue-500 opacity-30" />
+                        <div className="flex-1 bg-green-500 opacity-30" />
+                      </div>
+                      <div
+                        className="absolute top-0 transition-all duration-500"
+                        style={{
+                          left: `${evaluation.businessValue.score}%`,
+                          transform: "translateX(-50%)",
+                        }}
+                      >
+                        <div className="w-0.5 h-3 bg-primary" />
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary rounded-full" />
+                      </div>
                     </div>
+
+                    {/* 详细评估内容 */}
+                    {evaluation.businessValue.detailedEvaluation ? (
+                      <BusinessEvaluationDetailed evaluation={evaluation.businessValue.detailedEvaluation} />
+                    ) : (
+                      /* 降级展示：如果没有详细评估数据，显示简化版 */
+                      <div className="space-y-4">
+                        <BusinessValueChart
+                          score={evaluation.businessValue.score}
+                          risks={evaluation.businessValue.risks}
+                          opportunities={evaluation.businessValue.opportunities}
+                        />
+
+                        <Separator />
+
+                        <div>
+                          <h4 className="font-semibold text-sm mb-3">详细分析:</h4>
+                          <p className="text-sm whitespace-pre-line leading-relaxed text-muted-foreground">
+                            {evaluation.businessValue.analysis}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                   <CardContent className="pt-0">
                     <div className="flex gap-2 justify-end">

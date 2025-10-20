@@ -113,6 +113,59 @@ export interface BusinessValue {
   analysis: string
   risks: string[]
   opportunities: string[]
+  // 完整的LLM商业价值评估结果（可选，用于详细展示）
+  detailedEvaluation?: {
+    score: number
+    summary: string
+    disclaimer: string
+    dimensions: {
+      problemSolutionFit: {
+        score: number
+        status: "strong" | "moderate" | "weak"
+        analysis: string
+        painPoints: string[]
+        aiNecessity: "high" | "medium" | "low"
+      }
+      roiFeasibility: {
+        score: number
+        analysis: string
+        considerations: string[]
+      }
+      competitiveAdvantage: {
+        score: number
+        level: "differentiated" | "parity" | "lagging"
+        analysis: string
+        barriers: string[]
+      }
+      scalability: {
+        score: number
+        level: "high" | "medium" | "low"
+        analysis: string
+        growthPotential: string[]
+      }
+      implementationRisk: {
+        score: number
+        level: "low" | "medium" | "high"
+        analysis: string
+        risks: {
+          technical: string[]
+          business: string[]
+          compliance: string[]
+          organizational: string[]
+        }
+        mitigations: string[]
+      }
+      marketTiming: {
+        score: number
+        status: "optimal" | "acceptable" | "poor"
+        analysis: string
+        urgency: "high" | "medium" | "low"
+      }
+    }
+    opportunities: string[]
+    risks: string[]
+    recommendations: string[]
+  }
 }
 
 export interface EvaluationResponse {

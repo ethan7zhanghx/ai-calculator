@@ -6,13 +6,22 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, Sparkles } from "lucide-react"
 
 const STAGES = [
-  { text: "正在分析模型与业务匹配度...", duration: 4000 },
-  { text: "正在评估大模型必要性...", duration: 4000 },
-  { text: "正在检查微调必要性与数据充分性...", duration: 4000 },
-  { text: "正在规划业务可行性与实施路径...", duration: 5000 },
-  { text: "正在评估性能需求合理性...", duration: 3000 },
-  { text: "正在分析成本效益...", duration: 3000 },
-  { text: "正在生成详细建议...", duration: 4000 },
+  // 技术方案评估阶段
+  { text: "正在分析模型与业务匹配度...", duration: 5000 },
+  { text: "正在评估大模型必要性...", duration: 5000 },
+  { text: "正在检查微调必要性与数据充分性...", duration: 5000 },
+  { text: "正在规划业务可行性与实施路径...", duration: 7500 },
+  { text: "正在评估性能需求合理性...", duration: 5000 },
+  { text: "正在分析技术成本效益...", duration: 5000 },
+  { text: "正在生成技术方案建议...", duration: 10000 },
+  // 商业价值评估阶段
+  { text: "正在评估问题与解决方案匹配度...", duration: 5000 },
+  { text: "正在分析ROI预期合理性...", duration: 5000 },
+  { text: "正在评估市场竞争优势...", duration: 5000 },
+  { text: "正在分析可扩展性与增长潜力...", duration: 5000 },
+  { text: "正在识别落地风险...", duration: 5000 },
+  { text: "正在评估时间窗口与紧迫性...", duration: 7500 },
+  { text: "正在生成商业价值报告...", duration: 10000 },
 ]
 
 export function EvaluationProgress() {
@@ -31,7 +40,7 @@ export function EvaluationProgress() {
       })
     }, STAGES[currentStage]?.duration || 4000)
 
-    // 进度条平滑增长
+    // 进度条平滑增长（调整速度以匹配更长的总时间）
     const progressTimer = setInterval(() => {
       setProgress((prev) => {
         if (prev < 95) {
@@ -39,7 +48,7 @@ export function EvaluationProgress() {
         }
         return prev
       })
-    }, 300)
+    }, 750) // 从300ms改为750ms，使进度条增长速度减慢2.5倍
 
     // 计时器
     const timeTimer = setInterval(() => {
@@ -53,7 +62,18 @@ export function EvaluationProgress() {
     }
   }, [currentStage])
 
-  const estimatedRemaining = Math.max(0, 25 - elapsedTime)
+  // 总预计时间约为 14个阶段 * 平均9.6秒 ≈ 135秒 ≈ 2分15秒，保守估计3分钟
+  const estimatedRemaining = Math.max(0, 180 - elapsedTime)
+
+  // 格式化时间显示
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) {
+      return `${seconds} 秒`
+    }
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes} 分 ${secs} 秒`
+  }
 
   return (
     <Card className="shadow-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -70,7 +90,7 @@ export function EvaluationProgress() {
           <Progress value={progress} className="h-2" />
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{progress}% 完成</span>
-            <span>预计还需 {estimatedRemaining} 秒</span>
+            <span>预计还需 {formatTime(estimatedRemaining)}</span>
           </div>
         </div>
 
@@ -86,7 +106,7 @@ export function EvaluationProgress() {
 
         {/* 提示信息 */}
         <div className="text-center text-xs text-muted-foreground pt-2 border-t">
-          💡 首次评估可能需要 15-30 秒，感谢您的耐心等待
+          💡 完整评估包含技术方案和商业价值两大模块，预计需要 1-3 分钟，感谢您的耐心等待
         </div>
       </CardContent>
     </Card>
