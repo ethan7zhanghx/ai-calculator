@@ -40,15 +40,7 @@ export function InputSummary({
   return (
     <Card className="shadow-lg lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">输入配置</CardTitle>
-          {onEdit && (
-            <Button variant="ghost" size="sm" onClick={onEdit}>
-              <Edit className="h-4 w-4 mr-1" />
-              编辑
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-lg">输入配置</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         {/* 模型和硬件 */}
@@ -106,6 +98,22 @@ export function InputSummary({
             <span className="font-medium">{concurrency}</span>
           </div>
         </div>
+
+        {/* 编辑按钮 - 底部 */}
+        {onEdit && (
+          <>
+            <Separator />
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={onEdit}
+              className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground font-medium"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              重新编辑配置
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   )
