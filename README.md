@@ -43,76 +43,95 @@
 - **Few-Shot Learning** - 5 个详细示例案例指导评估
 - **结构化输出** - JSON Schema 强制输出格式
 
-## 快速开始
+## 快速开始（5 分钟）
 
-### 环境要求
+### 前置要求
 - Node.js 18+
 - npm 或 yarn
+- Git
 
 ### 安装步骤
 
-1. **克隆项目**
+#### 1️⃣ 克隆仓库
+
 ```bash
 git clone https://github.com/ethan7zhanghx/ai-calculator.git
 cd ai-calculator
 ```
 
-2. **安装依赖**
-```bash
-npm install
-```
-
-3. **配置环境变量**
-
-创建 `.env.local` 文件（或复制 `.env.local.example`）：
+#### 2️⃣ 安装依赖
 
 ```bash
-cp .env.local.example .env.local
+npm install --legacy-peer-deps
 ```
 
-编辑 `.env.local`，填入以下配置：
+> **注意**: 必须使用 `--legacy-peer-deps` 标志，因为项目使用了 React 19。
 
-```env
-# 数据库配置
+#### 3️⃣ 配置环境变量
+
+复制环境变量模板文件：
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件，填入真实的配置：
+
+```bash
+# 数据库连接（本地开发使用 SQLite 即可）
 DATABASE_URL="file:./dev.db"
 
-# JWT 密钥（生产环境请使用强密码，至少 32 字符）
-JWT_SECRET="your-secret-key-change-this-in-production-min-32-chars"
-JWT_EXPIRES_IN="7d"
+# 百度千帆 API 密钥（必填）
+QIANFAN_API_KEY="your_actual_api_key_here"
 
-# 百度千帆 API 密钥
-# 获取方式：https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
-# 请填写你的 API Key（Bearer Token 格式）
-QIANFAN_API_KEY="your-qianfan-api-key-here"
+# JWT 密钥（必填，任意 32 位以上随机字符串）
+JWT_SECRET="your-local-jwt-secret-key-change-this"
+JWT_EXPIRES_IN="7d"
 ```
 
-**如何获取百度千帆 API Key：**
-1. 访问 [百度智能云千帆控制台](https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application)
-2. 创建应用并获取 API Key
-3. 格式示例：`bce-v3/ALTAK-xxxxxxx/xxxxxxx`
+**获取 QIANFAN_API_KEY**：
+1. 访问 [百度智能云控制台](https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application)
+2. 创建应用并获取 API Key 和 Secret Key
+3. 将 API Key 填入 `.env` 文件
+4. 格式示例：`bce-v3/ALTAK-xxxxxxx/xxxxxxx`
 
-4. **初始化数据库**
+#### 4️⃣ 初始化数据库
+
 ```bash
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma db push
 ```
 
-5. **启动开发服务器**
+这会：
+- 生成 Prisma Client
+- 创建本地 SQLite 数据库（`prisma/dev.db`）
+- 创建所有数据表
 
-**方式一：使用启动脚本（推荐）**
-```bash
-chmod +x start.sh
-./start.sh
-```
+**无需安装 PostgreSQL！本地开发使用 SQLite，零配置！**
 
-**方式二：手动启动**
+#### 5️⃣ 启动开发服务器
+
 ```bash
 npm run dev
 ```
 
-6. **访问应用**
+访问 [http://localhost:3000](http://localhost:3000) 即可看到应用！
 
-打开浏览器访问：http://localhost:3000
+---
+
+## 数据库说明
+
+**本地开发**：使用 **SQLite**（零配置，开箱即用）
+- ✅ 无需安装数据库软件
+- ✅ 数据存储在本地文件 `prisma/dev.db`
+- ✅ 适合快速开发和测试
+
+**生产环境（Vercel）**：使用 **PostgreSQL**
+- 🚀 Vercel 部署时自动切换
+- 🔒 使用 Prisma Accelerate 云数据库
+- 📊 支持多用户并发访问
+
+**您不需要关心生产环境的数据库配置**，clone 代码后直接运行即可！
 
 ## 项目结构
 
@@ -309,20 +328,74 @@ Authorization: Bearer <token>
 
 ## 常见问题
 
-### Q: 评估需要多长时间？
-A: 首次评估通常需要 15-30 秒，后续评估会更快（得益于 Prompt Caching）
+### Q1: `npm install` 失败，提示依赖冲突
+**解决方案**：必须使用 `--legacy-peer-deps` 标志
+```bash
+npm install --legacy-peer-deps
+```
 
-### Q: 支持哪些模型？
+### Q2: 提示 "Environment variable not found: DATABASE_URL"
+**解决方案**：确保已创建 `.env` 文件
+```bash
+cp .env.example .env
+# 然后编辑 .env 文件填入配置
+```
+
+### Q3: 提示 "Prisma Client could not be generated"
+**解决方案**：运行生成命令
+```bash
+npx prisma generate
+```
+
+### Q4: 数据库表不存在
+**解决方案**：运行数据库同步
+```bash
+npx prisma db push
+```
+
+### Q5: API 调用失败，提示 "QIANFAN_API_KEY not found"
+**解决方案**：检查 `.env` 文件中是否正确配置了 `QIANFAN_API_KEY`
+
+### Q6: ⚠️ `.env` 文件格式错误
+**错误示例**：
+```bash
+DATABASE_URL="file:./dev.db"
+#JWT Secret  # ❌ 注释后面直接跟变量
+JWT_SECRET="xxx"
+```
+
+**正确格式**：
+```bash
+# 数据库连接
+DATABASE_URL="file:./dev.db"
+
+# JWT 密钥（注释必须单独一行）
+JWT_SECRET="xxx"
+```
+
+**关键点**：
+- ✅ 每个注释必须单独一行
+- ✅ 变量定义前不能有注释
+- ✅ 建议使用 `cp .env.example .env` 复制模板
+
+### Q7: 数据库文件损坏或需要重置
+**解决方案**：删除 SQLite 数据库文件并重新初始化
+```bash
+rm prisma/dev.db
+npx prisma db push
+```
+
+### Q8: 评估需要多长时间？
+A: 首次评估通常需要 1-3 分钟（包含技术方案和商业价值两大模块的深度分析）
+
+### Q9: 支持哪些模型？
 A: 目前知识库包含 GPT-4、GPT-3.5、Claude 3 Opus/Sonnet、Llama 3 70B/8B、Mistral Large/7B。可在 `lib/model-knowledge-base.ts` 中添加更多模型。
 
-### Q: 评估结果准确吗？
+### Q10: 评估结果准确吗？
 A: 评估基于 ERNIE-4.5 和精心设计的 Few-Shot 案例，但建议作为决策参考而非唯一依据。复杂场景建议咨询专业 AI 架构师。
 
-### Q: 可以用自己的 API Key 吗？
-A: 是的，在 `.env.local` 中配置 `QIANFAN_API_KEY` 即可。
-
-### Q: 数据会被存储吗？
-A: 评估输入和结果会存储在本地数据库中，关联到你的账号。不会上传到第三方服务器（除了调用百度千帆 API 进行评估）。
+### Q11: 数据会被存储吗？
+A: 评估输入和结果会存储在本地数据库中，关联到你的账号。本地数据和生产环境数据完全隔离，互不影响。
 
 ## 贡献指南
 
