@@ -68,6 +68,8 @@ npx prisma db push
 - 创建本地 SQLite 数据库（`prisma/dev.db`）
 - 创建所有数据表
 
+**无需安装 PostgreSQL！本地开发使用 SQLite，零配置！**
+
 ### 5️⃣ 启动开发服务器
 
 ```bash
@@ -78,60 +80,19 @@ npm run dev
 
 ---
 
-## 🗄️ 数据库选项
+## 🗄️ 数据库说明
 
-### 选项 1: SQLite（推荐 - 本地开发）
-
-**优点**：
-- ✅ 零配置，开箱即用
+**本地开发**：使用 **SQLite**（零配置，开箱即用）
+- ✅ 无需安装数据库软件
 - ✅ 数据存储在本地文件 `prisma/dev.db`
 - ✅ 适合快速开发和测试
 
-**配置**：
-```bash
-DATABASE_URL="file:./dev.db"
-```
+**生产环境（Vercel）**：使用 **PostgreSQL**
+- 🚀 Vercel 部署时自动切换
+- 🔒 使用 Prisma Accelerate 云数据库
+- 📊 支持多用户并发访问
 
-**初始化**：
-```bash
-npx prisma db push
-```
-
----
-
-### 选项 2: PostgreSQL（可选 - 与生产环境一致）
-
-如果您想使用与生产环境相同的数据库：
-
-**步骤**：
-
-1. **安装 PostgreSQL**（如果还没有）：
-   - macOS: `brew install postgresql`
-   - Windows: 下载安装包
-   - Linux: `apt-get install postgresql`
-
-2. **创建数据库**：
-   ```bash
-   createdb ai_calculator
-   ```
-
-3. **修改 `.env`**：
-   ```bash
-   DATABASE_URL="postgresql://username:password@localhost:5432/ai_calculator?schema=public"
-   ```
-
-4. **修改 `prisma/schema.prisma`**：
-   ```prisma
-   datasource db {
-     provider = "postgresql"  // 从 sqlite 改为 postgresql
-     url      = env("DATABASE_URL")
-   }
-   ```
-
-5. **运行迁移**：
-   ```bash
-   npx prisma migrate dev
-   ```
+**您不需要关心生产环境的数据库配置**，clone 代码后直接运行即可！
 
 ---
 
@@ -197,55 +158,19 @@ QIANFAN_API_KEY="your_api_key_here"
 - ✅ 确保没有多余的空格和特殊字符
 - ✅ 建议使用 `cp .env.example .env` 复制模板
 
-### Q7: ⚠️ 数据库 provider 不匹配（重要）
+### Q7: 数据库文件损坏或需要重置
 
-**错误提示**：`P3019: The datasource provider 'postgresql' does not match 'sqlite'`
+**解决方案**：删除 SQLite 数据库文件并重新初始化
 
-**原因**：`prisma/schema.prisma` 中的 `provider` 与 `.env` 中的 `DATABASE_URL` 不匹配
+```bash
+# 删除旧的数据库文件
+rm prisma/dev.db
 
-**解决方案**：
+# 重新初始化
+npx prisma db push
+```
 
-**方案 A：使用 SQLite（推荐本地开发）**
-
-1. 修改 `prisma/schema.prisma`：
-   ```prisma
-   datasource db {
-     provider = "sqlite"  // ✅ 改为 sqlite
-     url      = env("DATABASE_URL")
-   }
-   ```
-
-2. 确保 `.env` 中：
-   ```bash
-   DATABASE_URL="file:./dev.db"
-   ```
-
-3. 初始化数据库：
-   ```bash
-   npx prisma db push
-   ```
-
-**方案 B：使用 PostgreSQL（与生产环境一致）**
-
-1. 保持 `prisma/schema.prisma` 中：
-   ```prisma
-   datasource db {
-     provider = "postgresql"  // ✅ 保持 postgresql
-     url      = env("DATABASE_URL")
-   }
-   ```
-
-2. 修改 `.env` 为 PostgreSQL 连接：
-   ```bash
-   DATABASE_URL="postgresql://username:password@localhost:5432/ai_calculator"
-   ```
-
-3. 运行迁移：
-   ```bash
-   npx prisma migrate dev
-   ```
-
-**建议**：本地开发使用 SQLite（方案 A），简单快速无需额外配置！
+**注意**：这会删除所有本地数据！生产环境数据不受影响。
 
 ---
 
@@ -281,8 +206,8 @@ ai-calculator/
 | `npm run start` | 启动生产服务器 |
 | `npx prisma studio` | 打开数据库可视化工具 |
 | `npx prisma generate` | 生成 Prisma Client |
-| `npx prisma db push` | 同步数据库（SQLite） |
-| `npx prisma migrate dev` | 创建迁移（PostgreSQL） |
+| `npx prisma db push` | 同步数据库结构（本地开发） |
+| `npx prisma db seed` | 运行数据库种子数据 |
 
 ---
 
@@ -291,10 +216,13 @@ ai-calculator/
 ### 修改数据库模型
 
 1. 编辑 `prisma/schema.prisma`
-2. 运行同步命令：
-   - SQLite: `npx prisma db push`
-   - PostgreSQL: `npx prisma migrate dev --name description`
-3. 重新生成 Client: `npx prisma generate`
+2. 同步数据库结构：
+   ```bash
+   npx prisma db push
+   ```
+3. Prisma Client 会自动重新生成
+
+**注意**：本地开发使用 `db push`（快速同步），生产环境自动使用 `migrate`（版本控制）
 
 ### 查看数据库数据
 
