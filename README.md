@@ -72,10 +72,10 @@ npm install --legacy-peer-deps
 复制环境变量模板文件：
 
 ```bash
-cp .env.example .env
+cp .env.local.example .env.local
 ```
 
-编辑 `.env` 文件，填入真实的配置：
+编辑 `.env.local` 文件，填入真实的配置：
 
 ```bash
 # 数据库连接（本地开发使用 SQLite 即可）
@@ -335,10 +335,10 @@ npm install --legacy-peer-deps
 ```
 
 ### Q2: 提示 "Environment variable not found: DATABASE_URL"
-**解决方案**：确保已创建 `.env` 文件
+**解决方案**：确保已创建 `.env.local` 文件
 ```bash
-cp .env.example .env
-# 然后编辑 .env 文件填入配置
+cp .env.local.example .env.local
+# 然后编辑 .env.local 文件填入配置
 ```
 
 ### Q3: 提示 "Prisma Client could not be generated"
@@ -354,7 +354,7 @@ npx prisma db push
 ```
 
 ### Q5: API 调用失败，提示 "QIANFAN_API_KEY not found"
-**解决方案**：检查 `.env` 文件中是否正确配置了 `QIANFAN_API_KEY`
+**解决方案**：检查 `.env.local` 文件中是否正确配置了 `QIANFAN_API_KEY`
 
 ### Q6: ⚠️ `.env` 文件格式错误
 **错误示例**：
@@ -376,7 +376,7 @@ JWT_SECRET="xxx"
 **关键点**：
 - ✅ 每个注释必须单独一行
 - ✅ 变量定义前不能有注释
-- ✅ 建议使用 `cp .env.example .env` 复制模板
+- ✅ 建议使用 `cp .env.local.example .env.local` 复制模板
 
 ### Q7: 数据库文件损坏或需要重置
 **解决方案**：删除 SQLite 数据库文件并重新初始化
