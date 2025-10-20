@@ -169,6 +169,84 @@ npx prisma generate
 
 **解决方案**：检查 `.env` 文件中是否正确配置了 `QIANFAN_API_KEY`
 
+### Q6: ⚠️ `.env` 文件格式错误（重要）
+
+**错误示例**：
+```bash
+DATABASE_URL="file:./dev.db"
+#JWT Secret （请在生产环境中使用强密码）    # ❌ 错误：注释后面直接跟变量
+JWT_SECRET="your-secret-key"
+```
+
+**正确格式**：
+```bash
+# 数据库连接
+DATABASE_URL="file:./dev.db"
+
+# JWT 密钥（注释必须单独一行）
+JWT_SECRET="your-secret-key"
+JWT_EXPIRES_IN="7d"
+
+# 百度千帆 API 密钥
+QIANFAN_API_KEY="your_api_key_here"
+```
+
+**关键点**：
+- ✅ 每个注释必须单独一行
+- ✅ 变量定义前不能有注释
+- ✅ 确保没有多余的空格和特殊字符
+- ✅ 建议使用 `cp .env.example .env` 复制模板
+
+### Q7: ⚠️ 数据库 provider 不匹配（重要）
+
+**错误提示**：`P3019: The datasource provider 'postgresql' does not match 'sqlite'`
+
+**原因**：`prisma/schema.prisma` 中的 `provider` 与 `.env` 中的 `DATABASE_URL` 不匹配
+
+**解决方案**：
+
+**方案 A：使用 SQLite（推荐本地开发）**
+
+1. 修改 `prisma/schema.prisma`：
+   ```prisma
+   datasource db {
+     provider = "sqlite"  // ✅ 改为 sqlite
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+2. 确保 `.env` 中：
+   ```bash
+   DATABASE_URL="file:./dev.db"
+   ```
+
+3. 初始化数据库：
+   ```bash
+   npx prisma db push
+   ```
+
+**方案 B：使用 PostgreSQL（与生产环境一致）**
+
+1. 保持 `prisma/schema.prisma` 中：
+   ```prisma
+   datasource db {
+     provider = "postgresql"  // ✅ 保持 postgresql
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+2. 修改 `.env` 为 PostgreSQL 连接：
+   ```bash
+   DATABASE_URL="postgresql://username:password@localhost:5432/ai_calculator"
+   ```
+
+3. 运行迁移：
+   ```bash
+   npx prisma migrate dev
+   ```
+
+**建议**：本地开发使用 SQLite（方案 A），简单快速无需额外配置！
+
 ---
 
 ## 📂 项目结构
