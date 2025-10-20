@@ -3,10 +3,5 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["hkg1"],
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "QIANFAN_API_KEY": "@qianfan-api-key",
-    "JWT_SECRET": "@jwt-secret"
-  }
+  "regions": ["hkg1"]
 }
