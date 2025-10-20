@@ -72,22 +72,22 @@ npm install --legacy-peer-deps
 **第一步：复制环境变量模板文件**
 
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env
 ```
 
-**第二步：编辑 `.env.local` 文件，填入真实的配置**
+**第二步：编辑 `.env` 文件，填入真实的配置**
 
-使用任意文本编辑器打开 `.env.local` 文件：
+使用任意文本编辑器打开 `.env` 文件：
 
 ```bash
 # 方式1：使用 vim
-vim .env.local
+vim .env
 
 # 方式2：使用 VS Code
-code .env.local
+code .env
 
 # 方式3：使用系统默认编辑器
-open .env.local
+open .env
 ```
 
 **必须修改的配置**：
@@ -107,30 +107,30 @@ JWT_EXPIRES_IN="7d"
 **如何获取 QIANFAN_API_KEY**：
 1. 访问 [百度智能云千帆控制台](https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application)
 2. 创建应用并获取 API Key
-3. 将完整的 API Key 填入 `.env.local` 文件
+3. 将完整的 API Key 填入 `.env` 文件
 4. 格式示例：`bce-v3/ALTAK-DqUYq5oZjYhHmb1DYJylj/c303c3f9d0dd5adb9753ff2d07afff862d38faa2`
 
 > ⚠️ **重要**：`QIANFAN_API_KEY` 必须填入真实的值，否则评估功能无法使用！
 
 #### 4️⃣ 初始化数据库
 
-**⚠️ 重要：在运行此步骤前，请确认已完成步骤 3（创建并配置 `.env.local` 文件）！**
+**⚠️ 重要：在运行此步骤前，请确认已完成步骤 3（创建并配置 `.env` 文件）！**
 
 **第一步：验证环境变量文件是否存在**
 
 ```bash
-# 检查 .env.local 文件是否存在
-ls -la .env.local
+# 检查 .env 文件是否存在
+ls -la .env
 
 # 如果提示 "No such file or directory"，说明文件不存在
-# 请返回步骤 3，执行：cp .env.local.example .env.local
+# 请返回步骤 3，执行：cp .env.example .env
 ```
 
 **第二步：验证环境变量内容**
 
 ```bash
-# 查看 .env.local 文件内容
-cat .env.local
+# 查看 .env 文件内容
+cat .env
 
 # 确认输出中包含：
 # DATABASE_URL="file:./dev.db"
@@ -152,7 +152,7 @@ npx prisma db push
 **无需安装 PostgreSQL！本地开发使用 SQLite，零配置！**
 
 **如果仍然报错 "Environment variable not found: DATABASE_URL"**：
-1. 确认 `.env.local` 文件在项目根目录（与 `package.json` 同级）
+1. 确认 `.env` 文件在项目根目录（与 `package.json` 同级）
 2. 确认文件内容格式正确（每个注释单独一行）
 3. 尝试重启终端后重新运行命令
 
@@ -208,7 +208,7 @@ ai-calculator/
 │   ├── schema.prisma       # 数据库模型
 │   └── dev.db              # SQLite 数据库（开发）
 ├── start.sh                # 一键启动脚本
-├── .env.local.example      # 环境变量示例
+├── .env.example            # 环境变量示例
 └── README.md               # 项目文档
 
 ```
@@ -314,7 +314,7 @@ npm run build
 
 1. **生产环境 JWT 密钥**：必须使用强随机密钥
 2. **数据库迁移**：生产环境建议使用 PostgreSQL 或 MySQL
-3. **API Key 安全**：不要将 `.env.local` 提交到代码仓库
+3. **API Key 安全**：不要将 `.env` 提交到代码仓库
 4. **CORS 配置**：如果前后端分离部署，需要配置 CORS
 
 ## API 文档
@@ -386,7 +386,7 @@ npm install --legacy-peer-deps
 
 ### Q2: 提示 "Environment variable not found: DATABASE_URL"
 
-**原因**：没有创建 `.env.local` 文件，或文件位置不对
+**原因**：没有创建 `.env` 文件，或文件位置不对
 
 **完整解决步骤**：
 
@@ -395,19 +395,19 @@ npm install --legacy-peer-deps
 pwd
 # 应该显示类似：/Users/xxx/ai-calculator
 
-# 2. 检查 .env.local 文件是否存在
-ls -la .env.local
+# 2. 检查 .env 文件是否存在
+ls -la .env
 # 如果显示 "No such file or directory"，说明文件不存在
 
 # 3. 复制模板文件
-cp .env.local.example .env.local
+cp .env.example .env
 
 # 4. 验证文件已创建
-ls -la .env.local
+ls -la .env
 # 应该显示文件信息
 
 # 5. 查看文件内容
-cat .env.local
+cat .env
 # 确认包含 DATABASE_URL="file:./dev.db"
 
 # 6. 重新运行 Prisma 命令
@@ -416,9 +416,9 @@ npx prisma db push
 ```
 
 **特别注意**：
-- `.env.local` 文件必须在**项目根目录**（与 `package.json` 同级）
-- 文件名是 `.env.local`（注意开头有个点 `.`）
-- 不是 `.env` 也不是 `env.local`
+- `.env` 文件必须在**项目根目录**（与 `package.json` 同级）
+- 文件名是 `.env`（注意开头有个点 `.`）
+- Prisma CLI 只读取 `.env` 文件，不读取 `.env.local`
 
 ### Q3: 提示 "Prisma Client could not be generated"
 **解决方案**：运行生成命令
@@ -433,7 +433,7 @@ npx prisma db push
 ```
 
 ### Q5: API 调用失败，提示 "QIANFAN_API_KEY not found"
-**解决方案**：检查 `.env.local` 文件中是否正确配置了 `QIANFAN_API_KEY`
+**解决方案**：检查 `.env` 文件中是否正确配置了 `QIANFAN_API_KEY`
 
 ### Q6: ⚠️ `.env` 文件格式错误
 **错误示例**：
@@ -455,7 +455,7 @@ JWT_SECRET="xxx"
 **关键点**：
 - ✅ 每个注释必须单独一行
 - ✅ 变量定义前不能有注释
-- ✅ 建议使用 `cp .env.local.example .env.local` 复制模板
+- ✅ 建议使用 `cp .env.example .env` 复制模板
 
 ### Q7: 数据库文件损坏或需要重置
 **解决方案**：删除 SQLite 数据库文件并重新初始化
