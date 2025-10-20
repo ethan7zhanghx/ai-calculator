@@ -1,13 +1,28 @@
-/**
- * 技术方案评估详细展示组件
- * 展示LLM深度评估的完整结果
- */
+"use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { CheckCircle2, XCircle, AlertCircle, TrendingUp } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Target,
+  Brain,
+  Database,
+  Map,
+  Zap,
+  DollarSign,
+  Shield,
+  Lightbulb,
+  AlertTriangle,
+} from "lucide-react"
 
 interface TechnicalEvaluationDetailedProps {
   evaluation: {
@@ -59,52 +74,76 @@ interface TechnicalEvaluationDetailedProps {
 export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationDetailedProps) {
   const { dimensions } = evaluation
 
-  // 状态图标和颜色映射
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "matched":
-      case "necessary":
-      case "sufficient":
-      case "reasonable":
-        return <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" />匹配</Badge>
-      case "mismatched":
-      case "unnecessary":
-      case "insufficient":
-      case "excessive":
-        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />不匹配</Badge>
-      case "partial":
-      case "debatable":
-      case "marginal":
-      case "high":
-        return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />部分</Badge>
-      default:
-        return null
+  // 状态徽章
+  const getStatusBadge = (type: string, value: string | boolean) => {
+    const configs: Record<string, Record<string, { variant: any; icon: any; label: string }>> = {
+      alignment: {
+        matched: { variant: "default", icon: CheckCircle2, label: "完全匹配" },
+        partial: { variant: "secondary", icon: AlertCircle, label: "部分匹配" },
+        mismatched: { variant: "destructive", icon: XCircle, label: "不匹配" },
+      },
+      necessity: {
+        necessary: { variant: "default", icon: CheckCircle2, label: "必要" },
+        debatable: { variant: "secondary", icon: AlertCircle, label: "存疑" },
+        unnecessary: { variant: "destructive", icon: XCircle, label: "非必要" },
+      },
+      adequacy: {
+        sufficient: { variant: "default", icon: CheckCircle2, label: "充足" },
+        marginal: { variant: "secondary", icon: AlertCircle, label: "勉强" },
+        insufficient: { variant: "destructive", icon: XCircle, label: "不足" },
+      },
+      boolean: {
+        true: { variant: "default", icon: CheckCircle2, label: "是" },
+        false: { variant: "secondary", icon: XCircle, label: "否" },
+      },
+      reasonable: {
+        true: { variant: "default", icon: CheckCircle2, label: "合理" },
+        false: { variant: "destructive", icon: XCircle, label: "不合理" },
+      },
+      cost: {
+        reasonable: { variant: "default", icon: CheckCircle2, label: "合理" },
+        high: { variant: "secondary", icon: AlertCircle, label: "偏高" },
+        excessive: { variant: "destructive", icon: XCircle, label: "过高" },
+      },
     }
+
+    const config = configs[type]?.[String(value)]
+    if (!config) return null
+
+    const Icon = config.icon
+    return (
+      <Badge variant={config.variant} className="gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* 总结 */}
+      {/* 评估总结 */}
       <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
+        <h4 className="font-semibold mb-2 flex items-center gap-2">
+          <Lightbulb className="h-5 w-5 text-primary" />
           评估总结
         </h4>
-        <p className="text-sm leading-relaxed">{evaluation.summary}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+          {evaluation.summary}
+        </p>
       </div>
 
       {/* 致命问题 */}
       {evaluation.criticalIssues.length > 0 && (
-        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-          <h4 className="font-semibold text-sm mb-2 text-red-600 dark:text-red-400 flex items-center gap-2">
-            <XCircle className="h-4 w-4" />
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950 dark:border-red-800">
+          <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-900 dark:text-red-100">
+            <XCircle className="h-5 w-5" />
             致命问题
           </h4>
           <ul className="space-y-2">
-            {evaluation.criticalIssues.map((issue, i) => (
-              <li key={i} className="text-sm flex gap-2">
-                <span className="text-red-600 dark:text-red-400 mt-0.5">•</span>
-                <span>{issue}</span>
+            {evaluation.criticalIssues.map((issue, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm text-red-800 dark:text-red-200">
+                <span className="text-red-500 mt-0.5">•</span>
+                <span className="leading-relaxed">{issue}</span>
               </li>
             ))}
           </ul>
@@ -113,253 +152,245 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
 
       {/* 警告 */}
       {evaluation.warnings.length > 0 && (
-        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-          <h4 className="font-semibold text-sm mb-2 text-amber-600 dark:text-amber-400 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+          <h4 className="font-semibold mb-3 flex items-center gap-2 text-amber-900 dark:text-amber-100">
+            <AlertTriangle className="h-5 w-5" />
             警告
           </h4>
           <ul className="space-y-2">
-            {evaluation.warnings.map((warning, i) => (
-              <li key={i} className="text-sm flex gap-2">
-                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                <span>{warning}</span>
+            {evaluation.warnings.map((warning, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+                <span className="text-amber-500 mt-0.5">•</span>
+                <span className="leading-relaxed">{warning}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      <Separator />
-
-      {/* 详细维度分析 - 使用手风琴 */}
-      <Accordion type="multiple" className="w-full" defaultValue={["alignment", "necessity", "finetuning", "roadmap"]}>
+      {/* 详细维度分析 */}
+      <Accordion type="multiple" defaultValue={["alignment", "necessity", "finetuning", "roadmap"]} className="space-y-2">
         {/* 1. 模型与业务匹配度 */}
-        <AccordionItem value="alignment">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">模型与业务匹配度</span>
-              {getStatusBadge(dimensions.modelTaskAlignment.status)}
+        <AccordionItem value="alignment" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                <span className="font-semibold">模型与业务匹配度</span>
+              </div>
+              {getStatusBadge("alignment", dimensions.modelTaskAlignment.status)}
             </div>
           </AccordionTrigger>
-          <AccordionContent>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {dimensions.modelTaskAlignment.analysis}
-                </p>
-              </CardContent>
-            </Card>
+          <AccordionContent className="pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {dimensions.modelTaskAlignment.analysis}
+            </p>
           </AccordionContent>
         </AccordionItem>
 
         {/* 2. 大模型必要性 */}
-        <AccordionItem value="necessity">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">大模型必要性</span>
-              {getStatusBadge(dimensions.llmNecessity.status)}
+        <AccordionItem value="necessity" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                <span className="font-semibold">大模型必要性</span>
+              </div>
+              {getStatusBadge("necessity", dimensions.llmNecessity.status)}
             </div>
           </AccordionTrigger>
-          <AccordionContent>
-            <Card>
-              <CardContent className="pt-4 space-y-3">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {dimensions.llmNecessity.analysis}
+          <AccordionContent className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {dimensions.llmNecessity.analysis}
+            </p>
+
+            {dimensions.llmNecessity.alternatives && (
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                <h5 className="font-medium text-sm mb-2 text-blue-900 dark:text-blue-100">替代方案</h5>
+                <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                  {dimensions.llmNecessity.alternatives}
                 </p>
-                {dimensions.llmNecessity.alternatives && (
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                    <h5 className="text-xs font-semibold mb-1 text-blue-600 dark:text-blue-400">替代方案：</h5>
-                    <p className="text-sm text-blue-900 dark:text-blue-100">{dimensions.llmNecessity.alternatives}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </AccordionContent>
         </AccordionItem>
 
-        {/* 3. 微调评估 */}
-        <AccordionItem value="finetuning">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">微调必要性与数据充分性</span>
-              <Badge variant={dimensions.fineTuning.necessary ? "default" : "secondary"}>
-                {dimensions.fineTuning.necessary ? "需要微调" : "无需微调"}
-              </Badge>
-              {getStatusBadge(dimensions.fineTuning.dataAdequacy)}
+        {/* 3. 微调必要性与数据充分性 */}
+        <AccordionItem value="finetuning" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                <span className="font-semibold">微调必要性与数据充分性</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {getStatusBadge("boolean", dimensions.fineTuning.necessary)}
+                {getStatusBadge("adequacy", dimensions.fineTuning.dataAdequacy)}
+              </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {dimensions.fineTuning.analysis}
-                </p>
-              </CardContent>
-            </Card>
+          <AccordionContent className="pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {dimensions.fineTuning.analysis}
+            </p>
           </AccordionContent>
         </AccordionItem>
 
         {/* 4. 业务可行性与实施路径 */}
-        <AccordionItem value="roadmap">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">业务可行性与实施路径</span>
-              <Badge variant={dimensions.implementationRoadmap.feasible ? "default" : "destructive"}>
-                {dimensions.implementationRoadmap.feasible ? "可行" : "不可行"}
-              </Badge>
+        <AccordionItem value="roadmap" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Map className="h-5 w-5 text-primary" />
+                <span className="font-semibold">业务可行性与实施路径</span>
+              </div>
+              {getStatusBadge("boolean", dimensions.implementationRoadmap.feasible)}
             </div>
           </AccordionTrigger>
-          <AccordionContent>
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {dimensions.implementationRoadmap.analysis}
-                </p>
+          <AccordionContent className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {dimensions.implementationRoadmap.analysis}
+            </p>
 
-                {/* 分阶段实施路径 */}
-                {(dimensions.implementationRoadmap.phases.shortTerm ||
-                  dimensions.implementationRoadmap.phases.midTerm ||
-                  dimensions.implementationRoadmap.phases.notRecommended) && (
-                  <div className="space-y-3">
-                    <h5 className="text-sm font-semibold">实施路径：</h5>
+            {/* 分阶段实施路径 */}
+            {(dimensions.implementationRoadmap.phases.shortTerm ||
+              dimensions.implementationRoadmap.phases.midTerm ||
+              dimensions.implementationRoadmap.phases.notRecommended) && (
+              <div className="space-y-3">
+                <h5 className="font-medium text-sm">分阶段实施路径</h5>
 
-                    {/* 短期可落地 */}
-                    {dimensions.implementationRoadmap.phases.shortTerm && (
-                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                        <h6 className="text-xs font-semibold mb-2 text-green-600 dark:text-green-400 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          短期可落地 (1-2个月)
-                        </h6>
-                        <ul className="space-y-1">
-                          {dimensions.implementationRoadmap.phases.shortTerm.map((item, i) => (
-                            <li key={i} className="text-sm flex gap-2">
-                              <span className="text-green-600 dark:text-green-400">→</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* 中期可落地 */}
-                    {dimensions.implementationRoadmap.phases.midTerm && (
-                      <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                        <h6 className="text-xs font-semibold mb-2 text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          中期可落地 (3-6个月)
-                        </h6>
-                        <ul className="space-y-1">
-                          {dimensions.implementationRoadmap.phases.midTerm.map((item, i) => (
-                            <li key={i} className="text-sm flex gap-2">
-                              <span className="text-blue-600 dark:text-blue-400">→</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* 不建议 */}
-                    {dimensions.implementationRoadmap.phases.notRecommended && (
-                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                        <h6 className="text-xs font-semibold mb-2 text-red-600 dark:text-red-400 flex items-center gap-1">
-                          <XCircle className="h-3 w-3" />
-                          不建议做
-                        </h6>
-                        <ul className="space-y-1">
-                          {dimensions.implementationRoadmap.phases.notRecommended.map((item, i) => (
-                            <li key={i} className="text-sm flex gap-2">
-                              <span className="text-red-600 dark:text-red-400">✗</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                {/* 短期可落地 */}
+                {dimensions.implementationRoadmap.phases.shortTerm && (
+                  <div className="p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800">
+                    <h6 className="font-medium text-sm mb-2 text-green-900 dark:text-green-100 flex items-center gap-1">
+                      <CheckCircle2 className="h-4 w-4" />
+                      短期可落地 (1-2个月)
+                    </h6>
+                    <ul className="space-y-1">
+                      {dimensions.implementationRoadmap.phases.shortTerm.map((item, i) => (
+                        <li key={i} className="text-sm text-green-800 dark:text-green-200 flex items-start gap-2">
+                          <span className="text-green-600 mt-0.5">→</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+
+                {/* 中期可落地 */}
+                {dimensions.implementationRoadmap.phases.midTerm && (
+                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                    <h6 className="font-medium text-sm mb-2 text-blue-900 dark:text-blue-100 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      中期可落地 (3-6个月)
+                    </h6>
+                    <ul className="space-y-1">
+                      {dimensions.implementationRoadmap.phases.midTerm.map((item, i) => (
+                        <li key={i} className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                          <span className="text-blue-600 mt-0.5">→</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 不建议做 */}
+                {dimensions.implementationRoadmap.phases.notRecommended && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950 dark:border-red-800">
+                    <h6 className="font-medium text-sm mb-2 text-red-900 dark:text-red-100 flex items-center gap-1">
+                      <XCircle className="h-4 w-4" />
+                      不建议做
+                    </h6>
+                    <ul className="space-y-1">
+                      {dimensions.implementationRoadmap.phases.notRecommended.map((item, i) => (
+                        <li key={i} className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
+                          <span className="text-red-600 mt-0.5">✗</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </AccordionContent>
         </AccordionItem>
 
         {/* 5. 性能需求合理性 */}
-        <AccordionItem value="performance">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">性能需求合理性</span>
-              {getStatusBadge(dimensions.performanceRequirements.reasonable ? "reasonable" : "excessive")}
+        <AccordionItem value="performance" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <span className="font-semibold">性能需求合理性</span>
+              </div>
+              {getStatusBadge("reasonable", dimensions.performanceRequirements.reasonable)}
             </div>
           </AccordionTrigger>
-          <AccordionContent>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {dimensions.performanceRequirements.analysis}
-                </p>
-              </CardContent>
-            </Card>
+          <AccordionContent className="pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {dimensions.performanceRequirements.analysis}
+            </p>
           </AccordionContent>
         </AccordionItem>
 
         {/* 6. 成本效益 */}
-        <AccordionItem value="cost">
-          <AccordionTrigger>
-            <div className="flex items-center gap-2">
-              <span className="font-medium">成本效益</span>
-              {getStatusBadge(dimensions.costEfficiency.level)}
+        <AccordionItem value="cost" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                <span className="font-semibold">成本效益</span>
+              </div>
+              {getStatusBadge("cost", dimensions.costEfficiency.level)}
             </div>
           </AccordionTrigger>
-          <AccordionContent>
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {dimensions.costEfficiency.analysis}
-                </p>
-              </CardContent>
-            </Card>
+          <AccordionContent className="pt-4">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {dimensions.costEfficiency.analysis}
+            </p>
           </AccordionContent>
         </AccordionItem>
 
         {/* 7. 领域特殊考虑 */}
         {dimensions.domainConsiderations?.applicable && (
-          <AccordionItem value="domain">
-            <AccordionTrigger>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">领域特殊考虑</span>
-                <Badge variant="secondary">适用</Badge>
+          <AccordionItem value="domain" className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center justify-between w-full pr-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">领域特殊考虑</span>
+                </div>
+                <Badge variant="default">适用</Badge>
               </div>
             </AccordionTrigger>
-            <AccordionContent>
-              <Card>
-                <CardContent className="pt-4">
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {dimensions.domainConsiderations.analysis}
-                  </p>
-                </CardContent>
-              </Card>
+            <AccordionContent className="pt-4">
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {dimensions.domainConsiderations.analysis}
+              </p>
             </AccordionContent>
           </AccordionItem>
         )}
       </Accordion>
 
-      <Separator />
-
       {/* 实施建议 */}
-      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-        <h4 className="font-semibold text-sm mb-3 text-blue-600 dark:text-blue-400 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4" />
-          实施建议
-        </h4>
-        <ul className="space-y-2">
-          {evaluation.recommendations.map((rec, i) => (
-            <li key={i} className="text-sm flex gap-2">
-              <span className="text-blue-600 dark:text-blue-400 mt-0.5">→</span>
-              <span>{rec}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {evaluation.recommendations.length > 0 && (
+        <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+          <h4 className="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
+            <Lightbulb className="h-5 w-5" />
+            实施建议
+          </h4>
+          <ul className="space-y-2">
+            {evaluation.recommendations.map((rec, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span className="leading-relaxed">{rec}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

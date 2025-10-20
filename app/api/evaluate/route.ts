@@ -4,6 +4,7 @@ import { withOptionalAuth } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import type { JWTPayload } from "@/lib/jwt"
 import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
+import { evaluateBusinessValue } from "@/lib/business-evaluator"
 
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
@@ -142,9 +143,27 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
     ]
     const technicalRecommendations = technicalEvaluation.recommendations
 
-    // 商业价值评估 (演示用AI生成的分析)
-    const businessAnalysis = generateBusinessAnalysis(body)
-    const businessScore = calculateBusinessScore(body)
+    // 商业价值评估 - 使用LLM深度评估
+    let businessEvaluation
+    try {
+      businessEvaluation = await evaluateBusinessValue(body)
+    } catch (error) {
+      console.error("商业价值评估失败:", error)
+      // 如果LLM评估失败，返回错误
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: {
+            code: "EVALUATION_FAILED",
+            message: error instanceof Error ? error.message : "商业价值评估服务暂时不可用",
+          },
+        },
+        { status: 503 }
+      )
+    }
+
+    const businessScore = businessEvaluation.score
+    const businessAnalysis = businessEvaluation.summary
 
     const evaluationId = `eval_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
@@ -202,8 +221,10 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
     const businessValue = {
       score: businessScore,
       analysis: businessAnalysis,
-      risks: generateRisks(body),
-      opportunities: generateOpportunities(body),
+      risks: businessEvaluation.risks,
+      opportunities: businessEvaluation.opportunities,
+      // 保存完整的LLM评估结果
+      detailedEvaluation: businessEvaluation,
     }
 
     // 如果用户已登录,保存评估历史到数据库
@@ -262,87 +283,3 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
   }
 })
 
-// 演示用的商业价值分析生成函数
-function generateBusinessAnalysis(req: EvaluationRequest): string {
-  const scenario = req.businessScenario || "未指定业务场景"
-  const dataVolume = req.businessData?.volume || 0
-  const qps = req.performanceRequirements?.qps || 0
-
-  return `基于您提供的信息,该AI项目旨在${scenario}。
-
-数据规模: ${dataVolume.toLocaleString()}条记录
-性能要求: ${qps} QPS, ${req.performanceRequirements?.concurrency || 0}并发用户
-
-商业价值分析:
-1. 规模化潜力: ${dataVolume > 10000 ? "数据量充足,具有良好的规模化基础" : "数据量偏少,可能影响模型效果"}
-2. 性能目标: ${qps > 100 ? "高QPS要求体现了业务的活跃度" : "QPS要求适中,适合起步阶段"}
-3. 技术成熟度: 所选模型${req.model}在业界已有成熟应用,技术风险可控
-
-总体来看,该项目${dataVolume > 5000 && qps > 10 ? "具有较好的商业价值" : "需要进一步验证商业价值"}。`
-}
-
-function calculateBusinessScore(req: EvaluationRequest): number {
-  let score = 50 // 基础分
-
-  // 数据量评分
-  const volume = req.businessData?.volume || 0
-  if (volume > 100000) score += 20
-  else if (volume > 10000) score += 15
-  else if (volume > 1000) score += 10
-
-  // 性能要求评分
-  const qps = req.performanceRequirements?.qps || 0
-  if (qps > 100) score += 15
-  else if (qps > 10) score += 10
-  else if (qps > 1) score += 5
-
-  // 数据质量评分
-  if (req.businessData?.quality === "high") score += 15
-  else if (req.businessData?.quality === "medium") score += 10
-
-  return Math.min(score, 100)
-}
-
-function generateRisks(req: EvaluationRequest): string[] {
-  const risks: string[] = []
-
-  if ((req.businessData?.volume || 0) < 1000) {
-    risks.push("数据量较小,可能导致模型过拟合")
-  }
-
-  if (req.businessData?.quality === "low") {
-    risks.push("数据质量较低,需要投入清洗和标注成本")
-  }
-
-  if ((req.performanceRequirements?.qps || 0) > 1000) {
-    risks.push("高QPS要求可能需要大量硬件投入")
-  }
-
-  if (risks.length === 0) {
-    risks.push("整体风险可控,建议做好充分的测试")
-  }
-
-  return risks
-}
-
-function generateOpportunities(req: EvaluationRequest): string[] {
-  const opportunities: string[] = []
-
-  if ((req.businessData?.volume || 0) > 10000) {
-    opportunities.push("充足的数据量为模型优化提供了良好基础")
-  }
-
-  if (req.businessData?.quality === "high") {
-    opportunities.push("高质量数据可以显著提升模型效果")
-  }
-
-  if (req.businessData?.dataTypes?.includes("qa_pair")) {
-    opportunities.push("QA对数据特别适合对话式AI应用")
-  }
-
-  if (opportunities.length === 0) {
-    opportunities.push("建议从小规模试点开始,验证技术方案")
-  }
-
-  return opportunities
-}
