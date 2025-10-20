@@ -6,6 +6,9 @@ import type { JWTPayload } from "@/lib/jwt"
 import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 import { evaluateBusinessValue } from "@/lib/business-evaluator"
 
+// 配置函数最大执行时间（Vercel 免费版最多 10 秒）
+export const maxDuration = 10
+
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
   "NVIDIA A100 (80GB)": { vram: 80 },
@@ -117,19 +120,25 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       },
     ]
 
-    // 技术方案评估 - 使用LLM深度评估
+    // 并行执行技术方案评估和商业价值评估 - 节省时间
     let technicalEvaluation
+    let businessEvaluation
+
     try {
-      technicalEvaluation = await evaluateTechnicalSolution(body)
+      // 使用 Promise.all 并行执行两个 LLM 调用
+      [technicalEvaluation, businessEvaluation] = await Promise.all([
+        evaluateTechnicalSolution(body),
+        evaluateBusinessValue(body)
+      ])
     } catch (error) {
-      console.error("技术评估失败:", error)
-      // 如果LLM评估失败，返回错误
+      console.error("评估失败:", error)
+      // 如果 LLM 评估失败，返回错误
       return NextResponse.json<ApiResponse>(
         {
           success: false,
           error: {
             code: "EVALUATION_FAILED",
-            message: error instanceof Error ? error.message : "技术方案评估服务暂时不可用",
+            message: error instanceof Error ? error.message : "AI 评估服务暂时不可用，请稍后重试",
           },
         },
         { status: 503 }
@@ -142,25 +151,6 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       ...technicalEvaluation.warnings,
     ]
     const technicalRecommendations = technicalEvaluation.recommendations
-
-    // 商业价值评估 - 使用LLM深度评估
-    let businessEvaluation
-    try {
-      businessEvaluation = await evaluateBusinessValue(body)
-    } catch (error) {
-      console.error("商业价值评估失败:", error)
-      // 如果LLM评估失败，返回错误
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: {
-            code: "EVALUATION_FAILED",
-            message: error instanceof Error ? error.message : "商业价值评估服务暂时不可用",
-          },
-        },
-        { status: 503 }
-      )
-    }
 
     const businessScore = businessEvaluation.score
     const businessAnalysis = businessEvaluation.summary
