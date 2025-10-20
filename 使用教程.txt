@@ -27,6 +27,7 @@ Mac 用户（推荐使用终端安装）：
 
 步骤2：使用 Homebrew 安装 Node.js
    a. 在终端中输入以下命令，然后按回车：
+      brew update
       brew install node
    b. 等待安装完成（通常需要几分钟）
 
