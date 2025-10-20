@@ -67,35 +67,77 @@ npm install --legacy-peer-deps
 
 > **注意**: 必须使用 `--legacy-peer-deps` 标志，因为项目使用了 React 19。
 
-#### 3️⃣ 配置环境变量
+#### 3️⃣ 配置环境变量 ⚠️ 重要
 
-复制环境变量模板文件：
+**第一步：复制环境变量模板文件**
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-编辑 `.env.local` 文件，填入真实的配置：
+**第二步：编辑 `.env.local` 文件，填入真实的配置**
+
+使用任意文本编辑器打开 `.env.local` 文件：
 
 ```bash
-# 数据库连接（本地开发使用 SQLite 即可）
+# 方式1：使用 vim
+vim .env.local
+
+# 方式2：使用 VS Code
+code .env.local
+
+# 方式3：使用系统默认编辑器
+open .env.local
+```
+
+**必须修改的配置**：
+
+```bash
+# 数据库连接（保持默认即可）
 DATABASE_URL="file:./dev.db"
 
-# 百度千帆 API 密钥（必填）
-QIANFAN_API_KEY="your_actual_api_key_here"
+# 百度千帆 API 密钥（⚠️ 必须填入真实的 API Key）
+QIANFAN_API_KEY="bce-v3/ALTAK-xxxxxxx/xxxxxxx"  # ← 替换成你的真实 API Key
 
-# JWT 密钥（必填，任意 32 位以上随机字符串）
+# JWT 密钥（可以保持默认，或自定义 32 位以上随机字符串）
 JWT_SECRET="your-local-jwt-secret-key-change-this"
 JWT_EXPIRES_IN="7d"
 ```
 
-**获取 QIANFAN_API_KEY**：
-1. 访问 [百度智能云控制台](https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application)
-2. 创建应用并获取 API Key 和 Secret Key
-3. 将 API Key 填入 `.env` 文件
-4. 格式示例：`bce-v3/ALTAK-xxxxxxx/xxxxxxx`
+**如何获取 QIANFAN_API_KEY**：
+1. 访问 [百度智能云千帆控制台](https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application)
+2. 创建应用并获取 API Key
+3. 将完整的 API Key 填入 `.env.local` 文件
+4. 格式示例：`bce-v3/ALTAK-DqUYq5oZjYhHmb1DYJylj/c303c3f9d0dd5adb9753ff2d07afff862d38faa2`
+
+> ⚠️ **重要**：`QIANFAN_API_KEY` 必须填入真实的值，否则评估功能无法使用！
 
 #### 4️⃣ 初始化数据库
+
+**⚠️ 重要：在运行此步骤前，请确认已完成步骤 3（创建并配置 `.env.local` 文件）！**
+
+**第一步：验证环境变量文件是否存在**
+
+```bash
+# 检查 .env.local 文件是否存在
+ls -la .env.local
+
+# 如果提示 "No such file or directory"，说明文件不存在
+# 请返回步骤 3，执行：cp .env.local.example .env.local
+```
+
+**第二步：验证环境变量内容**
+
+```bash
+# 查看 .env.local 文件内容
+cat .env.local
+
+# 确认输出中包含：
+# DATABASE_URL="file:./dev.db"
+# QIANFAN_API_KEY=bce-v3/ALTAK-xxxxx（你的真实 API Key）
+```
+
+**第三步：初始化数据库**
 
 ```bash
 npx prisma generate
@@ -108,6 +150,11 @@ npx prisma db push
 - 创建所有数据表
 
 **无需安装 PostgreSQL！本地开发使用 SQLite，零配置！**
+
+**如果仍然报错 "Environment variable not found: DATABASE_URL"**：
+1. 确认 `.env.local` 文件在项目根目录（与 `package.json` 同级）
+2. 确认文件内容格式正确（每个注释单独一行）
+3. 尝试重启终端后重新运行命令
 
 #### 5️⃣ 启动开发服务器
 
@@ -232,17 +279,20 @@ ai-calculator/
 ### 本地开发
 
 ```bash
-# 安装依赖
-npm install
+# 安装依赖（必须使用 --legacy-peer-deps）
+npm install --legacy-peer-deps
 
 # 启动开发服务器
 npm run dev
 
-# 数据库迁移
-npx prisma migrate dev
+# 同步数据库结构（本地开发使用）
+npx prisma db push
 
-# 查看数据库
+# 查看数据库（可视化工具）
 npx prisma studio
+
+# 重新生成 Prisma Client
+npx prisma generate
 
 # 类型检查
 npx tsc --noEmit
@@ -335,11 +385,40 @@ npm install --legacy-peer-deps
 ```
 
 ### Q2: 提示 "Environment variable not found: DATABASE_URL"
-**解决方案**：确保已创建 `.env.local` 文件
+
+**原因**：没有创建 `.env.local` 文件，或文件位置不对
+
+**完整解决步骤**：
+
 ```bash
+# 1. 确认当前在项目根目录
+pwd
+# 应该显示类似：/Users/xxx/ai-calculator
+
+# 2. 检查 .env.local 文件是否存在
+ls -la .env.local
+# 如果显示 "No such file or directory"，说明文件不存在
+
+# 3. 复制模板文件
 cp .env.local.example .env.local
-# 然后编辑 .env.local 文件填入配置
+
+# 4. 验证文件已创建
+ls -la .env.local
+# 应该显示文件信息
+
+# 5. 查看文件内容
+cat .env.local
+# 确认包含 DATABASE_URL="file:./dev.db"
+
+# 6. 重新运行 Prisma 命令
+npx prisma generate
+npx prisma db push
 ```
+
+**特别注意**：
+- `.env.local` 文件必须在**项目根目录**（与 `package.json` 同级）
+- 文件名是 `.env.local`（注意开头有个点 `.`）
+- 不是 `.env` 也不是 `env.local`
 
 ### Q3: 提示 "Prisma Client could not be generated"
 **解决方案**：运行生成命令
