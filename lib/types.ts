@@ -61,6 +61,51 @@ export interface TechnicalFeasibility {
   score: number
   issues: string[]
   recommendations: string[]
+  // 完整的LLM评估结果（可选，用于详细展示）
+  detailedEvaluation?: {
+    score: number
+    summary: string
+    dimensions: {
+      modelTaskAlignment: {
+        status: "matched" | "mismatched" | "partial"
+        analysis: string
+      }
+      llmNecessity: {
+        status: "necessary" | "unnecessary" | "debatable"
+        analysis: string
+        alternatives?: string
+      }
+      fineTuning: {
+        necessary: boolean
+        dataAdequacy: "sufficient" | "marginal" | "insufficient"
+        analysis: string
+      }
+      implementationRoadmap: {
+        feasible: boolean
+        analysis: string
+        phases: {
+          shortTerm?: string[]
+          midTerm?: string[]
+          notRecommended?: string[]
+        }
+      }
+      performanceRequirements: {
+        reasonable: boolean
+        analysis: string
+      }
+      costEfficiency: {
+        level: "reasonable" | "high" | "excessive"
+        analysis: string
+      }
+      domainConsiderations?: {
+        applicable: boolean
+        analysis: string
+      }
+    }
+    criticalIssues: string[]
+    warnings: string[]
+    recommendations: string[]
+  }
 }
 
 export interface BusinessValue {

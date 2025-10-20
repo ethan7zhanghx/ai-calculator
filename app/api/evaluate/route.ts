@@ -3,6 +3,7 @@ import type { ApiResponse, EvaluationRequest, EvaluationResponse } from "@/lib/t
 import { withOptionalAuth } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import type { JWTPayload } from "@/lib/jwt"
+import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
@@ -115,26 +116,31 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       },
     ]
 
-    // 技术方案评估
-    const scenarioLower = body.businessScenario?.toLowerCase() || ""
-    const hasOCR = scenarioLower.includes("ocr") || scenarioLower.includes("文字识别")
-    const hasVision = scenarioLower.includes("图像") || scenarioLower.includes("视觉") || scenarioLower.includes("图片")
-    const isTextModel = !body.model.includes("Vision") && !body.model.includes("视觉")
-
-    const technicalIssues: string[] = []
-    const technicalRecommendations: string[] = []
-
-    if (hasOCR) {
-      technicalIssues.push("检测到OCR需求,大语言模型可能不是最优选择")
-      technicalRecommendations.push("建议考虑专门的OCR方案如PaddleOCR、Tesseract")
+    // 技术方案评估 - 使用LLM深度评估
+    let technicalEvaluation
+    try {
+      technicalEvaluation = await evaluateTechnicalSolution(body)
+    } catch (error) {
+      console.error("技术评估失败:", error)
+      // 如果LLM评估失败，返回错误
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: {
+            code: "EVALUATION_FAILED",
+            message: error instanceof Error ? error.message : "技术方案评估服务暂时不可用",
+          },
+        },
+        { status: 503 }
+      )
     }
 
-    if (hasVision && isTextModel) {
-      technicalIssues.push("业务有视觉需求但选择了文本模型")
-      technicalRecommendations.push("建议选择多模态模型如GPT-4V、Claude 3")
-    }
-
-    const technicalScore = technicalIssues.length === 0 ? 90 : technicalIssues.length === 1 ? 60 : 30
+    const technicalScore = technicalEvaluation.score
+    const technicalIssues = [
+      ...technicalEvaluation.criticalIssues,
+      ...technicalEvaluation.warnings,
+    ]
+    const technicalRecommendations = technicalEvaluation.recommendations
 
     // 商业价值评估 (演示用AI生成的分析)
     const businessAnalysis = generateBusinessAnalysis(body)
@@ -189,6 +195,8 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       score: technicalScore,
       issues: technicalIssues,
       recommendations: technicalRecommendations,
+      // 保存完整的LLM评估结果
+      detailedEvaluation: technicalEvaluation,
     }
 
     const businessValue = {

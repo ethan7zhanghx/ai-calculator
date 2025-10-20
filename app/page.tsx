@@ -24,6 +24,8 @@ import { FeedbackButton } from "@/components/feedback-button"
 import { ResourceCard } from "@/components/resource-card"
 import { EvaluationDashboard } from "@/components/evaluation-dashboard"
 import { BusinessValueChart } from "@/components/business-value-chart"
+import { TechnicalEvaluationDetailed } from "@/components/technical-evaluation-detailed"
+import { EvaluationProgress } from "@/components/evaluation-progress"
 import { MultiSelect, type Option } from "@/components/multi-select"
 import { InputSummary } from "@/components/input-summary"
 import { useToast } from "@/hooks/use-toast"
@@ -530,7 +532,11 @@ export default function AIRequirementsCalculator() {
 
           {/* 评估结果 */}
           <div className="space-y-6" id="evaluation-results">
-            {!evaluation ? (
+            {isEvaluating ? (
+              /* 评估中 - 显示进度 */
+              <EvaluationProgress />
+            ) : !evaluation ? (
+              /* 等待评估 */
               <Card className="shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                   <Calculator className="h-16 w-16 text-muted-foreground mb-4" />
@@ -570,6 +576,7 @@ export default function AIRequirementsCalculator() {
                 </CardContent>
               </Card>
             ) : (
+              /* 评估结果 */
               <>
                 {/* 评估总览仪表盘 */}
                 <EvaluationDashboard evaluation={evaluation} />
@@ -678,13 +685,23 @@ export default function AIRequirementsCalculator() {
                 {/* 技术方案合理性评估 */}
                 <Card className="shadow-lg">
                   <CardHeader>
-                    <CardTitle>技术方案合理性评估</CardTitle>
-                    <CardDescription>评估技术选型是否合理</CardDescription>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>技术方案合理性评估</span>
+                      {/* 评分显示 */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">评分:</span>
+                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
+                          <span className="text-lg font-bold">{evaluation.technicalFeasibility.score}</span>
+                          <span className="text-sm">/100</span>
+                        </div>
+                      </div>
+                    </CardTitle>
+                    <CardDescription>AI深度评估技术选型是否合理</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* 评分仪表 */}
-                    <div className="relative py-6">
-                      <div className="flex h-4 rounded-full overflow-hidden">
+                  <CardContent>
+                    {/* 评分条 */}
+                    <div className="relative py-4 mb-6">
+                      <div className="flex h-3 rounded-full overflow-hidden">
                         <div className="flex-1 bg-red-500 opacity-30" />
                         <div className="flex-1 bg-amber-500 opacity-30" />
                         <div className="flex-1 bg-blue-500 opacity-30" />
@@ -697,46 +714,44 @@ export default function AIRequirementsCalculator() {
                           transform: "translateX(-50%)",
                         }}
                       >
-                        <div className="flex flex-col items-center">
-                          <div className="w-1 h-4 bg-primary" />
-                          <div className="mt-2 bg-background border-2 border-primary rounded-lg px-4 py-2 shadow-lg">
-                            <div className="text-2xl font-bold text-primary">
-                              {evaluation.technicalFeasibility.score}
-                            </div>
-                          </div>
-                        </div>
+                        <div className="w-0.5 h-3 bg-primary" />
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary rounded-full" />
                       </div>
                     </div>
 
-                    {evaluation.technicalFeasibility.issues.length > 0 && (
-                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200">
-                        <h4 className="font-semibold text-sm mb-2 text-amber-600 flex items-center gap-2">
-                          <span>⚠</span> 发现的问题:
-                        </h4>
-                        <ul className="space-y-2">
-                          {evaluation.technicalFeasibility.issues.map((issue, i) => (
-                            <li key={i} className="text-sm flex gap-2">
-                              <span className="text-amber-600">•</span>
-                              <span>{issue}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    {/* 详细评估内容 */}
+                    {evaluation.technicalFeasibility.detailedEvaluation ? (
+                      <TechnicalEvaluationDetailed evaluation={evaluation.technicalFeasibility.detailedEvaluation} />
+                    ) : (
+                      /* 降级展示：如果没有详细评估数据，显示简化版 */
+                      <div className="space-y-4">
+                        {evaluation.technicalFeasibility.issues.length > 0 && (
+                          <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                            <h4 className="font-semibold text-sm mb-2 text-amber-600 dark:text-amber-400">发现的问题:</h4>
+                            <ul className="space-y-2">
+                              {evaluation.technicalFeasibility.issues.map((issue, i) => (
+                                <li key={i} className="text-sm flex gap-2">
+                                  <span className="text-amber-600 dark:text-amber-400">•</span>
+                                  <span>{issue}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                    {evaluation.technicalFeasibility.recommendations.length > 0 && (
-                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200">
-                        <h4 className="font-semibold text-sm mb-2 text-blue-600 flex items-center gap-2">
-                          <span>💡</span> 改进建议:
-                        </h4>
-                        <ul className="space-y-2">
-                          {evaluation.technicalFeasibility.recommendations.map((rec, i) => (
-                            <li key={i} className="text-sm flex gap-2">
-                              <span className="text-blue-600">→</span>
-                              <span>{rec}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        {evaluation.technicalFeasibility.recommendations.length > 0 && (
+                          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                            <h4 className="font-semibold text-sm mb-2 text-blue-600 dark:text-blue-400">改进建议:</h4>
+                            <ul className="space-y-2">
+                              {evaluation.technicalFeasibility.recommendations.map((rec, i) => (
+                                <li key={i} className="text-sm flex gap-2">
+                                  <span className="text-blue-600 dark:text-blue-400">→</span>
+                                  <span>{rec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>

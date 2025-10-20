@@ -17,7 +17,19 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env*
+.env.local
+.env*.local
+
+# database
+prisma/*.db
+prisma/*.db-journal
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
 
 # vercel
 .vercel
