@@ -180,12 +180,39 @@ npm run dev
 
 **您不需要关心生产环境的数据库配置**，clone 代码后直接运行即可！
 
+## 后台管理系统
+
+本项目包含完整的后台管理系统,支持数据统计、用户管理和权限管理。
+
+### 访问后台
+
+- **访问地址**: http://localhost:3000/admin (本地) 或 https://your-domain.com/admin (生产)
+- **权限要求**: 需要管理员权限才能访问
+
+### 后台功能
+
+- **数据大屏**: 用户、评估、反馈的实时统计和趋势分析
+- **用户管理**: 查看所有用户及其活跃度
+- **评估记录**: 浏览所有评估历史和详细参数
+- **反馈管理**: 查看用户反馈和建议
+- **管理员管理**: (仅超级管理员)授予/撤销管理员权限
+
+### 多环境数据隔离
+
+⚠️ **重要**: 数据库文件(`prisma/*.db`)不会提交到GitHub
+
+- **本地开发**: 数据保存在本地SQLite数据库
+- **生产环境**: 数据保存在云端PostgreSQL数据库
+- **完全隔离**: 本地和生产环境的数据互不影响
+
 ## 项目结构
 
 ```
 ai-calculator/
 ├── app/                      # Next.js 15 App Router
+│   ├── admin/               # 后台管理页面
 │   ├── api/                  # API 路由
+│   │   ├── admin/           # 后台管理 API
 │   │   ├── auth/            # 身份验证 API
 │   │   ├── evaluate/        # 评估 API
 │   │   └── feedback/        # 反馈 API
@@ -207,6 +234,8 @@ ai-calculator/
 ├── prisma/                  # Prisma 配置
 │   ├── schema.prisma       # 数据库模型
 │   └── dev.db              # SQLite 数据库（开发）
+├── scripts/                 # 工具脚本
+│   └── set-super-admin.ts  # 超级管理员设置(私密)
 ├── start.sh                # 一键启动脚本
 ├── .env.example            # 环境变量示例
 └── README.md               # 项目文档

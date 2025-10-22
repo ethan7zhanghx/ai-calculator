@@ -6,8 +6,8 @@ import type { JWTPayload } from "@/lib/jwt"
 import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 import { evaluateBusinessValue } from "@/lib/business-evaluator"
 
-// 配置函数最大执行时间（Vercel 免费版最多 10 秒）
-export const maxDuration = 10
+// 配置函数最大执行时间(240秒,给两个串行LLM调用留足时间: 技术60s+商业120s+缓冲60s)
+export const maxDuration = 240
 
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
@@ -35,6 +35,7 @@ const modelSpecs: Record<string, {
   "Mistral 7B": { vramPerGPU: 14, minGPUs: 1, paramSize: "7B" },
 }
 
+// 新增：支持流式响应的POST处理器
 export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPayload | null) => {
   try {
     const body: EvaluationRequest = await request.json()
@@ -120,41 +121,6 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       },
     ]
 
-    // 并行执行技术方案评估和商业价值评估 - 节省时间
-    let technicalEvaluation
-    let businessEvaluation
-
-    try {
-      // 使用 Promise.all 并行执行两个 LLM 调用
-      [technicalEvaluation, businessEvaluation] = await Promise.all([
-        evaluateTechnicalSolution(body),
-        evaluateBusinessValue(body)
-      ])
-    } catch (error) {
-      console.error("评估失败:", error)
-      // 如果 LLM 评估失败，返回错误
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: {
-            code: "EVALUATION_FAILED",
-            message: error instanceof Error ? error.message : "AI 评估服务暂时不可用，请稍后重试",
-          },
-        },
-        { status: 503 }
-      )
-    }
-
-    const technicalScore = technicalEvaluation.score
-    const technicalIssues = [
-      ...technicalEvaluation.criticalIssues,
-      ...technicalEvaluation.warnings,
-    ]
-    const technicalRecommendations = technicalEvaluation.recommendations
-
-    const businessScore = businessEvaluation.score
-    const businessAnalysis = businessEvaluation.summary
-
     const evaluationId = `eval_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
     const resourceFeasibility = {
@@ -199,64 +165,169 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       },
     }
 
-    const technicalFeasibility = {
-      appropriate: technicalIssues.length === 0,
-      score: technicalScore,
-      issues: technicalIssues,
-      recommendations: technicalRecommendations,
-      // 保存完整的LLM评估结果
-      detailedEvaluation: technicalEvaluation,
-    }
+    // 创建流式响应
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder()
 
-    const businessValue = {
-      score: businessScore,
-      analysis: businessAnalysis,
-      risks: businessEvaluation.risks,
-      opportunities: businessEvaluation.opportunities,
-      // 保存完整的LLM评估结果
-      detailedEvaluation: businessEvaluation,
-    }
+        try {
+          // 第1步：立即发送资源可行性评估结果
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'resource',
+            data: {
+              evaluationId,
+              resourceFeasibility,
+              createdAt: new Date().toISOString(),
+            }
+          })}\n\n`))
 
-    // 如果用户已登录,保存评估历史到数据库
-    if (user) {
-      try {
-        await prisma.evaluation.create({
-          data: {
-            id: evaluationId,
-            userId: user.userId,
-            model: body.model,
-            hardware: body.hardware,
-            cardCount: body.cardCount,
-            businessDataVolume: body.businessData?.volume || null,
-            businessDataTypes: JSON.stringify(body.businessData?.dataTypes || []),
-            businessDataQuality: body.businessData?.quality || null,
-            businessScenario: body.businessScenario || null,
-            performanceQPS: body.performanceRequirements?.qps || null,
-            performanceConcurrency: body.performanceRequirements?.concurrency || null,
-            resourceFeasibility: JSON.stringify(resourceFeasibility),
-            technicalFeasibility: JSON.stringify(technicalFeasibility),
-            businessValue: JSON.stringify(businessValue),
-          },
-        })
-      } catch (dbError) {
-        console.error("Failed to save evaluation to database:", dbError)
-        // 不中断流程,即使保存失败也返回评估结果
+          // 第2步：执行技术方案评估
+          let technicalEvaluation
+          try {
+            console.log("开始技术方案评估...")
+            technicalEvaluation = await evaluateTechnicalSolution(body)
+            console.log("技术方案评估完成,得分:", technicalEvaluation.score)
+
+            const technicalScore = technicalEvaluation.score
+            const technicalIssues = [
+              ...technicalEvaluation.criticalIssues,
+              ...technicalEvaluation.warnings,
+            ]
+            const technicalRecommendations = technicalEvaluation.recommendations
+
+            const technicalFeasibility = {
+              appropriate: technicalIssues.length === 0,
+              score: technicalScore,
+              issues: technicalIssues,
+              recommendations: technicalRecommendations,
+              detailedEvaluation: technicalEvaluation,
+            }
+
+            // 发送技术评估结果
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'technical',
+              data: { technicalFeasibility }
+            })}\n\n`))
+
+          } catch (error) {
+            console.error("技术方案评估失败:", error)
+            // 发送技术评估失败通知
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              module: 'technical',
+              error: error instanceof Error ? error.message : "技术方案评估失败"
+            })}\n\n`))
+          }
+
+          // 第3步：执行商业价值评估
+          let businessEvaluation
+          try {
+            console.log("开始商业价值评估...")
+            businessEvaluation = await evaluateBusinessValue(body)
+            console.log("商业价值评估完成,得分:", businessEvaluation.score)
+
+            const businessScore = businessEvaluation?.score || 0
+            const businessAnalysis = businessEvaluation?.summary || ""
+
+            const businessValue = businessEvaluation ? {
+              score: businessScore,
+              analysis: businessAnalysis,
+              risks: businessEvaluation.risks,
+              opportunities: businessEvaluation.opportunities,
+              detailedEvaluation: businessEvaluation,
+            } : null
+
+            // 发送商业价值评估结果
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'business',
+              data: { businessValue }
+            })}\n\n`))
+
+          } catch (error) {
+            console.error("商业价值评估失败:", error)
+            // 发送商业价值评估失败通知（不中断整体流程）
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              module: 'business',
+              error: error instanceof Error ? error.message : "商业价值评估失败"
+            })}\n\n`))
+          }
+
+          // 第4步：保存到数据库
+          if (user && technicalEvaluation) {
+            try {
+              const technicalScore = technicalEvaluation.score
+              const technicalIssues = [
+                ...technicalEvaluation.criticalIssues,
+                ...technicalEvaluation.warnings,
+              ]
+              const technicalRecommendations = technicalEvaluation.recommendations
+
+              const technicalFeasibility = {
+                appropriate: technicalIssues.length === 0,
+                score: technicalScore,
+                issues: technicalIssues,
+                recommendations: technicalRecommendations,
+                detailedEvaluation: technicalEvaluation,
+              }
+
+              const businessValue = businessEvaluation ? {
+                score: businessEvaluation.score,
+                analysis: businessEvaluation.summary,
+                risks: businessEvaluation.risks,
+                opportunities: businessEvaluation.opportunities,
+                detailedEvaluation: businessEvaluation,
+              } : null
+
+              await prisma.evaluation.create({
+                data: {
+                  id: evaluationId,
+                  userId: user.userId,
+                  model: body.model,
+                  hardware: body.hardware,
+                  cardCount: body.cardCount,
+                  businessDataVolume: body.businessData?.volume || null,
+                  businessDataTypes: JSON.stringify(body.businessData?.dataTypes || []),
+                  businessDataQuality: body.businessData?.quality || null,
+                  businessScenario: body.businessScenario || null,
+                  performanceQPS: body.performanceRequirements?.qps || null,
+                  performanceConcurrency: body.performanceRequirements?.concurrency || null,
+                  resourceFeasibility: JSON.stringify(resourceFeasibility),
+                  technicalFeasibility: JSON.stringify(technicalFeasibility),
+                  businessValue: JSON.stringify(businessValue),
+                },
+              })
+            } catch (dbError) {
+              console.error("Failed to save evaluation to database:", dbError)
+            }
+          }
+
+          // 第5步：发送完成信号
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'complete'
+          })}\n\n`))
+
+        } catch (error) {
+          console.error("Stream error:", error)
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            module: 'system',
+            error: error instanceof Error ? error.message : "服务器内部错误"
+          })}\n\n`))
+        } finally {
+          controller.close()
+        }
       }
-    }
+    })
 
-    const response: ApiResponse<EvaluationResponse> = {
-      success: true,
-      message: "评估完成",
-      data: {
-        evaluationId,
-        resourceFeasibility,
-        technicalFeasibility,
-        businessValue,
-        createdAt: new Date().toISOString(),
+    return new NextResponse(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
-    }
+    })
 
-    return NextResponse.json(response, { status: 200 })
   } catch (error) {
     console.error("Evaluation error:", error)
     return NextResponse.json<ApiResponse>(
