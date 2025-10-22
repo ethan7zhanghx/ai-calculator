@@ -26,6 +26,9 @@ yarn-error.log*
 prisma/*.db
 prisma/*.db-journal
 
+# private admin docs
+.admin-setup.md
+
 # macOS
 .DS_Store
 

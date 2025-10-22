@@ -4,6 +4,7 @@
  */
 
 import type { EvaluationRequest } from "./types"
+import { fetchWithRetry } from "./api-retry"
 
 export interface BusinessValueResult {
   score: number
@@ -538,32 +539,43 @@ export async function evaluateBusinessValue(
   const prompt = buildBusinessPrompt(req)
 
   try {
-    const response = await fetch("https://qianfan.baidubce.com/v2/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    // 使用带重试的 fetch,最多重试5次,单次超时45秒
+    const response = await fetchWithRetry(
+      "https://qianfan.baidubce.com/v2/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "X-Appbuilder-Authorization": apiKey, // IAM鉴权必需的header
+        },
+        body: JSON.stringify({
+          model: "ernie-4.5-turbo-128k",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: FEW_SHOT_EXAMPLES },
+            { role: "user", content: prompt },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+        }),
       },
-      body: JSON.stringify({
-        model: "ernie-4.5-turbo-128k",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "system", content: FEW_SHOT_EXAMPLES },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(
-        `千帆API调用失败: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`
-      )
-    }
+      {
+        maxRetries: 3,
+        timeout: 120000, // 120秒超时（商业评估prompt很长，需要更多时间）
+        initialDelay: 3000,
+        onRetry: (attempt, error) => {
+          console.log(`商业价值评估API重试 (${attempt}/3):`, error.message)
+        },
+      }
+    )
 
     const data = await response.json()
+
+    // 检查千帆API的错误响应
+    if (data.error_code || data.error_msg) {
+      throw new Error(`千帆API错误: ${data.error_msg || data.error_code}`)
+    }
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error("千帆API返回数据格式异常")
@@ -573,59 +585,12 @@ export async function evaluateBusinessValue(
     return result
   } catch (error) {
     console.error("商业价值评估失败:", error)
-    // 返回降级响应
-    return {
-      score: 0,
-      summary: "商业价值评估服务暂时不可用，请稍后重试。",
-      disclaimer:
-        "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际商业价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。",
-      dimensions: {
-        problemSolutionFit: {
-          score: 0,
-          status: "weak",
-          analysis: "评估服务暂时不可用",
-          painPoints: [],
-          aiNecessity: "low",
-        },
-        roiFeasibility: {
-          score: 0,
-          analysis: "评估服务暂时不可用",
-          considerations: [],
-        },
-        competitiveAdvantage: {
-          score: 0,
-          level: "lagging",
-          analysis: "评估服务暂时不可用",
-          barriers: [],
-        },
-        scalability: {
-          score: 0,
-          level: "low",
-          analysis: "评估服务暂时不可用",
-          growthPotential: [],
-        },
-        implementationRisk: {
-          score: 0,
-          level: "high",
-          analysis: "评估服务暂时不可用",
-          risks: {
-            technical: [],
-            business: [],
-            compliance: [],
-            organizational: [],
-          },
-          mitigations: [],
-        },
-        marketTiming: {
-          score: 0,
-          status: "poor",
-          analysis: "评估服务暂时不可用",
-          urgency: "low",
-        },
-      },
-      opportunities: [],
-      risks: ["评估服务暂时不可用"],
-      recommendations: ["请稍后重试商业价值评估"],
+
+    // 所有错误都直接抛出,不返回降级响应
+    // 这样前端可以根据null判断是否显示该模块
+    if (error instanceof Error) {
+      throw error
     }
+    throw new Error("商业价值评估服务暂时不可用，请稍后重试")
   }
 }

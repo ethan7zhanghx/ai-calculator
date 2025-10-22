@@ -5,6 +5,7 @@
 
 import type { EvaluationRequest } from "./types"
 import { formatModelInfo } from "./model-knowledge-base"
+import { fetchWithRetry } from "./api-retry"
 
 export interface TechnicalEvaluationResult {
   score: number // 0-100，用于前端评分条展示
@@ -89,44 +90,72 @@ export async function evaluateTechnicalSolution(
   try {
     const prompt = buildEvaluationPrompt(req)
 
-    const response = await fetch("https://qianfan.baidubce.com/v2/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "ernie-4.5-turbo-128k",
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        response_format: {
-          type: "json_object",
+    // 使用带重试的 fetch,最多重试5次,单次超时45秒
+    const response = await fetchWithRetry(
+      "https://qianfan.baidubce.com/v2/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "X-Appbuilder-Authorization": apiKey, // IAM鉴权必需的header
         },
-        temperature: 0.3, // 低温度保证一致性
-      }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("千帆API错误:", response.status, errorText)
-      throw new Error(`千帆API调用失败: ${response.status}`)
-    }
+        body: JSON.stringify({
+          model: "ernie-4.5-turbo-128k",
+          messages: [
+            {
+              role: "system",
+              content: SYSTEM_PROMPT,
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          response_format: {
+            type: "json_object",
+          },
+          temperature: 0.3, // 低温度保证一致性
+        }),
+      },
+      {
+        maxRetries: 5,
+        timeout: 60000, // 60秒超时
+        initialDelay: 2000,
+        onRetry: (attempt, error) => {
+          console.log(`技术评估API重试 (${attempt}/5):`, error.message)
+        },
+      }
+    )
 
     const data = await response.json()
+
+    // 检查千帆API的错误响应
+    if (data.error_code || data.error_msg) {
+      throw new Error(`千帆API错误: ${data.error_msg || data.error_code}`)
+    }
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error("千帆API返回数据格式异常")
+    }
+
     const content = data.choices[0].message.content
 
     const result = JSON.parse(content) as TechnicalEvaluationResult
     return result
   } catch (error) {
     console.error("技术评估失败:", error)
+
+    // 如果是JSON解析错误,提供更详细的信息
+    if (error instanceof SyntaxError) {
+      throw new Error("AI返回的JSON格式无效,请重试")
+    }
+
+    // 如果是网络或API错误,保持原错误信息
+    if (error instanceof Error) {
+      throw error
+    }
+
     throw new Error("技术方案评估服务暂时不可用，请稍后重试")
   }
 }
