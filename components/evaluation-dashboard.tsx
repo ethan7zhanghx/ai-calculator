@@ -131,18 +131,17 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {keyMetrics.map((metric, i) => (
                 <Card key={i} className={metric.status === "good" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"}>
-                  <CardContent className="pt-3 pb-2">
-                    <div className="flex items-start justify-between mb-1">
-                      <span className="text-xs text-muted-foreground">{metric.label}</span>
+                  <CardContent className="p-3 text-center flex flex-col justify-center h-full">
+                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                      <span className="whitespace-nowrap">{metric.label}</span>
                       {metric.trend === "up" ? (
                         <TrendingUp className="h-3 w-3 text-green-600" />
                       ) : (
                         <TrendingDown className="h-3 w-3 text-amber-600" />
                       )}
                     </div>
-                    <div className="text-xl font-bold">
+                    <div className="text-2xl font-bold mt-1">
                       {metric.value}
-                      {!metric.isMetric && <span className="text-sm text-muted-foreground ml-1"></span>}
                     </div>
                   </CardContent>
                 </Card>

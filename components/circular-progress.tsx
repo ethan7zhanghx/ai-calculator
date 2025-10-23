@@ -6,6 +6,7 @@ interface CircularProgressProps {
   strokeWidth?: number
   label?: string
   className?: string
+  color?: string // 新增 color prop
 }
 
 export function CircularProgress({
@@ -14,22 +15,25 @@ export function CircularProgress({
   strokeWidth = 8,
   label,
   className = "",
+  color: externalColor, // 接收外部颜色
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
   const offset = circumference - (percentage / 100) * circumference
 
-  // 根据百分比确定颜色
-  const getColor = () => {
-    if (percentage >= 80) return "#22c55e" // green
-    if (percentage >= 50) return "#eab308" // yellow
-    return "#ef4444" // red
+  // 默认颜色逻辑
+  const getDefaultColor = () => {
+    if (percentage > 100) return "text-slate-500"
+    if (percentage > 90) return "text-red-600"
+    if (percentage > 70) return "text-amber-600"
+    return "text-green-600"
   }
 
-  const color = getColor()
+  // 如果外部没有提供颜色，则使用内部的默认逻辑
+  const colorClass = externalColor || getDefaultColor()
 
   return (
-    <div className={`flex flex-col items-center ${className}`}>
+    <div className={`flex flex-col items-center ${className} ${colorClass}`}>
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="transform -rotate-90">
           {/* 背景圆圈 */}
@@ -48,7 +52,7 @@ export function CircularProgress({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke={color}
+            stroke="currentColor" // 使用currentColor，由父元素的文本颜色决定
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -58,7 +62,7 @@ export function CircularProgress({
         </svg>
         {/* 中心文字 */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold" style={{ color }}>
+          <span className="text-2xl font-bold" style={{ color: 'currentColor' }}>
             {Math.round(percentage)}%
           </span>
           {label && <span className="text-xs text-muted-foreground mt-1">{label}</span>}

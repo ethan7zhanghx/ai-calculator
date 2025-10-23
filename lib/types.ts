@@ -69,16 +69,22 @@ export interface TechnicalFeasibility {
       modelTaskAlignment: {
         status: "matched" | "mismatched" | "partial"
         analysis: string
+        score: number
+        scoreRationale: string
       }
       llmNecessity: {
         status: "necessary" | "unnecessary" | "debatable"
         analysis: string
         alternatives?: string
+        score: number
+        scoreRationale: string
       }
       fineTuning: {
         necessary: boolean
         dataAdequacy: "sufficient" | "marginal" | "insufficient"
         analysis: string
+        score: number
+        scoreRationale: string
       }
       implementationRoadmap: {
         feasible: boolean
@@ -88,18 +94,26 @@ export interface TechnicalFeasibility {
           midTerm?: string[]
           notRecommended?: string[]
         }
+        score: number
+        scoreRationale: string
       }
       performanceRequirements: {
         reasonable: boolean
         analysis: string
+        score: number
+        scoreRationale: string
       }
       costEfficiency: {
         level: "reasonable" | "high" | "excessive"
         analysis: string
+        score: number
+        scoreRationale: string
       }
       domainConsiderations?: {
         applicable: boolean
         analysis: string
+        score?: number
+        scoreRationale?: string
       }
     }
     criticalIssues: string[]
@@ -172,7 +186,7 @@ export interface EvaluationResponse {
   evaluationId: string
   resourceFeasibility: ResourceFeasibility
   technicalFeasibility: TechnicalFeasibility
-  businessValue: BusinessValue
+  businessValue: BusinessValue | null
   createdAt: string
 }
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import Image from "next/image"
 import {
   Calculator,
   Info,
@@ -20,9 +22,11 @@ import {
   Loader2,
   Sparkles,
   Download,
+  History,
 } from "lucide-react"
 import { AuthDialog } from "@/components/auth-dialog"
 import { FeedbackButton } from "@/components/feedback-button"
+import { HistorySidebar } from "@/components/history-sidebar"
 import { ResourceCard } from "@/components/resource-card"
 import { EvaluationDashboard } from "@/components/evaluation-dashboard"
 import { BusinessValueChart } from "@/components/business-value-chart"
@@ -46,6 +50,8 @@ import type {
 
 export default function AIRequirementsCalculator() {
   const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   // 用户认证状态
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -90,6 +96,63 @@ export default function AIRequirementsCalculator() {
     technical: null,
     business: null,
   })
+
+  // 从URL加载评估结果
+  useEffect(() => {
+    const evaluationId = searchParams.get("evaluationId")
+    // 只有在没有当前评估结果时才从URL加载，以避免覆盖现有状态
+    if (evaluationId && !evaluation) {
+      const fetchEvaluation = async (id: string) => {
+        try {
+          const response = await fetch(`/api/evaluate/${id}`)
+          const result = await response.json()
+
+          if (result.success) {
+            const data = result.data
+            // 恢复所有相关状态
+            setEvaluation({
+              evaluationId: data.evaluationId,
+              resourceFeasibility: data.resourceFeasibility,
+              technicalFeasibility: data.technicalFeasibility,
+              businessValue: data.businessValue,
+              createdAt: data.createdAt,
+            })
+            // 填充表单输入以供摘要卡使用
+            setModel(data.model || "")
+            setHardware(data.hardware || "")
+            setCardCount(data.cardCount || "")
+            setDataVolume(data.businessDataVolume || "")
+            setDataTypes(data.businessDataTypes || [])
+            setDataQuality(data.businessDataQuality || "high")
+            setBusinessScenario(data.businessScenario || "")
+            setQps(data.performanceQPS || "")
+            setConcurrency(data.performanceConcurrency || "")
+
+            toast({
+              title: "已加载评估记录",
+              description: "已成功从您的历史记录中恢复评估报告。",
+            })
+          } else {
+            toast({
+              title: "无法加载评估记录",
+              description: "该记录可能已被删除或链接无效。",
+              variant: "destructive",
+            })
+            router.replace("/") // 从URL中移除无效ID
+          }
+        } catch (error) {
+          toast({
+            title: "加载失败",
+            description: "网络错误，请稍后重试。",
+            variant: "destructive",
+          })
+          router.replace("/")
+        }
+      }
+      fetchEvaluation(evaluationId)
+    }
+  }, [searchParams, router, toast, evaluation])
+
 
   // 检查登录状态
   useEffect(() => {
@@ -181,6 +244,7 @@ export default function AIRequirementsCalculator() {
     })
 
     try {
+      let finalEvaluationId: string | undefined = undefined
       const authToken = token || localStorage.getItem("token")
       const headers: HeadersInit = { "Content-Type": "application/json" }
       if (authToken) {
@@ -238,6 +302,7 @@ export default function AIRequirementsCalculator() {
 
               if (data.type === 'resource') {
                 // 资源评估完成
+                finalEvaluationId = data.data.evaluationId // 捕获ID到局部变量
                 setModuleStatuses(prev => ({ ...prev, resource: 'completed' }))
                 setPartialEvaluation(prev => ({
                   ...prev,
@@ -290,6 +355,12 @@ export default function AIRequirementsCalculator() {
         // 流式响应完成
         setModuleFeedbacks({ resource: null, technical: null, business: null })
 
+        // 更新URL以包含评估ID
+        if (finalEvaluationId) {
+          const newUrl = `${window.location.pathname}?evaluationId=${finalEvaluationId}`
+          window.history.pushState({ path: newUrl }, "", newUrl)
+        }
+
         toast({
           title: "评估完成",
           description: "AI分析报告已生成"
@@ -307,6 +378,14 @@ export default function AIRequirementsCalculator() {
         if (data.success) {
           setEvaluation(data.data)
           setModuleFeedbacks({ resource: null, technical: null, business: null })
+
+          // 更新URL以包含评估ID
+          const finalEvaluationId = data.data.evaluationId
+          if (finalEvaluationId) {
+            const newUrl = `${window.location.pathname}?evaluationId=${finalEvaluationId}`
+            window.history.pushState({ path: newUrl }, "", newUrl)
+          }
+
           toast({
             title: "评估完成",
             description: "AI分析报告已生成"
@@ -490,12 +569,13 @@ export default function AIRequirementsCalculator() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calculator className="h-6 w-6 text-primary" />
+              <Image src="/paddlepaddle.jpeg" alt="PaddlePaddle Logo" width={32} height={32} className="rounded-md" />
               <span className="text-xl font-semibold">AI需求计算器</span>
             </div>
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
                 <>
+                  <HistorySidebar />
                   <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-muted">
                     <User className="h-4 w-4" />
                     <span className="text-sm">{username}</span>
@@ -730,7 +810,10 @@ export default function AIRequirementsCalculator() {
                 dataQuality={dataQuality}
                 qps={qps}
                 concurrency={concurrency}
-                onEdit={() => setEvaluation(null)}
+                onEdit={() => {
+                  setEvaluation(null)
+                  router.replace("/") // 清除URL中的ID
+                }}
               />
             )}
           </div>
@@ -871,14 +954,18 @@ export default function AIRequirementsCalculator() {
                           <div className="flex-1 bg-green-500 opacity-30" />
                         </div>
                         <div
-                          className="absolute top-0 transition-all duration-500"
+                          className="absolute -top-2.5 transition-all duration-500"
                           style={{
-                            left: `${partialEvaluation.technicalFeasibility.score}%`,
+                            left: `clamp(1.5rem, ${partialEvaluation.technicalFeasibility.score}%, calc(100% - 1.5rem))`,
                             transform: "translateX(-50%)",
                           }}
                         >
-                          <div className="w-0.5 h-3 bg-primary" />
-                          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary rounded-full" />
+                          <div className="relative">
+                            <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
+                              {partialEvaluation.technicalFeasibility.score}
+                            </div>
+                            <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
+                          </div>
                         </div>
                       </div>
 
@@ -943,14 +1030,18 @@ export default function AIRequirementsCalculator() {
                           <div className="flex-1 bg-green-500 opacity-30" />
                         </div>
                         <div
-                          className="absolute top-0 transition-all duration-500"
+                          className="absolute -top-2.5 transition-all duration-500"
                           style={{
-                            left: `${partialEvaluation.businessValue.score}%`,
+                            left: `clamp(1.5rem, ${partialEvaluation.businessValue.score}%, calc(100% - 1.5rem))`,
                             transform: "translateX(-50%)",
                           }}
                         >
-                          <div className="w-0.5 h-3 bg-primary" />
-                          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary rounded-full" />
+                          <div className="relative">
+                            <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
+                              {partialEvaluation.businessValue.score}
+                            </div>
+                            <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
+                          </div>
                         </div>
                       </div>
 
@@ -1160,14 +1251,18 @@ export default function AIRequirementsCalculator() {
                         <div className="flex-1 bg-green-500 opacity-30" />
                       </div>
                       <div
-                        className="absolute top-0 transition-all duration-500"
+                        className="absolute -top-2.5 transition-all duration-500"
                         style={{
-                          left: `${evaluation.technicalFeasibility.score}%`,
+                          left: `clamp(1.5rem, ${evaluation.technicalFeasibility.score}%, calc(100% - 1.5rem))`,
                           transform: "translateX(-50%)",
                         }}
                       >
-                        <div className="w-0.5 h-3 bg-primary" />
-                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary rounded-full" />
+                        <div className="relative">
+                          <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
+                            {evaluation.technicalFeasibility.score}
+                          </div>
+                          <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
+                        </div>
                       </div>
                     </div>
 
@@ -1252,14 +1347,18 @@ export default function AIRequirementsCalculator() {
                           <div className="flex-1 bg-green-500 opacity-30" />
                         </div>
                         <div
-                          className="absolute top-0 transition-all duration-500"
+                          className="absolute -top-2.5 transition-all duration-500"
                           style={{
-                            left: `${evaluation.businessValue.score}%`,
+                            left: `clamp(1.5rem, ${evaluation.businessValue.score}%, calc(100% - 1.5rem))`,
                             transform: "translateX(-50%)",
                           }}
                         >
-                          <div className="w-0.5 h-3 bg-primary" />
-                          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary rounded-full" />
+                          <div className="relative">
+                            <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
+                              {evaluation.businessValue.score}
+                            </div>
+                            <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
+                          </div>
                         </div>
                       </div>
 
