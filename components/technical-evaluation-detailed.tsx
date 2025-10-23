@@ -24,55 +24,32 @@ import {
   AlertTriangle,
 } from "lucide-react"
 
+import { TechnicalEvaluationResult } from "@/lib/technical-evaluator"
+
 interface TechnicalEvaluationDetailedProps {
-  evaluation: {
-    score: number
-    summary: string
-    dimensions: {
-      modelTaskAlignment: {
-        status: "matched" | "mismatched" | "partial"
-        analysis: string
-      }
-      llmNecessity: {
-        status: "necessary" | "unnecessary" | "debatable"
-        analysis: string
-        alternatives?: string
-      }
-      fineTuning: {
-        necessary: boolean
-        dataAdequacy: "sufficient" | "marginal" | "insufficient"
-        analysis: string
-      }
-      implementationRoadmap: {
-        feasible: boolean
-        analysis: string
-        phases: {
-          shortTerm?: string[]
-          midTerm?: string[]
-          notRecommended?: string[]
-        }
-      }
-      performanceRequirements: {
-        reasonable: boolean
-        analysis: string
-      }
-      costEfficiency: {
-        level: "reasonable" | "high" | "excessive"
-        analysis: string
-      }
-      domainConsiderations?: {
-        applicable: boolean
-        analysis: string
-      }
-    }
-    criticalIssues: string[]
-    warnings: string[]
-    recommendations: string[]
-  }
+  evaluation: TechnicalEvaluationResult
 }
 
 export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationDetailedProps) {
   const { dimensions } = evaluation
+
+  // 分数徽章
+  const ScoreBadge = ({ score }: { score: number }) => {
+    const getScoreColor = () => {
+      if (score >= 90) return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700"
+      if (score >= 70) return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700"
+      if (score >= 50) return "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-100 dark:border-yellow-700"
+      if (score >= 30) return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-100 dark:border-orange-700"
+      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-700"
+    }
+    return (
+      <div
+        className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getScoreColor()}`}
+      >
+        {score}
+      </div>
+    )
+  }
 
   // 状态徽章
   const getStatusBadge = (type: string, value: string | boolean) => {
@@ -120,11 +97,11 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 评估总结 */}
-      <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-        <h4 className="font-semibold mb-2 flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-primary" />
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+        <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
+          <Lightbulb className="h-4 w-4 text-primary" />
           评估总结
         </h4>
         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
@@ -132,39 +109,44 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
         </p>
       </div>
 
-      {/* 致命问题 */}
-      {evaluation.criticalIssues.length > 0 && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950 dark:border-red-800">
-          <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-900 dark:text-red-100">
-            <XCircle className="h-5 w-5" />
-            致命问题
-          </h4>
-          <ul className="space-y-2">
-            {evaluation.criticalIssues.map((issue, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-red-800 dark:text-red-200">
-                <span className="text-red-500 mt-0.5">•</span>
-                <span className="leading-relaxed">{issue}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* 致命问题和警告 - 横向布局 */}
+      {(evaluation.criticalIssues.length > 0 || evaluation.warnings.length > 0) && (
+        <div className="grid md:grid-cols-2 gap-3">
+          {/* 致命问题 */}
+          {evaluation.criticalIssues.length > 0 && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950 dark:border-red-800">
+              <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-red-900 dark:text-red-100">
+                <XCircle className="h-4 w-4" />
+                致命问题
+              </h4>
+              <ul className="space-y-1.5">
+                {evaluation.criticalIssues.map((issue, index) => (
+                  <li key={index} className="flex items-start gap-2 text-xs text-red-800 dark:text-red-200">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    <span className="leading-relaxed">{issue}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      {/* 警告 */}
-      {evaluation.warnings.length > 0 && (
-        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800">
-          <h4 className="font-semibold mb-3 flex items-center gap-2 text-amber-900 dark:text-amber-100">
-            <AlertTriangle className="h-5 w-5" />
-            警告
-          </h4>
-          <ul className="space-y-2">
-            {evaluation.warnings.map((warning, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
-                <span className="text-amber-500 mt-0.5">•</span>
-                <span className="leading-relaxed">{warning}</span>
-              </li>
-            ))}
-          </ul>
+          {/* 警告 */}
+          {evaluation.warnings.length > 0 && (
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+              <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-amber-900 dark:text-amber-100">
+                <AlertTriangle className="h-4 w-4" />
+                警告
+              </h4>
+              <ul className="space-y-1.5">
+                {evaluation.warnings.map((warning, index) => (
+                  <li key={index} className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
+                    <span className="text-amber-500 mt-0.5">•</span>
+                    <span className="leading-relaxed">{warning}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -178,10 +160,19 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <Target className="h-5 w-5 text-primary" />
                 <span className="font-semibold">模型与业务匹配度</span>
               </div>
-              {getStatusBadge("alignment", dimensions.modelTaskAlignment.status)}
+              <div className="flex items-center gap-2">
+                <ScoreBadge score={dimensions.modelTaskAlignment.score} />
+                {getStatusBadge("alignment", dimensions.modelTaskAlignment.status)}
+              </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="pt-4">
+          <AccordionContent className="pt-4 space-y-3">
+            <div className="p-2 rounded-md bg-muted/50 text-sm">
+              <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {dimensions.modelTaskAlignment.scoreRationale}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {dimensions.modelTaskAlignment.analysis}
             </p>
@@ -196,10 +187,19 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <Brain className="h-5 w-5 text-primary" />
                 <span className="font-semibold">大模型必要性</span>
               </div>
-              {getStatusBadge("necessity", dimensions.llmNecessity.status)}
+              <div className="flex items-center gap-2">
+                <ScoreBadge score={dimensions.llmNecessity.score} />
+                {getStatusBadge("necessity", dimensions.llmNecessity.status)}
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
+            <div className="p-2 rounded-md bg-muted/50 text-sm">
+              <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {dimensions.llmNecessity.scoreRationale}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {dimensions.llmNecessity.analysis}
             </p>
@@ -224,12 +224,19 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">微调必要性与数据充分性</span>
               </div>
               <div className="flex items-center gap-2">
+                <ScoreBadge score={dimensions.fineTuning.score} />
                 {getStatusBadge("boolean", dimensions.fineTuning.necessary)}
                 {getStatusBadge("adequacy", dimensions.fineTuning.dataAdequacy)}
               </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="pt-4">
+          <AccordionContent className="pt-4 space-y-3">
+            <div className="p-2 rounded-md bg-muted/50 text-sm">
+              <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {dimensions.fineTuning.scoreRationale}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {dimensions.fineTuning.analysis}
             </p>
@@ -244,10 +251,19 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <Map className="h-5 w-5 text-primary" />
                 <span className="font-semibold">业务可行性与实施路径</span>
               </div>
-              {getStatusBadge("boolean", dimensions.implementationRoadmap.feasible)}
+              <div className="flex items-center gap-2">
+                <ScoreBadge score={dimensions.implementationRoadmap.score} />
+                {getStatusBadge("boolean", dimensions.implementationRoadmap.feasible)}
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
+            <div className="p-2 rounded-md bg-muted/50 text-sm">
+              <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {dimensions.implementationRoadmap.scoreRationale}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {dimensions.implementationRoadmap.analysis}
             </p>
@@ -325,10 +341,19 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <Zap className="h-5 w-5 text-primary" />
                 <span className="font-semibold">性能需求合理性</span>
               </div>
-              {getStatusBadge("reasonable", dimensions.performanceRequirements.reasonable)}
+              <div className="flex items-center gap-2">
+                <ScoreBadge score={dimensions.performanceRequirements.score} />
+                {getStatusBadge("reasonable", dimensions.performanceRequirements.reasonable)}
+              </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="pt-4">
+          <AccordionContent className="pt-4 space-y-3">
+            <div className="p-2 rounded-md bg-muted/50 text-sm">
+              <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {dimensions.performanceRequirements.scoreRationale}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {dimensions.performanceRequirements.analysis}
             </p>
@@ -343,10 +368,19 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <DollarSign className="h-5 w-5 text-primary" />
                 <span className="font-semibold">成本效益</span>
               </div>
-              {getStatusBadge("cost", dimensions.costEfficiency.level)}
+              <div className="flex items-center gap-2">
+                <ScoreBadge score={dimensions.costEfficiency.score} />
+                {getStatusBadge("cost", dimensions.costEfficiency.level)}
+              </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="pt-4">
+          <AccordionContent className="pt-4 space-y-3">
+            <div className="p-2 rounded-md bg-muted/50 text-sm">
+              <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {dimensions.costEfficiency.scoreRationale}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {dimensions.costEfficiency.analysis}
             </p>
@@ -362,10 +396,21 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                   <Shield className="h-5 w-5 text-primary" />
                   <span className="font-semibold">领域特殊考虑</span>
                 </div>
-                <Badge variant="default">适用</Badge>
+                <div className="flex items-center gap-2">
+                  {dimensions.domainConsiderations.score && <ScoreBadge score={dimensions.domainConsiderations.score} />}
+                  <Badge variant="default">适用</Badge>
+                </div>
               </div>
             </AccordionTrigger>
-            <AccordionContent className="pt-4">
+            <AccordionContent className="pt-4 space-y-3">
+              {dimensions.domainConsiderations.scoreRationale && (
+                <div className="p-2 rounded-md bg-muted/50 text-sm">
+                  <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {dimensions.domainConsiderations.scoreRationale}
+                  </p>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {dimensions.domainConsiderations.analysis}
               </p>
@@ -376,15 +421,15 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
 
       {/* 实施建议 */}
       {evaluation.recommendations.length > 0 && (
-        <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-          <h4 className="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
-            <Lightbulb className="h-5 w-5" />
+        <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+          <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-blue-900 dark:text-blue-100">
+            <Lightbulb className="h-4 w-4" />
             实施建议
           </h4>
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {evaluation.recommendations.map((rec, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <li key={index} className="flex items-start gap-2 text-xs text-blue-800 dark:text-blue-200">
+                <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
                 <span className="leading-relaxed">{rec}</span>
               </li>
             ))}

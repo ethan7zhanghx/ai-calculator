@@ -99,56 +99,62 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* 总体评分 */}
-        <div className="flex flex-col items-center justify-center py-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
-          <div className="text-6xl font-bold text-primary mb-2">{overallScore}</div>
-          <div className="text-sm text-muted-foreground">
-            综合评分{!evaluation.businessValue && " (资源+技术)"}
-          </div>
-          <div className="mt-4 flex gap-2">
-            <div className="text-center px-4">
-              <div className="text-2xl font-bold">{resourceScore}</div>
-              <div className="text-xs text-muted-foreground">资源</div>
-            </div>
-            <div className="text-center px-4 border-x">
-              <div className="text-2xl font-bold">{technicalScore}</div>
-              <div className="text-xs text-muted-foreground">技术</div>
-            </div>
-            {evaluation.businessValue && (
-              <div className="text-center px-4">
-                <div className="text-2xl font-bold">{businessScore}</div>
-                <div className="text-xs text-muted-foreground">商业</div>
+        {/* 总体评分和雷达图 - 横向排列 */}
+        <div className="grid md:grid-cols-[1fr_auto] gap-6">
+          {/* 左侧：总体评分和关键指标 */}
+          <div className="space-y-4">
+            {/* 总体评分 */}
+            <div className="flex flex-col items-center justify-center py-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
+              <div className="text-5xl font-bold text-primary mb-2">{overallScore}</div>
+              <div className="text-sm text-muted-foreground">
+                综合评分{!evaluation.businessValue && " (资源+技术)"}
               </div>
-            )}
+              <div className="mt-3 flex gap-2">
+                <div className="text-center px-3">
+                  <div className="text-xl font-bold">{resourceScore}</div>
+                  <div className="text-xs text-muted-foreground">资源</div>
+                </div>
+                <div className="text-center px-3 border-x">
+                  <div className="text-xl font-bold">{technicalScore}</div>
+                  <div className="text-xs text-muted-foreground">技术</div>
+                </div>
+                {evaluation.businessValue && (
+                  <div className="text-center px-3">
+                    <div className="text-xl font-bold">{businessScore}</div>
+                    <div className="text-xs text-muted-foreground">商业</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 关键指标 */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {keyMetrics.map((metric, i) => (
+                <Card key={i} className={metric.status === "good" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"}>
+                  <CardContent className="pt-3 pb-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-xs text-muted-foreground">{metric.label}</span>
+                      {metric.trend === "up" ? (
+                        <TrendingUp className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 text-amber-600" />
+                      )}
+                    </div>
+                    <div className="text-xl font-bold">
+                      {metric.value}
+                      {!metric.isMetric && <span className="text-sm text-muted-foreground ml-1"></span>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* 关键指标 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {keyMetrics.map((metric, i) => (
-            <Card key={i} className={metric.status === "good" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"}>
-              <CardContent className="pt-4 pb-3">
-                <div className="flex items-start justify-between mb-1">
-                  <span className="text-xs text-muted-foreground">{metric.label}</span>
-                  {metric.trend === "up" ? (
-                    <TrendingUp className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-amber-600" />
-                  )}
-                </div>
-                <div className="text-2xl font-bold">
-                  {metric.value}
-                  {!metric.isMetric && <span className="text-sm text-muted-foreground ml-1"></span>}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* 雷达图 */}
-        <div className="pt-4 border-t">
-          <h4 className="text-center text-sm font-semibold mb-4 text-muted-foreground">多维度评估雷达图</h4>
-          <ScoreRadar scores={radarScores} size={280} />
+          {/* 右侧：雷达图 */}
+          <div className="flex flex-col items-center justify-center">
+            <h4 className="text-sm font-semibold mb-3 text-muted-foreground">多维度评估</h4>
+            <ScoreRadar scores={radarScores} size={260} />
+          </div>
         </div>
 
         {/* 快速总结 */}
