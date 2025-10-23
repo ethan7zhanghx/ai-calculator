@@ -24,25 +24,52 @@ export function ResourceCard({
   suggestions,
   extraInfo,
 }: ResourceCardProps) {
-  const getStatusIcon = () => {
-    if (memoryUsagePercent >= 80) return <CheckCircle2 className="h-4 w-4 text-green-600" />
-    if (memoryUsagePercent >= 50) return <AlertTriangle className="h-4 w-4 text-amber-600" />
-    return <XCircle className="h-4 w-4 text-red-600" />
+  // 计算显存占用度
+  const occupancyPercent = Math.round((memoryRequired / memoryAvailable) * 100)
+
+  // 根据占用度获取颜色和状态
+  const getOccupancyStyle = () => {
+    if (occupancyPercent > 100) {
+      return {
+        icon: <XCircle className="h-4 w-4 text-slate-500" />,
+        cardBg: "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800",
+        progressColor: "text-slate-500",
+        barBg: "bg-slate-400",
+      }
+    }
+    if (occupancyPercent > 90) {
+      return {
+        icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
+        cardBg: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800",
+        progressColor: "text-red-600",
+        barBg: "bg-red-500",
+      }
+    }
+    if (occupancyPercent > 70) {
+      return {
+        icon: <AlertTriangle className="h-4 w-4 text-amber-600" />,
+        cardBg: "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800",
+        progressColor: "text-amber-600",
+        barBg: "bg-amber-500",
+      }
+    }
+    return {
+      icon: <CheckCircle2 className="h-4 w-4 text-green-600" />,
+      cardBg: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
+      progressColor: "text-green-600",
+      barBg: "bg-green-500",
+    }
   }
 
-  const getStatusColor = () => {
-    if (memoryUsagePercent >= 80) return "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-    if (memoryUsagePercent >= 50) return "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800"
-    return "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-  }
+  const style = getOccupancyStyle()
 
   return (
-    <Card className={`border ${getStatusColor()}`}>
+    <Card className={`border ${style.cardBg}`}>
       <CardContent className="p-4">
         {/* 标题和状态 */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            {getStatusIcon()}
+            {style.icon}
             <h4 className="text-base font-bold">{title}</h4>
           </div>
           <Badge variant={feasible ? "default" : "destructive"} className="text-xs px-2 py-0.5">
@@ -53,7 +80,12 @@ export function ResourceCard({
         {/* 环形进度条和显存信息 */}
         <div className="flex items-start gap-4 mb-3">
           <div className="flex-shrink-0">
-            <CircularProgress percentage={memoryUsagePercent} label="满足度" size={100} />
+            <CircularProgress
+              percentage={occupancyPercent}
+              label="占用度"
+              size={100}
+              color={style.progressColor}
+            />
           </div>
 
           <div className="flex-1 space-y-2 min-w-0">
@@ -67,14 +99,8 @@ export function ResourceCard({
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-500 ${
-                    memoryUsagePercent >= 80
-                      ? "bg-green-500"
-                      : memoryUsagePercent >= 50
-                      ? "bg-amber-500"
-                      : "bg-red-500"
-                  }`}
-                  style={{ width: `${Math.min(memoryUsagePercent, 100)}%` }}
+                  className={`h-full transition-all duration-500 ${style.barBg}`}
+                  style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
                 />
               </div>
             </div>
