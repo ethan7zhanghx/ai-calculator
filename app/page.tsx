@@ -19,6 +19,7 @@ import {
   LogOut,
   Loader2,
   Sparkles,
+  Download,
 } from "lucide-react"
 import { AuthDialog } from "@/components/auth-dialog"
 import { FeedbackButton } from "@/components/feedback-button"
@@ -26,6 +27,8 @@ import { ResourceCard } from "@/components/resource-card"
 import { EvaluationDashboard } from "@/components/evaluation-dashboard"
 import { BusinessValueChart } from "@/components/business-value-chart"
 import { TechnicalEvaluationDetailed } from "@/components/technical-evaluation-detailed"
+import { TechnicalEvaluationSimple } from "@/components/technical-evaluation-simple"
+import { BusinessEvaluationSimple } from "@/components/business-evaluation-simple"
 import { EvaluationProgress } from "@/components/evaluation-progress"
 import { ModuleLoadingIndicator } from "@/components/module-loading-indicator"
 import { BusinessEvaluationDetailed } from "@/components/business-evaluation-detailed"
@@ -436,6 +439,49 @@ export default function AIRequirementsCalculator() {
     )
   }
 
+  // 下载完整报告
+  const handleDownloadReport = async () => {
+    if (!evaluation) return
+
+    try {
+      const token = localStorage.getItem("token")
+      const headers: HeadersInit = {}
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
+      const response = await fetch(`/api/evaluate/${evaluation.evaluationId}/report`, {
+        method: "GET",
+        headers,
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `AI评估报告_${new Date().toLocaleDateString()}.md`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+        toast({
+          title: "下载成功",
+          description: "完整评估报告已下载",
+        })
+      } else {
+        throw new Error("下载失败")
+      }
+    } catch (error) {
+      toast({
+        title: "下载失败",
+        description: "无法下载报告，请稍后重试",
+        variant: "destructive",
+      })
+    }
+  }
+
   const isFormComplete = model && hardware && cardCount && dataVolume && dataTypes.length > 0 && businessScenario && qps && concurrency
 
   return (
@@ -724,77 +770,79 @@ export default function AIRequirementsCalculator() {
                       <CardTitle>资源可行性评估</CardTitle>
                       <CardDescription>硬件资源是否能够支持模型的各项任务</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <ResourceCard
-                        title="预训练"
-                        feasible={partialEvaluation.resourceFeasibility.pretraining.feasible}
-                        memoryUsagePercent={partialEvaluation.resourceFeasibility.pretraining.memoryUsagePercent}
-                        memoryRequired={partialEvaluation.resourceFeasibility.pretraining.memoryRequired}
-                        memoryAvailable={partialEvaluation.resourceFeasibility.pretraining.memoryAvailable}
-                        suggestions={partialEvaluation.resourceFeasibility.pretraining.suggestions}
-                      />
+                    <CardContent>
+                      <div className="grid md:grid-cols-3 gap-3">
+                        <ResourceCard
+                          title="预训练"
+                          feasible={partialEvaluation.resourceFeasibility.pretraining.feasible}
+                          memoryUsagePercent={partialEvaluation.resourceFeasibility.pretraining.memoryUsagePercent}
+                          memoryRequired={partialEvaluation.resourceFeasibility.pretraining.memoryRequired}
+                          memoryAvailable={partialEvaluation.resourceFeasibility.pretraining.memoryAvailable}
+                          suggestions={partialEvaluation.resourceFeasibility.pretraining.suggestions}
+                        />
 
-                      <ResourceCard
-                        title="微调"
-                        feasible={partialEvaluation.resourceFeasibility.fineTuning.feasible}
-                        memoryUsagePercent={partialEvaluation.resourceFeasibility.fineTuning.memoryUsagePercent}
-                        memoryRequired={partialEvaluation.resourceFeasibility.fineTuning.memoryRequired}
-                        memoryAvailable={partialEvaluation.resourceFeasibility.fineTuning.memoryAvailable}
-                        suggestions={partialEvaluation.resourceFeasibility.fineTuning.suggestions}
-                        extraInfo={
-                          <div className="flex gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              LoRA: {partialEvaluation.resourceFeasibility.fineTuning.loraFeasible ? "✓ 可行" : "✗ 不可行"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              QLoRA: {partialEvaluation.resourceFeasibility.fineTuning.qloraFeasible ? "✓ 可行" : "✗ 不可行"}
-                            </span>
-                          </div>
-                        }
-                      />
-
-                      <ResourceCard
-                        title="推理"
-                        feasible={partialEvaluation.resourceFeasibility.inference.feasible}
-                        memoryUsagePercent={partialEvaluation.resourceFeasibility.inference.memoryUsagePercent}
-                        memoryRequired={partialEvaluation.resourceFeasibility.inference.memoryRequired}
-                        memoryAvailable={partialEvaluation.resourceFeasibility.inference.memoryAvailable}
-                        suggestions={partialEvaluation.resourceFeasibility.inference.suggestions}
-                        extraInfo={
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="text-center p-3 rounded bg-primary/10">
-                                <div className="text-xl font-bold text-primary">
-                                  {partialEvaluation.resourceFeasibility.inference.supportedQPS}
-                                </div>
-                                <div className="text-xs text-muted-foreground">支持的QPS</div>
-                              </div>
-                              <div className="text-center p-3 rounded bg-primary/10">
-                                <div className="text-xl font-bold text-primary">
-                                  {partialEvaluation.resourceFeasibility.inference.supportedThroughput}
-                                </div>
-                                <div className="text-xs text-muted-foreground">吞吐量</div>
-                              </div>
+                        <ResourceCard
+                          title="微调"
+                          feasible={partialEvaluation.resourceFeasibility.fineTuning.feasible}
+                          memoryUsagePercent={partialEvaluation.resourceFeasibility.fineTuning.memoryUsagePercent}
+                          memoryRequired={partialEvaluation.resourceFeasibility.fineTuning.memoryRequired}
+                          memoryAvailable={partialEvaluation.resourceFeasibility.fineTuning.memoryAvailable}
+                          suggestions={partialEvaluation.resourceFeasibility.fineTuning.suggestions}
+                          extraInfo={
+                            <div className="flex gap-1.5 flex-wrap">
+                              <span className="text-xs text-muted-foreground">
+                                LoRA: {partialEvaluation.resourceFeasibility.fineTuning.loraFeasible ? "✓" : "✗"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                QLoRA: {partialEvaluation.resourceFeasibility.fineTuning.qloraFeasible ? "✓" : "✗"}
+                              </span>
                             </div>
+                          }
+                        />
 
-                            {!partialEvaluation.resourceFeasibility.inference.meetsRequirements && (
-                              <div>
-                                <h5 className="text-xs font-semibold mb-2">量化建议:</h5>
-                                <div className="space-y-1">
-                                  {partialEvaluation.resourceFeasibility.inference.quantizationOptions.map((opt, i) => (
-                                    <div key={i} className="flex items-center justify-between p-2 rounded text-xs bg-background">
-                                      <span className="font-medium">{opt.type}</span>
-                                      <span className={opt.meetsRequirements ? "text-green-600" : "text-amber-600"}>
-                                        QPS: {Math.round(opt.supportedQPS)} {opt.meetsRequirements ? "✓" : "✗"}
-                                      </span>
-                                    </div>
-                                  ))}
+                        <ResourceCard
+                          title="推理"
+                          feasible={partialEvaluation.resourceFeasibility.inference.feasible}
+                          memoryUsagePercent={partialEvaluation.resourceFeasibility.inference.memoryUsagePercent}
+                          memoryRequired={partialEvaluation.resourceFeasibility.inference.memoryRequired}
+                          memoryAvailable={partialEvaluation.resourceFeasibility.inference.memoryAvailable}
+                          suggestions={partialEvaluation.resourceFeasibility.inference.suggestions}
+                          extraInfo={
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <div className="text-center p-1.5 rounded bg-primary/10">
+                                  <div className="text-sm font-bold text-primary">
+                                    {partialEvaluation.resourceFeasibility.inference.supportedQPS}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">QPS</div>
+                                </div>
+                                <div className="text-center p-1.5 rounded bg-primary/10">
+                                  <div className="text-sm font-bold text-primary">
+                                    {partialEvaluation.resourceFeasibility.inference.supportedThroughput}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">吞吐</div>
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        }
-                      />
+
+                              {!partialEvaluation.resourceFeasibility.inference.meetsRequirements && (
+                                <div>
+                                  <h5 className="text-xs font-semibold mb-1">量化:</h5>
+                                  <div className="space-y-1">
+                                    {partialEvaluation.resourceFeasibility.inference.quantizationOptions.map((opt, i) => (
+                                      <div key={i} className="flex items-center justify-between p-1 rounded text-xs bg-background">
+                                        <span className="font-medium">{opt.type}</span>
+                                        <span className={opt.meetsRequirements ? "text-green-600" : "text-amber-600"}>
+                                          {Math.round(opt.supportedQPS)} {opt.meetsRequirements ? "✓" : "✗"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -982,78 +1030,79 @@ export default function AIRequirementsCalculator() {
                     <CardTitle>资源可行性评估</CardTitle>
                     <CardDescription>硬件资源是否能够支持模型的各项任务</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ResourceCard
-                      title="预训练"
-                      feasible={evaluation.resourceFeasibility.pretraining.feasible}
-                      memoryUsagePercent={evaluation.resourceFeasibility.pretraining.memoryUsagePercent}
-                      memoryRequired={evaluation.resourceFeasibility.pretraining.memoryRequired}
-                      memoryAvailable={evaluation.resourceFeasibility.pretraining.memoryAvailable}
-                      suggestions={evaluation.resourceFeasibility.pretraining.suggestions}
-                    />
+                  <CardContent>
+                    <div className="grid md:grid-cols-3 gap-3">
+                      <ResourceCard
+                        title="预训练"
+                        feasible={evaluation.resourceFeasibility.pretraining.feasible}
+                        memoryUsagePercent={evaluation.resourceFeasibility.pretraining.memoryUsagePercent}
+                        memoryRequired={evaluation.resourceFeasibility.pretraining.memoryRequired}
+                        memoryAvailable={evaluation.resourceFeasibility.pretraining.memoryAvailable}
+                        suggestions={evaluation.resourceFeasibility.pretraining.suggestions}
+                      />
 
-                    <ResourceCard
-                      title="微调"
-                      feasible={evaluation.resourceFeasibility.fineTuning.feasible}
-                      memoryUsagePercent={evaluation.resourceFeasibility.fineTuning.memoryUsagePercent}
-                      memoryRequired={evaluation.resourceFeasibility.fineTuning.memoryRequired}
-                      memoryAvailable={evaluation.resourceFeasibility.fineTuning.memoryAvailable}
-                      suggestions={evaluation.resourceFeasibility.fineTuning.suggestions}
-                      extraInfo={
-                        <div className="flex gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            LoRA: {evaluation.resourceFeasibility.fineTuning.loraFeasible ? "✓ 可行" : "✗ 不可行"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            QLoRA: {evaluation.resourceFeasibility.fineTuning.qloraFeasible ? "✓ 可行" : "✗ 不可行"}
-                          </span>
-                        </div>
-                      }
-                    />
-
-                    <ResourceCard
-                      title="推理"
-                      feasible={evaluation.resourceFeasibility.inference.feasible}
-                      memoryUsagePercent={evaluation.resourceFeasibility.inference.memoryUsagePercent}
-                      memoryRequired={evaluation.resourceFeasibility.inference.memoryRequired}
-                      memoryAvailable={evaluation.resourceFeasibility.inference.memoryAvailable}
-                      suggestions={evaluation.resourceFeasibility.inference.suggestions}
-                      extraInfo={
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="text-center p-3 rounded bg-primary/10">
-                              <div className="text-xl font-bold text-primary">
-                                {evaluation.resourceFeasibility.inference.supportedQPS}
-                              </div>
-                              <div className="text-xs text-muted-foreground">支持的QPS</div>
-                            </div>
-                            <div className="text-center p-3 rounded bg-primary/10">
-                              <div className="text-xl font-bold text-primary">
-                                {evaluation.resourceFeasibility.inference.supportedThroughput}
-                              </div>
-                              <div className="text-xs text-muted-foreground">吞吐量</div>
-                            </div>
+                      <ResourceCard
+                        title="微调"
+                        feasible={evaluation.resourceFeasibility.fineTuning.feasible}
+                        memoryUsagePercent={evaluation.resourceFeasibility.fineTuning.memoryUsagePercent}
+                        memoryRequired={evaluation.resourceFeasibility.fineTuning.memoryRequired}
+                        memoryAvailable={evaluation.resourceFeasibility.fineTuning.memoryAvailable}
+                        suggestions={evaluation.resourceFeasibility.fineTuning.suggestions}
+                        extraInfo={
+                          <div className="flex gap-1.5 flex-wrap">
+                            <span className="text-xs text-muted-foreground">
+                              LoRA: {evaluation.resourceFeasibility.fineTuning.loraFeasible ? "✓" : "✗"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              QLoRA: {evaluation.resourceFeasibility.fineTuning.qloraFeasible ? "✓" : "✗"}
+                            </span>
                           </div>
+                        }
+                      />
 
-                          {/* 量化选项 */}
-                          {!evaluation.resourceFeasibility.inference.meetsRequirements && (
-                            <div>
-                              <h5 className="text-xs font-semibold mb-2">量化建议:</h5>
-                              <div className="space-y-1">
-                                {evaluation.resourceFeasibility.inference.quantizationOptions.map((opt, i) => (
-                                  <div key={i} className="flex items-center justify-between p-2 rounded text-xs bg-background">
-                                    <span className="font-medium">{opt.type}</span>
-                                    <span className={opt.meetsRequirements ? "text-green-600" : "text-amber-600"}>
-                                      QPS: {Math.round(opt.supportedQPS)} {opt.meetsRequirements ? "✓" : "✗"}
-                                    </span>
-                                  </div>
-                                ))}
+                      <ResourceCard
+                        title="推理"
+                        feasible={evaluation.resourceFeasibility.inference.feasible}
+                        memoryUsagePercent={evaluation.resourceFeasibility.inference.memoryUsagePercent}
+                        memoryRequired={evaluation.resourceFeasibility.inference.memoryRequired}
+                        memoryAvailable={evaluation.resourceFeasibility.inference.memoryAvailable}
+                        suggestions={evaluation.resourceFeasibility.inference.suggestions}
+                        extraInfo={
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div className="text-center p-1.5 rounded bg-primary/10">
+                                <div className="text-sm font-bold text-primary">
+                                  {evaluation.resourceFeasibility.inference.supportedQPS}
+                                </div>
+                                <div className="text-xs text-muted-foreground">QPS</div>
+                              </div>
+                              <div className="text-center p-1.5 rounded bg-primary/10">
+                                <div className="text-sm font-bold text-primary">
+                                  {evaluation.resourceFeasibility.inference.supportedThroughput}
+                                </div>
+                                <div className="text-xs text-muted-foreground">吞吐</div>
                               </div>
                             </div>
-                          )}
-                        </div>
-                      }
-                    />
+
+                            {!evaluation.resourceFeasibility.inference.meetsRequirements && (
+                              <div>
+                                <h5 className="text-xs font-semibold mb-1">量化:</h5>
+                                <div className="space-y-1">
+                                  {evaluation.resourceFeasibility.inference.quantizationOptions.map((opt, i) => (
+                                    <div key={i} className="flex items-center justify-between p-1 rounded text-xs bg-background">
+                                      <span className="font-medium">{opt.type}</span>
+                                      <span className={opt.meetsRequirements ? "text-green-600" : "text-amber-600"}>
+                                        {Math.round(opt.supportedQPS)} {opt.meetsRequirements ? "✓" : "✗"}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        }
+                      />
+                    </div>
                   </CardContent>
                   <CardContent className="pt-0">
                     <div className="flex gap-2 justify-end">
@@ -1084,7 +1133,15 @@ export default function AIRequirementsCalculator() {
                       <span>技术方案合理性评估</span>
                       {/* 评分显示 */}
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">评分:</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadReport}
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          下载完整报告
+                        </Button>
                         <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
                           <span className="text-lg font-bold">{evaluation.technicalFeasibility.score}</span>
                           <span className="text-sm">/100</span>
@@ -1114,11 +1171,10 @@ export default function AIRequirementsCalculator() {
                       </div>
                     </div>
 
-                    {/* 详细评估内容 */}
+                    {/* 使用简化版评估内容 */}
                     {evaluation.technicalFeasibility.detailedEvaluation ? (
-                      <TechnicalEvaluationDetailed evaluation={evaluation.technicalFeasibility.detailedEvaluation} />
+                      <TechnicalEvaluationSimple evaluation={evaluation.technicalFeasibility.detailedEvaluation} />
                     ) : (
-                      /* 降级展示：如果没有详细评估数据，显示简化版 */
                       <div className="space-y-4">
                         {evaluation.technicalFeasibility.issues.length > 0 && (
                           <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
@@ -1179,12 +1235,9 @@ export default function AIRequirementsCalculator() {
                       <CardTitle className="flex items-center justify-between">
                         <span>商业价值评估</span>
                         {/* 评分显示 */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">评分:</span>
-                          <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
-                            <span className="text-lg font-bold">{evaluation.businessValue.score}</span>
-                            <span className="text-sm">/100</span>
-                          </div>
+                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
+                          <span className="text-lg font-bold">{evaluation.businessValue.score}</span>
+                          <span className="text-sm">/100</span>
                         </div>
                       </CardTitle>
                       <CardDescription>AI深度评估该方案的商业价值</CardDescription>
@@ -1210,9 +1263,9 @@ export default function AIRequirementsCalculator() {
                         </div>
                       </div>
 
-                      {/* 详细评估内容 */}
+                      {/* 使用简化版评估内容 */}
                       {evaluation.businessValue.detailedEvaluation ? (
-                        <BusinessEvaluationDetailed evaluation={evaluation.businessValue.detailedEvaluation} />
+                        <BusinessEvaluationSimple evaluation={evaluation.businessValue.detailedEvaluation} />
                       ) : (
                         /* 降级展示：如果没有详细评估数据，显示简化版 */
                         <div className="space-y-4">

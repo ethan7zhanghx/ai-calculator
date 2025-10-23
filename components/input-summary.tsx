@@ -65,7 +65,7 @@ export function InputSummary({
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-muted-foreground">数据量</span>
-            <span className="font-medium">{parseInt(dataVolume).toLocaleString()} 条</span>
+            <span className="font-medium">{Number(dataVolume).toLocaleString()} 条</span>
           </div>
           <div className="mb-2">
             <div className="text-muted-foreground mb-1">数据类型</div>
