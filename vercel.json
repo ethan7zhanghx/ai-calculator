@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash scripts/prepare-vercel.sh && prisma generate && prisma migrate deploy && next build",
+  "buildCommand": "bash scripts/prepare-vercel.sh && prisma generate && prisma db push && next build",
   "devCommand": "next dev",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
