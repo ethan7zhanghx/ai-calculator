@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import path from "path"
 import { prisma } from "@/lib/prisma"
 import { verifyToken } from "@/lib/jwt"
+import { calculateResourceScore } from "@/lib/resource-calculator"
+import { mdToPdf } from "md-to-pdf"
 
 export async function GET(
   request: NextRequest,
@@ -34,16 +37,39 @@ export async function GET(
       )
     }
 
-    // 生成Markdown格式的完整报告
-    const report = generateMarkdownReport(evaluation)
+    // 解析JSON字符串字段
+    const parsedEvaluation = {
+      ...evaluation,
+      resourceFeasibility: JSON.parse(evaluation.resourceFeasibility as string),
+      technicalFeasibility: JSON.parse(evaluation.technicalFeasibility as string),
+      businessValue: evaluation.businessValue ? JSON.parse(evaluation.businessValue as string) : null,
+    }
 
-    // 返回Markdown文件
-    return new NextResponse(report, {
-      headers: {
-        "Content-Type": "text/markdown; charset=utf-8",
-        "Content-Disposition": `attachment; filename="AI评估报告_${new Date().toLocaleDateString()}.md"`,
-      },
+    // 生成Markdown格式的完整报告
+    const reportMarkdown = generateMarkdownReport(parsedEvaluation)
+
+    // 将Markdown转换为PDF
+    const pdf = await mdToPdf(
+      { content: reportMarkdown },
+      { stylesheet: [path.join(process.cwd(), "styles", "markdown.css")] }
+    ).catch((err) => {
+      console.error("PDF conversion failed:", err)
+      throw new Error("Failed to convert report to PDF")
     })
+
+    if (!pdf) {
+      throw new Error("PDF content is empty")
+    }
+    
+    const pdfBuffer = Buffer.from(pdf.content)
+
+    // 返回PDF文件
+    const filename = `ai-evaluation-report-${evaluation.id}.pdf`;
+    const headers = new Headers();
+    headers.append("Content-Type", "application/pdf");
+    headers.append("Content-Disposition", `attachment; filename="${filename}"`);
+
+    return new Response(pdfBuffer, { headers });
   } catch (error) {
     console.error("生成报告失败:", error)
     return NextResponse.json(
@@ -54,7 +80,7 @@ export async function GET(
 }
 
 function generateMarkdownReport(evaluation: any): string {
-  const data = evaluation.data as any
+  const data = evaluation
 
   let markdown = `# AI需求评估完整报告\n\n`
   markdown += `**生成时间**: ${new Date(evaluation.createdAt).toLocaleString("zh-CN")}\n\n`
@@ -63,12 +89,10 @@ function generateMarkdownReport(evaluation: any): string {
   // 1. 评估总览
   markdown += `## 📊 评估总览\n\n`
 
-  const resourceScore = Math.round(
-    (data.resourceFeasibility.pretraining.memoryUsagePercent +
-      data.resourceFeasibility.fineTuning.memoryUsagePercent +
-      data.resourceFeasibility.inference.memoryUsagePercent) /
-      3
-  )
+  const pretrainingScore = calculateResourceScore(data.resourceFeasibility.pretraining.memoryUsagePercent)
+  const fineTuningScore = calculateResourceScore(data.resourceFeasibility.fineTuning.memoryUsagePercent)
+  const inferenceScore = calculateResourceScore(data.resourceFeasibility.inference.memoryUsagePercent)
+  const resourceScore = Math.round((pretrainingScore + fineTuningScore + inferenceScore) / 3)
   const technicalScore = data.technicalFeasibility.score
   const businessScore = data.businessValue?.score || 0
   const overallScore = data.businessValue
