@@ -5,19 +5,20 @@ import { Badge } from "@/components/ui/badge"
 import { ScoreRadar } from "@/components/score-radar"
 import { CheckCircle2, AlertTriangle, XCircle, TrendingUp, TrendingDown } from "lucide-react"
 import type { EvaluationResponse } from "@/lib/types"
+import { calculateResourceScore } from "@/lib/resource-calculator"
 
 interface EvaluationDashboardProps {
   evaluation: EvaluationResponse
 }
 
 export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
-  // 计算总体评分
-  const resourceScore = Math.round(
-    (evaluation.resourceFeasibility.pretraining.memoryUsagePercent +
-      evaluation.resourceFeasibility.fineTuning.memoryUsagePercent +
-      evaluation.resourceFeasibility.inference.memoryUsagePercent) /
-      3
-  )
+  // 计算各项资源的得分
+  const pretrainingScore = calculateResourceScore(evaluation.resourceFeasibility.pretraining.memoryUsagePercent)
+  const fineTuningScore = calculateResourceScore(evaluation.resourceFeasibility.fineTuning.memoryUsagePercent)
+  const inferenceScore = calculateResourceScore(evaluation.resourceFeasibility.inference.memoryUsagePercent)
+
+  // 计算总体资源分
+  const resourceScore = Math.round((pretrainingScore + fineTuningScore + inferenceScore) / 3)
 
   const technicalScore = evaluation.technicalFeasibility.score
   const businessScore = evaluation.businessValue?.score ?? 0
@@ -40,16 +41,16 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
   // 雷达图数据 - 只在商业价值存在时包含
   const radarScores = evaluation.businessValue
     ? [
-        { label: "预训练", value: evaluation.resourceFeasibility.pretraining.memoryUsagePercent, color: "#3b82f6" },
-        { label: "微调", value: evaluation.resourceFeasibility.fineTuning.memoryUsagePercent, color: "#8b5cf6" },
-        { label: "推理", value: evaluation.resourceFeasibility.inference.memoryUsagePercent, color: "#06b6d4" },
+        { label: "预训练", value: pretrainingScore, color: "#3b82f6" },
+        { label: "微调", value: fineTuningScore, color: "#8b5cf6" },
+        { label: "推理", value: inferenceScore, color: "#06b6d4" },
         { label: "技术方案", value: technicalScore, color: "#10b981" },
         { label: "商业价值", value: businessScore, color: "#f59e0b" },
       ]
     : [
-        { label: "预训练", value: evaluation.resourceFeasibility.pretraining.memoryUsagePercent, color: "#3b82f6" },
-        { label: "微调", value: evaluation.resourceFeasibility.fineTuning.memoryUsagePercent, color: "#8b5cf6" },
-        { label: "推理", value: evaluation.resourceFeasibility.inference.memoryUsagePercent, color: "#06b6d4" },
+        { label: "预训练", value: pretrainingScore, color: "#3b82f6" },
+        { label: "微调", value: fineTuningScore, color: "#8b5cf6" },
+        { label: "推理", value: inferenceScore, color: "#06b6d4" },
         { label: "技术方案", value: technicalScore, color: "#10b981" },
       ]
 

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CircularProgress } from "@/components/circular-progress"
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
+import { calculateResourceScore } from "@/lib/resource-calculator"
 
 interface ResourceCardProps {
   title: string
@@ -24,19 +25,19 @@ export function ResourceCard({
   suggestions,
   extraInfo,
 }: ResourceCardProps) {
-  // 计算显存占用度
-  const occupancyPercent = Math.round((memoryRequired / memoryAvailable) * 100)
+  // 计算可行性得分
+  const feasibilityScore = calculateResourceScore(memoryUsagePercent)
 
-  // 根据占用度获取颜色和状态
+  // 根据可行性得分获取颜色和状态
   const getOccupancyStyle = () => {
-    if (occupancyPercent > 95) {
+    if (feasibilityScore < 20) {
       return {
         icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
         cardBg: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800",
         barBg: "bg-red-500",
       }
     }
-    if (occupancyPercent > 70) {
+    if (feasibilityScore < 50) {
       return {
         icon: <AlertTriangle className="h-4 w-4 text-amber-600" />,
         cardBg: "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800",
@@ -70,8 +71,8 @@ export function ResourceCard({
         <div className="flex items-start gap-4 mb-3">
           <div className="flex-shrink-0">
             <CircularProgress
-              percentage={occupancyPercent}
-              label="占用度"
+              percentage={feasibilityScore}
+              label="可行性"
               size={100}
             />
           </div>
@@ -88,7 +89,7 @@ export function ResourceCard({
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all duration-500 ${style.barBg}`}
-                  style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
+                  style={{ width: `${Math.min(memoryUsagePercent, 100)}%` }}
                 />
               </div>
             </div>

@@ -50,23 +50,6 @@ export interface ResourceFeasibility {
 }
 
 /**
- * 根据模型参数量计算所需显存 (GB)
- * @param parameterSizeB - 模型参数量（十亿）
- * @param precision - 精度 (e.g., 16 for FP16, 8 for INT8)
- * @param overheadFactor - 额外开销因子 (e.g., 2 for Adam optimizer)
- * @returns 所需显存 (GB)
- */
-function calculateVram(
-  parameterSizeB: number,
-  precisionBytes: number,
-  overheadFactor: number = 1
-): number {
-  // 基础显存 = 参数量 * 每个参数的字节数
-  // 额外开销包括激活、优化器状态等
-  return parameterSizeB * precisionBytes * overheadFactor
-}
-
-/**
  * 计算硬件资源可行性
  */
 export function calculateResourceFeasibility(
@@ -85,28 +68,37 @@ export function calculateResourceFeasibility(
   const totalVRAM = hwSpec.vram * cardCount
   const paramsB = modelSpec.parameterSizeB
 
-  // --- 评估各项任务所需显存 ---
-  // 预训练: FP16/BF16 (2 bytes) + AdamW (16 bytes/param) -> ~18-20 bytes/param
-  const pretrainingRequired = calculateVram(paramsB, 1, 20) // 估算为20倍参数量
-  const pretrainingPercent = Math.min((totalVRAM / pretrainingRequired) * 100, 100)
-  const pretrainingFeasible = totalVRAM >= pretrainingRequired
+  // --- 评估各项任务所需显存 (基于FP16精度) ---
 
-  // 全量微调: FP16/BF16 (2 bytes) + AdamW (16 bytes/param) -> ~18 bytes/param
-  const finetuningRequired = calculateVram(paramsB, 1, 18) // 估算为18倍参数量
-  const finetuningPercent = Math.min((totalVRAM / finetuningRequired) * 100, 100)
-  const finetuningFeasible = totalVRAM >= finetuningRequired
-
-  // 推理 (FP16): 2 bytes/param
-  const inferenceRequired = calculateVram(paramsB, 2)
-  const inferencePercent = Math.min((totalVRAM / inferenceRequired) * 100, 100)
+  // 1. 推理 (Inference)
+  // 公式: 参数量 * 2 bytes (FP16) * 1.2 (经验开销)
+  const inferenceRequired = paramsB * 2 * 1.2
+  const inferencePercent = (inferenceRequired / totalVRAM) * 100
   const inferenceFeasible = totalVRAM >= inferenceRequired
 
-  // LoRA 微调: FP16 model (2 bytes) + 少量额外开销 (估算为1.2倍推理显存)
+  // 2. 全参数微调 (Full Fine-tuning)
+  // 公式: 参数量 * 2 bytes (FP16) * 4 (权重+梯度+Adam优化器)
+  const finetuningRequired = paramsB * 2 * 4
+  const finetuningPercent = (finetuningRequired / totalVRAM) * 100
+  const finetuningFeasible = totalVRAM >= finetuningRequired
+
+  // 3. 预训练 (Pre-training)
+  // 预训练因其巨大的批处理大小，激活值会占用极高的显存，通常是微调的数倍。
+  // 这里我们使用一个更符合业界实践的保守系数：8倍模型大小。
+  // 公式: 参数量 * 2 bytes (FP16) * 8 (权重+梯度+Adam+巨大的激活开销)
+  const pretrainingRequired = paramsB * 2 * 8
+  const pretrainingPercent = (pretrainingRequired / totalVRAM) * 100
+  const pretrainingFeasible = totalVRAM >= pretrainingRequired
+
+  // 4. PEFT 微调 (LoRA & QLoRA)
+  // LoRA 微调: 基于推理显存增加少量开销
   const loraRequired = inferenceRequired * 1.2
   const loraFeasible = totalVRAM >= loraRequired
 
-  // QLoRA 微调: INT4 model (0.5 bytes) + 少量额外开销 (估算为1.5倍4-bit推理显存)
-  const qloraRequired = calculateVram(paramsB, 0.5) * 1.5
+  // QLoRA 微调: 基于4-bit量化推理显存增加少量开销
+  // 4-bit模型权重显存 = 参数量 * 0.5 bytes
+  const qloraBaseVram = paramsB * 0.5
+  const qloraRequired = qloraBaseVram * 1.5 // 1.5倍开销
   const qloraFeasible = totalVRAM >= qloraRequired
 
   // --- QPS 计算 ---
@@ -182,4 +174,24 @@ export function calculateResourceFeasibility(
         : ["即使使用量化也无法满足QPS要求,建议增加GPU数量"],
     },
   }
+}
+
+/**
+ * 根据资源使用率计算一个0-100的非线性分数
+ * @param utilizationPercent - 资源使用率 (%)
+ * @returns 0-100的分数
+ */
+export function calculateResourceScore(utilizationPercent: number): number {
+  if (utilizationPercent > 100) {
+    return 0 // 不可行
+  }
+  if (utilizationPercent <= 60) {
+    return 100 // 最佳范围
+  }
+  if (utilizationPercent <= 90) {
+    // 61-90% 高效范围，分数线性下降
+    return 100 - (utilizationPercent - 60) * 2
+  }
+  // 91-100% 警告范围，分数急剧下降
+  return 40 - (utilizationPercent - 90) * 4
 }
