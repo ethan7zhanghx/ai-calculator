@@ -19,12 +19,13 @@ export function CircularProgress({
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
-  const offset = circumference - (percentage / 100) * circumference
+  // Clamp the percentage between 0 and 100 for the progress ring calculation
+  const clampedPercentage = Math.min(100, Math.max(0, percentage))
+  const offset = circumference - (clampedPercentage / 100) * circumference
 
   // 默认颜色逻辑
   const getDefaultColor = () => {
-    if (percentage > 100) return "text-slate-500"
-    if (percentage > 90) return "text-red-600"
+    if (percentage > 95) return "text-red-600"
     if (percentage > 70) return "text-amber-600"
     return "text-green-600"
   }

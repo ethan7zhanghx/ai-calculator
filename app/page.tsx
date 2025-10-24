@@ -39,6 +39,7 @@ import { BusinessEvaluationDetailed } from "@/components/business-evaluation-det
 import { MultiSelect, type Option } from "@/components/multi-select"
 import { InputSummary } from "@/components/input-summary"
 import { useToast } from "@/hooks/use-toast"
+import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
 import { calculateResourceFeasibility, type ResourceFeasibility } from "@/lib/resource-calculator"
 import type {
   DataType,
@@ -647,14 +648,11 @@ export default function AIRequirementsCalculator() {
                       <SelectValue placeholder="选择AI模型" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="GPT-4">GPT-4</SelectItem>
-                      <SelectItem value="GPT-3.5">GPT-3.5</SelectItem>
-                      <SelectItem value="Claude 3 Opus">Claude 3 Opus</SelectItem>
-                      <SelectItem value="Claude 3 Sonnet">Claude 3 Sonnet</SelectItem>
-                      <SelectItem value="Llama 3 70B">Llama 3 70B</SelectItem>
-                      <SelectItem value="Llama 3 8B">Llama 3 8B</SelectItem>
-                      <SelectItem value="Mistral Large">Mistral Large</SelectItem>
-                      <SelectItem value="Mistral 7B">Mistral 7B</SelectItem>
+                      {Object.keys(MODEL_KNOWLEDGE).map((modelName) => (
+                        <SelectItem key={modelName} value={modelName}>
+                          {modelName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

@@ -29,19 +29,10 @@ export function ResourceCard({
 
   // 根据占用度获取颜色和状态
   const getOccupancyStyle = () => {
-    if (occupancyPercent > 100) {
-      return {
-        icon: <XCircle className="h-4 w-4 text-slate-500" />,
-        cardBg: "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800",
-        progressColor: "text-slate-500",
-        barBg: "bg-slate-400",
-      }
-    }
-    if (occupancyPercent > 90) {
+    if (occupancyPercent > 95) {
       return {
         icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
         cardBg: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800",
-        progressColor: "text-red-600",
         barBg: "bg-red-500",
       }
     }
@@ -49,14 +40,12 @@ export function ResourceCard({
       return {
         icon: <AlertTriangle className="h-4 w-4 text-amber-600" />,
         cardBg: "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800",
-        progressColor: "text-amber-600",
         barBg: "bg-amber-500",
       }
     }
     return {
       icon: <CheckCircle2 className="h-4 w-4 text-green-600" />,
       cardBg: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
-      progressColor: "text-green-600",
       barBg: "bg-green-500",
     }
   }
@@ -84,7 +73,6 @@ export function ResourceCard({
               percentage={occupancyPercent}
               label="占用度"
               size={100}
-              color={style.progressColor}
             />
           </div>
 
