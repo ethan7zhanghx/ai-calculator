@@ -2,6 +2,7 @@
  * 前端硬件资源计算工具
  * 实时计算硬件资源可行性，无需调用后端API
  */
+import { MODEL_KNOWLEDGE } from "./model-knowledge-base"
 
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
@@ -11,25 +12,6 @@ const hardwareSpecs: Record<string, { vram: number }> = {
   "NVIDIA V100": { vram: 32 },
   "NVIDIA RTX 4090": { vram: 24 },
   "NVIDIA RTX 3090": { vram: 24 },
-}
-
-// 模型规格数据
-const modelSpecs: Record<
-  string,
-  {
-    vramPerGPU: number
-    minGPUs: number
-    paramSize: string
-  }
-> = {
-  "GPT-4": { vramPerGPU: 80, minGPUs: 8, paramSize: "1.7T" },
-  "GPT-3.5": { vramPerGPU: 40, minGPUs: 2, paramSize: "175B" },
-  "Claude 3 Opus": { vramPerGPU: 80, minGPUs: 8, paramSize: "~500B" },
-  "Claude 3 Sonnet": { vramPerGPU: 40, minGPUs: 2, paramSize: "~200B" },
-  "Llama 3 70B": { vramPerGPU: 80, minGPUs: 4, paramSize: "70B" },
-  "Llama 3 8B": { vramPerGPU: 16, minGPUs: 1, paramSize: "8B" },
-  "Mistral Large": { vramPerGPU: 80, minGPUs: 4, paramSize: "~140B" },
-  "Mistral 7B": { vramPerGPU: 14, minGPUs: 1, paramSize: "7B" },
 }
 
 export interface ResourceFeasibility {
@@ -68,6 +50,23 @@ export interface ResourceFeasibility {
 }
 
 /**
+ * 根据模型参数量计算所需显存 (GB)
+ * @param parameterSizeB - 模型参数量（十亿）
+ * @param precision - 精度 (e.g., 16 for FP16, 8 for INT8)
+ * @param overheadFactor - 额外开销因子 (e.g., 2 for Adam optimizer)
+ * @returns 所需显存 (GB)
+ */
+function calculateVram(
+  parameterSizeB: number,
+  precisionBytes: number,
+  overheadFactor: number = 1
+): number {
+  // 基础显存 = 参数量 * 每个参数的字节数
+  // 额外开销包括激活、优化器状态等
+  return parameterSizeB * precisionBytes * overheadFactor
+}
+
+/**
  * 计算硬件资源可行性
  */
 export function calculateResourceFeasibility(
@@ -77,38 +76,42 @@ export function calculateResourceFeasibility(
   qps: number
 ): ResourceFeasibility | null {
   const hwSpec = hardwareSpecs[hardware]
-  const modelSpec = modelSpecs[model]
+  const modelSpec = MODEL_KNOWLEDGE[model]
 
-  if (!hwSpec || !modelSpec) {
+  if (!hwSpec || !modelSpec || modelSpec.parameterSizeB === 0) {
     return null
   }
 
-  // 计算资源可行性
   const totalVRAM = hwSpec.vram * cardCount
+  const paramsB = modelSpec.parameterSizeB
 
-  // 预训练评估
-  const pretrainingRequired = modelSpec.vramPerGPU * modelSpec.minGPUs * 1.5
+  // --- 评估各项任务所需显存 ---
+  // 预训练: FP16/BF16 (2 bytes) + AdamW (16 bytes/param) -> ~18-20 bytes/param
+  const pretrainingRequired = calculateVram(paramsB, 1, 20) // 估算为20倍参数量
   const pretrainingPercent = Math.min((totalVRAM / pretrainingRequired) * 100, 100)
   const pretrainingFeasible = totalVRAM >= pretrainingRequired
 
-  // 微调评估
-  const finetuningRequired = modelSpec.vramPerGPU * modelSpec.minGPUs * 1.2
+  // 全量微调: FP16/BF16 (2 bytes) + AdamW (16 bytes/param) -> ~18 bytes/param
+  const finetuningRequired = calculateVram(paramsB, 1, 18) // 估算为18倍参数量
   const finetuningPercent = Math.min((totalVRAM / finetuningRequired) * 100, 100)
   const finetuningFeasible = totalVRAM >= finetuningRequired
 
-  // LoRA/QLoRA评估
-  const loraRequired = modelSpec.vramPerGPU * modelSpec.minGPUs * 0.6
-  const qloraRequired = modelSpec.vramPerGPU * modelSpec.minGPUs * 0.4
-  const loraFeasible = totalVRAM >= loraRequired
-  const qloraFeasible = totalVRAM >= qloraRequired
-
-  // 推理评估
-  const inferenceRequired = modelSpec.vramPerGPU * modelSpec.minGPUs
+  // 推理 (FP16): 2 bytes/param
+  const inferenceRequired = calculateVram(paramsB, 2)
   const inferencePercent = Math.min((totalVRAM / inferenceRequired) * 100, 100)
   const inferenceFeasible = totalVRAM >= inferenceRequired
 
-  // 计算QPS
-  const baseQPS = cardCount * 10
+  // LoRA 微调: FP16 model (2 bytes) + 少量额外开销 (估算为1.2倍推理显存)
+  const loraRequired = inferenceRequired * 1.2
+  const loraFeasible = totalVRAM >= loraRequired
+
+  // QLoRA 微调: INT4 model (0.5 bytes) + 少量额外开销 (估算为1.5倍4-bit推理显存)
+  const qloraRequired = calculateVram(paramsB, 0.5) * 1.5
+  const qloraFeasible = totalVRAM >= qloraRequired
+
+  // --- QPS 计算 ---
+  // 这是一个非常简化的估算，实际QPS受多种因素影响
+  const baseQPS = cardCount * 10 // 假设基准QPS
   const supportedQPS = inferenceFeasible ? baseQPS * (totalVRAM / inferenceRequired) : 0
   const meetsQPSRequirements = supportedQPS >= qps
 
@@ -123,14 +126,14 @@ export function calculateResourceFeasibility(
     {
       type: "INT8" as const,
       memoryUsagePercent: Math.round(Math.min(inferencePercent * 0.5, 100)),
-      supportedQPS: Math.round(supportedQPS * 1.5),
-      meetsRequirements: supportedQPS * 1.5 >= qps,
+      supportedQPS: Math.round(supportedQPS * 1.8), // INT8加速比
+      meetsRequirements: supportedQPS * 1.8 >= qps,
     },
     {
       type: "INT4" as const,
       memoryUsagePercent: Math.round(Math.min(inferencePercent * 0.25, 100)),
-      supportedQPS: Math.round(supportedQPS * 2),
-      meetsRequirements: supportedQPS * 2 >= qps,
+      supportedQPS: Math.round(supportedQPS * 2.5), // INT4加速比
+      meetsRequirements: supportedQPS * 2.5 >= qps,
     },
   ]
 
@@ -138,33 +141,33 @@ export function calculateResourceFeasibility(
     pretraining: {
       feasible: pretrainingFeasible,
       memoryUsagePercent: Math.round(pretrainingPercent),
-      memoryRequired: pretrainingRequired,
+      memoryRequired: Math.round(pretrainingRequired),
       memoryAvailable: totalVRAM,
       suggestions: pretrainingFeasible
         ? ["硬件资源充足,可以进行预训练"]
-        : ["显存不足,建议增加GPU数量或选择更小的模型"],
+        : ["显存不足,预训练需要极大资源，建议增加GPU数量或选择更小的模型"],
     },
     fineTuning: {
       feasible: finetuningFeasible,
       memoryUsagePercent: Math.round(finetuningPercent),
-      memoryRequired: finetuningRequired,
+      memoryRequired: Math.round(finetuningRequired),
       memoryAvailable: totalVRAM,
       loraFeasible,
       qloraFeasible,
       suggestions: finetuningFeasible
         ? ["硬件资源可以支持全量微调"]
         : loraFeasible
-        ? ["建议使用LoRA进行参数高效微调"]
+        ? ["全量微调资源不足，建议使用LoRA进行参数高效微调"]
         : qloraFeasible
-        ? ["建议使用QLoRA进行量化微调"]
-        : ["当前硬件无法支持微调,建议采购更多硬件或选择更小的模型"],
+        ? ["LoRA微调资源不足，建议使用QLoRA进行量化微调"]
+        : ["当前硬件无法支持任何微调,建议采购更多硬件或选择更小的模型"],
     },
     inference: {
       feasible: inferenceFeasible,
       memoryUsagePercent: Math.round(inferencePercent),
-      memoryRequired: inferenceRequired,
+      memoryRequired: Math.round(inferenceRequired),
       memoryAvailable: totalVRAM,
-      supportedThroughput: Math.round(supportedQPS * 10),
+      supportedThroughput: Math.round(supportedQPS * 10), // 简化估算
       supportedQPS: Math.round(supportedQPS),
       meetsRequirements: meetsQPSRequirements,
       quantizationOptions,

@@ -25,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/paddlepaddle.jpeg" />
+      </head>
       <body className={`font-sans antialiased`}>
         {children}
         <Toaster />
