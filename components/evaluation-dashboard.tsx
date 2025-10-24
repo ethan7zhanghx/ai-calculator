@@ -12,15 +12,28 @@ interface EvaluationDashboardProps {
 }
 
 export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
-  // 计算各项资源的得分
-  const pretrainingScore = calculateResourceScore(evaluation.resourceFeasibility.pretraining.memoryUsagePercent)
-  const fineTuningScore = calculateResourceScore(evaluation.resourceFeasibility.fineTuning.memoryUsagePercent)
-  const inferenceScore = calculateResourceScore(evaluation.resourceFeasibility.inference.memoryUsagePercent)
+  if (!evaluation) {
+    return (
+      <Card className="shadow-lg border-2">
+        <CardHeader>
+          <CardTitle>评估总览</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>暂无评估数据。</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // 安全地计算各项资源的得分
+  const pretrainingScore = calculateResourceScore(evaluation.resourceFeasibility?.pretraining?.memoryUsagePercent ?? 0)
+  const fineTuningScore = calculateResourceScore(evaluation.resourceFeasibility?.fineTuning?.memoryUsagePercent ?? 0)
+  const inferenceScore = calculateResourceScore(evaluation.resourceFeasibility?.inference?.memoryUsagePercent ?? 0)
 
   // 计算总体资源分
   const resourceScore = Math.round((pretrainingScore + fineTuningScore + inferenceScore) / 3)
 
-  const technicalScore = evaluation.technicalFeasibility.score
+  const technicalScore = evaluation.technicalFeasibility?.score ?? 0
   const businessScore = evaluation.businessValue?.score ?? 0
 
   // 如果商业价值评估失败，则只计算资源和技术的平均分
@@ -80,9 +93,9 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
       : []),
     {
       label: "支持QPS",
-      value: evaluation.resourceFeasibility.inference.supportedQPS,
-      trend: evaluation.resourceFeasibility.inference.meetsRequirements ? "up" : "down",
-      status: evaluation.resourceFeasibility.inference.meetsRequirements ? "good" : "poor",
+      value: evaluation.resourceFeasibility?.inference?.supportedQPS ?? 0,
+      trend: evaluation.resourceFeasibility?.inference?.meetsRequirements ? "up" : "down",
+      status: evaluation.resourceFeasibility?.inference?.meetsRequirements ? "good" : "poor",
       isMetric: true,
     },
   ]
@@ -165,7 +178,7 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
               资源状态
             </h5>
             <p className="text-sm text-muted-foreground">
-              {evaluation.resourceFeasibility.inference.feasible
+              {evaluation.resourceFeasibility?.inference?.feasible
                 ? "硬件资源充足,可支持推理任务"
                 : "硬件资源不足,需要优化或扩容"}
             </p>
@@ -176,9 +189,9 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
               技术评估
             </h5>
             <p className="text-sm text-muted-foreground">
-              {evaluation.technicalFeasibility.appropriate
+              {evaluation.technicalFeasibility?.appropriate
                 ? "技术选型合理,匹配业务需求"
-                : `发现${evaluation.technicalFeasibility.issues.length}个技术问题`}
+                : `发现${evaluation.technicalFeasibility?.issues?.length ?? 0}个技术问题`}
             </p>
           </div>
           {evaluation.businessValue && (
