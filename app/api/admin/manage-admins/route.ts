@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import { verifySuperAdmin, createUnauthorizedResponse, createForbiddenResponse } from "@/lib/admin-auth"
 
 /**
  * GET - 获取所有管理员列表(仅超级管理员)
  */
 export async function GET(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     // 验证超级管理员权限
     const authResult = await verifySuperAdmin(request)
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest) {
  * POST - 赋予用户管理员权限(仅超级管理员)
  */
 export async function POST(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     // 验证超级管理员权限
     const authResult = await verifySuperAdmin(request)
@@ -140,6 +142,7 @@ export async function POST(request: NextRequest) {
  * DELETE - 撤销管理员权限(仅超级管理员)
  */
 export async function DELETE(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     // 验证超级管理员权限
     const authResult = await verifySuperAdmin(request)

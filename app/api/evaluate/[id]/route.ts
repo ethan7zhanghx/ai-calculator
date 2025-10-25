@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = getPrismaClient();
   try {
     const evaluationId = params.id
 

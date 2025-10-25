@@ -202,7 +202,8 @@ export interface ApiResponse<T = any> {
 }
 
 export interface AuthRequest {
-  phone: string
+  email?: string
+  phone?: string
   password: string
 }
 

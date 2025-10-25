@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, ModuleFeedbackRequest } from "@/lib/types"
 import { withOptionalAuth } from "@/lib/auth-middleware"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import type { JWTPayload } from "@/lib/jwt"
 
 export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPayload | null) => {
+  const prisma = getPrismaClient();
   try {
     const body: ModuleFeedbackRequest = await request.json()
 

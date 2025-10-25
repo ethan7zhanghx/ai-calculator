@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 
 /**
  * 初始化超级管理员 API
@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma"
 const INIT_SECRET = process.env.ADMIN_INIT_SECRET || "change-me-in-production"
 
 export async function POST(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     const body = await request.json()
     const { identifier, secret } = body
