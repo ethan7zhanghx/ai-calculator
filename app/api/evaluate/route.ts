@@ -58,14 +58,16 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
 
         try {
           // 第1步：立即发送资源可行性评估结果
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'resource',
-            data: {
-              evaluationId,
-              resourceFeasibility,
-              createdAt: new Date().toISOString(),
-            }
-          })}\n\n`))
+          if (controller.desiredSize) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'resource',
+              data: {
+                evaluationId,
+                resourceFeasibility,
+                createdAt: new Date().toISOString(),
+              }
+            })}\n\n`))
+          }
 
           // 第2步：执行技术方案评估
           let technicalEvaluation
@@ -90,19 +92,23 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             }
 
             // 发送技术评估结果
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'technical',
-              data: { technicalFeasibility }
-            })}\n\n`))
+            if (controller.desiredSize) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'technical',
+                data: { technicalFeasibility }
+              })}\n\n`))
+            }
 
           } catch (error) {
             console.error("技术方案评估失败:", error)
             // 发送技术评估失败通知
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'error',
-              module: 'technical',
-              error: error instanceof Error ? error.message : "技术方案评估失败"
-            })}\n\n`))
+            if (controller.desiredSize) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                module: 'technical',
+                error: error instanceof Error ? error.message : "技术方案评估失败"
+              })}\n\n`))
+            }
           }
 
           // 第3步：执行商业价值评估
@@ -124,19 +130,23 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             } : null
 
             // 发送商业价值评估结果
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'business',
-              data: { businessValue }
-            })}\n\n`))
+            if (controller.desiredSize) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'business',
+                data: { businessValue }
+              })}\n\n`))
+            }
 
           } catch (error) {
             console.error("商业价值评估失败:", error)
             // 发送商业价值评估失败通知（不中断整体流程）
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'error',
-              module: 'business',
-              error: error instanceof Error ? error.message : "商业价值评估失败"
-            })}\n\n`))
+            if (controller.desiredSize) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                module: 'business',
+                error: error instanceof Error ? error.message : "商业价值评估失败"
+              })}\n\n`))
+            }
           }
 
           // 第4步：保存到数据库
@@ -189,17 +199,21 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
           }
 
           // 第5步：发送完成信号
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'complete'
-          })}\n\n`))
+          if (controller.desiredSize) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'complete'
+            })}\n\n`))
+          }
 
         } catch (error) {
           console.error("Stream error:", error)
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'error',
-            module: 'system',
-            error: error instanceof Error ? error.message : "服务器内部错误"
-          })}\n\n`))
+          if (controller.desiredSize) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              module: 'system',
+              error: error instanceof Error ? error.message : "服务器内部错误"
+            })}\n\n`))
+          }
         } finally {
           controller.close()
         }
