@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, EvaluationRequest, EvaluationResponse } from "@/lib/types"
 import { withOptionalAuth } from "@/lib/auth-middleware"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import type { JWTPayload } from "@/lib/jwt"
 import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 import { evaluateBusinessValue } from "@/lib/business-evaluator"
@@ -152,6 +152,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
           // 第4步：保存到数据库
           if (user && technicalEvaluation) {
             try {
+              const prisma = getPrismaClient();
               const technicalScore = technicalEvaluation.score
               const technicalIssues = [
                 ...technicalEvaluation.criticalIssues,

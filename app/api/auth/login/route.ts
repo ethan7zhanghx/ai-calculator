@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiResponse, AuthRequest, AuthResponse } from "@/lib/types"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import { verifyPassword } from "@/lib/password"
 import { signToken } from "@/lib/jwt"
 
 export async function POST(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     const body: AuthRequest = await request.json()
     const { email, phone, password } = body

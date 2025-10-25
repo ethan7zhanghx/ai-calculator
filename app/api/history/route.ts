@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import { verifyToken } from "@/lib/jwt"
 
 export async function GET(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     // 1. 验证用户Token
     const authHeader = request.headers.get("authorization")

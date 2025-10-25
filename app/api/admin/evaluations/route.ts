@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import { verifyAdmin, createUnauthorizedResponse, createForbiddenResponse } from "@/lib/admin-auth"
 
 export async function GET(request: NextRequest) {
+  const prisma = getPrismaClient();
   try {
     // 验证管理员权限
     const authResult = await verifyAdmin(request)

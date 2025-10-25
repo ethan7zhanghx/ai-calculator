@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import path from "path"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/prisma"
 import { verifyToken } from "@/lib/jwt"
 import { calculateResourceScore } from "@/lib/resource-calculator"
 import { mdToPdf } from "md-to-pdf"
@@ -9,6 +9,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = getPrismaClient();
   try {
     const evaluationId = params.id
 

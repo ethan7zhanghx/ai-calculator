@@ -1,12 +1,13 @@
-// Prisma Schema for AI Calculator
+// Prisma Schema for AI Calculator (Production - PostgreSQL)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // 用户表
@@ -16,7 +17,7 @@ model User {
   password  String   // bcrypt hashed password
   phone     String?  @unique
   name      String?
-  role      String   @default("user") // "user" | "admin" | "super_admin"
+  role      String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -26,7 +27,6 @@ model User {
 
   @@index([email])
   @@index([phone])
-  @@index([role])
 }
 
 // 评估历史表
