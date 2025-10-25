@@ -31,22 +31,26 @@ interface TechnicalEvaluationDetailedProps {
 }
 
 export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationDetailedProps) {
+  if (!evaluation || !evaluation.dimensions) {
+    return null; // or a loading skeleton
+  }
   const { dimensions } = evaluation
 
   // 分数徽章
-  const ScoreBadge = ({ score }: { score: number }) => {
+  const ScoreBadge = ({ score }: { score: number | undefined }) => {
+    const finalScore = score ?? 0;
     const getScoreColor = () => {
-      if (score >= 90) return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700"
-      if (score >= 70) return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700"
-      if (score >= 50) return "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-100 dark:border-yellow-700"
-      if (score >= 30) return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-100 dark:border-orange-700"
+      if (finalScore >= 90) return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700"
+      if (finalScore >= 70) return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700"
+      if (finalScore >= 50) return "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-100 dark:border-yellow-700"
+      if (finalScore >= 30) return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-100 dark:border-orange-700"
       return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-700"
     }
     return (
       <div
         className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getScoreColor()}`}
       >
-        {score}
+        {finalScore}
       </div>
     )
   }
@@ -161,8 +165,8 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">模型与业务匹配度</span>
               </div>
               <div className="flex items-center gap-2">
-                <ScoreBadge score={dimensions.modelTaskAlignment.score} />
-                {getStatusBadge("alignment", dimensions.modelTaskAlignment.status)}
+                <ScoreBadge score={dimensions.modelTaskAlignment?.score} />
+                {getStatusBadge("alignment", dimensions.modelTaskAlignment?.status ?? 'mismatched')}
               </div>
             </div>
           </AccordionTrigger>
@@ -170,11 +174,11 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
             <div className="p-2 rounded-md bg-muted/50 text-sm">
               <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {dimensions.modelTaskAlignment.scoreRationale}
+                {dimensions.modelTaskAlignment?.scoreRationale}
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {dimensions.modelTaskAlignment.analysis}
+              {dimensions.modelTaskAlignment?.analysis}
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -188,8 +192,8 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">大模型必要性</span>
               </div>
               <div className="flex items-center gap-2">
-                <ScoreBadge score={dimensions.llmNecessity.score} />
-                {getStatusBadge("necessity", dimensions.llmNecessity.status)}
+                <ScoreBadge score={dimensions.llmNecessity?.score} />
+                {getStatusBadge("necessity", dimensions.llmNecessity?.status ?? 'unnecessary')}
               </div>
             </div>
           </AccordionTrigger>
@@ -197,14 +201,14 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
             <div className="p-2 rounded-md bg-muted/50 text-sm">
               <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {dimensions.llmNecessity.scoreRationale}
+                {dimensions.llmNecessity?.scoreRationale}
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {dimensions.llmNecessity.analysis}
+              {dimensions.llmNecessity?.analysis}
             </p>
 
-            {dimensions.llmNecessity.alternatives && (
+            {dimensions.llmNecessity?.alternatives && (
               <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800">
                 <h5 className="font-medium text-sm mb-2 text-blue-900 dark:text-blue-100">替代方案</h5>
                 <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
@@ -224,9 +228,9 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">微调必要性与数据充分性</span>
               </div>
               <div className="flex items-center gap-2">
-                <ScoreBadge score={dimensions.fineTuning.score} />
-                {getStatusBadge("boolean", dimensions.fineTuning.necessary)}
-                {getStatusBadge("adequacy", dimensions.fineTuning.dataAdequacy)}
+                <ScoreBadge score={dimensions.fineTuning?.score} />
+                {getStatusBadge("boolean", dimensions.fineTuning?.necessary ?? false)}
+                {getStatusBadge("adequacy", dimensions.fineTuning?.dataAdequacy ?? 'insufficient')}
               </div>
             </div>
           </AccordionTrigger>
@@ -234,11 +238,11 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
             <div className="p-2 rounded-md bg-muted/50 text-sm">
               <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {dimensions.fineTuning.scoreRationale}
+                {dimensions.fineTuning?.scoreRationale}
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {dimensions.fineTuning.analysis}
+              {dimensions.fineTuning?.analysis}
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -252,8 +256,8 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">业务可行性与实施路径</span>
               </div>
               <div className="flex items-center gap-2">
-                <ScoreBadge score={dimensions.implementationRoadmap.score} />
-                {getStatusBadge("boolean", dimensions.implementationRoadmap.feasible)}
+                <ScoreBadge score={dimensions.implementationRoadmap?.score} />
+                {getStatusBadge("boolean", dimensions.implementationRoadmap?.feasible ?? false)}
               </div>
             </div>
           </AccordionTrigger>
@@ -261,17 +265,17 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
             <div className="p-2 rounded-md bg-muted/50 text-sm">
               <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {dimensions.implementationRoadmap.scoreRationale}
+                {dimensions.implementationRoadmap?.scoreRationale}
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {dimensions.implementationRoadmap.analysis}
+              {dimensions.implementationRoadmap?.analysis}
             </p>
 
             {/* 分阶段实施路径 */}
-            {(dimensions.implementationRoadmap.phases.shortTerm ||
-              dimensions.implementationRoadmap.phases.midTerm ||
-              dimensions.implementationRoadmap.phases.notRecommended) && (
+            {(dimensions.implementationRoadmap?.phases?.shortTerm ||
+              dimensions.implementationRoadmap?.phases?.midTerm ||
+              dimensions.implementationRoadmap?.phases?.notRecommended) && (
               <div className="space-y-3">
                 <h5 className="font-medium text-sm">分阶段实施路径</h5>
 
@@ -342,8 +346,8 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">性能需求合理性</span>
               </div>
               <div className="flex items-center gap-2">
-                <ScoreBadge score={dimensions.performanceRequirements.score} />
-                {getStatusBadge("reasonable", dimensions.performanceRequirements.reasonable)}
+                <ScoreBadge score={dimensions.performanceRequirements?.score} />
+                {getStatusBadge("reasonable", dimensions.performanceRequirements?.reasonable ?? false)}
               </div>
             </div>
           </AccordionTrigger>
@@ -351,11 +355,11 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
             <div className="p-2 rounded-md bg-muted/50 text-sm">
               <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {dimensions.performanceRequirements.scoreRationale}
+                {dimensions.performanceRequirements?.scoreRationale}
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {dimensions.performanceRequirements.analysis}
+              {dimensions.performanceRequirements?.analysis}
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -369,8 +373,8 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
                 <span className="font-semibold">成本效益</span>
               </div>
               <div className="flex items-center gap-2">
-                <ScoreBadge score={dimensions.costEfficiency.score} />
-                {getStatusBadge("cost", dimensions.costEfficiency.level)}
+                <ScoreBadge score={dimensions.costEfficiency?.score} />
+                {getStatusBadge("cost", dimensions.costEfficiency?.level ?? 'excessive')}
               </div>
             </div>
           </AccordionTrigger>
@@ -378,11 +382,11 @@ export function TechnicalEvaluationDetailed({ evaluation }: TechnicalEvaluationD
             <div className="p-2 rounded-md bg-muted/50 text-sm">
               <p className="font-semibold text-muted-foreground text-xs mb-1">评分理由:</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {dimensions.costEfficiency.scoreRationale}
+                {dimensions.costEfficiency?.scoreRationale}
               </p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {dimensions.costEfficiency.analysis}
+              {dimensions.costEfficiency?.analysis}
             </p>
           </AccordionContent>
         </AccordionItem>
