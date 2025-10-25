@@ -22,16 +22,19 @@ interface TechnicalEvaluationSimpleProps {
 }
 
 export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSimpleProps) {
+  if (!evaluation) {
+    return null
+  }
   const { dimensions } = evaluation
 
   // 维度评分数据
   const dimensionScores = [
-    { label: "模型匹配度", value: dimensions.modelTaskAlignment.score || 0, status: dimensions.modelTaskAlignment.status },
-    { label: "LLM必要性", value: dimensions.llmNecessity.score || 0, status: dimensions.llmNecessity.status },
-    { label: "微调数据", value: dimensions.fineTuning.score || 0, status: dimensions.fineTuning.dataAdequacy },
-    { label: "实施路径", value: dimensions.implementationRoadmap.score || 0, status: dimensions.implementationRoadmap.feasible ? "good" : "bad" },
-    { label: "性能需求", value: dimensions.performanceRequirements.score || 0, status: dimensions.performanceRequirements.reasonable ? "good" : "bad" },
-    { label: "成本效益", value: dimensions.costEfficiency.score || 0, status: dimensions.costEfficiency.level },
+    { label: "模型匹配度", value: dimensions?.modelTaskAlignment?.score ?? 0, status: dimensions?.modelTaskAlignment?.status ?? 'mismatched' },
+    { label: "LLM必要性", value: dimensions?.llmNecessity?.score ?? 0, status: dimensions?.llmNecessity?.status ?? 'unnecessary' },
+    { label: "微调数据", value: dimensions?.fineTuning?.score ?? 0, status: dimensions?.fineTuning?.dataAdequacy ?? 'insufficient' },
+    { label: "实施路径", value: dimensions?.implementationRoadmap?.score ?? 0, status: dimensions?.implementationRoadmap?.feasible ? "good" : "bad" },
+    { label: "性能需求", value: dimensions?.performanceRequirements?.score ?? 0, status: dimensions?.performanceRequirements?.reasonable ? "good" : "bad" },
+    { label: "成本效益", value: dimensions?.costEfficiency?.score ?? 0, status: dimensions?.costEfficiency?.level ?? 'excessive' },
   ]
 
   const getStatusColor = (status: string) => {

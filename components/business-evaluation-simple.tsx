@@ -23,16 +23,19 @@ interface BusinessEvaluationSimpleProps {
 }
 
 export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpleProps) {
+  if (!evaluation) {
+    return null
+  }
   const { dimensions } = evaluation
 
   // 维度评分数据
   const dimensionScores = [
-    { label: "问题匹配度", value: dimensions.problemSolutionFit.score, status: dimensions.problemSolutionFit.status },
-    { label: "ROI合理性", value: dimensions.roiFeasibility.score, status: "neutral" },
-    { label: "竞争优势", value: dimensions.competitiveAdvantage.score, status: dimensions.competitiveAdvantage.level },
-    { label: "可扩展性", value: dimensions.scalability.score, status: dimensions.scalability.level },
-    { label: "实施风险", value: dimensions.implementationRisk.score, status: dimensions.implementationRisk.level },
-    { label: "市场时机", value: dimensions.marketTiming.score, status: dimensions.marketTiming.status },
+    { label: "问题匹配度", value: dimensions?.problemSolutionFit?.score ?? 0, status: dimensions?.problemSolutionFit?.status ?? 'weak' },
+    { label: "ROI合理性", value: dimensions?.roiFeasibility?.score ?? 0, status: "neutral" },
+    { label: "竞争优势", value: dimensions?.competitiveAdvantage?.score ?? 0, status: dimensions?.competitiveAdvantage?.level ?? 'lagging' },
+    { label: "可扩展性", value: dimensions?.scalability?.score ?? 0, status: dimensions?.scalability?.level ?? 'low' },
+    { label: "实施风险", value: dimensions?.implementationRisk?.score ?? 0, status: dimensions?.implementationRisk?.level ?? 'high' },
+    { label: "市场时机", value: dimensions?.marketTiming?.score ?? 0, status: dimensions?.marketTiming?.status ?? 'poor' },
   ]
 
   const getStatusColor = (status: string) => {
