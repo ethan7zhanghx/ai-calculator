@@ -14,7 +14,7 @@ interface HistoryItem {
   createdAt: string
   model: string
   businessScenario: string
-  score: number
+  score: number | null
 }
 
 export function HistorySidebar() {
@@ -130,7 +130,7 @@ export function HistorySidebar() {
                       <p className="font-semibold text-sm line-clamp-2 pr-4">
                         {item.businessScenario}
                       </p>
-                      <Badge variant="outline">{item.score}</Badge>
+                      <Badge variant="outline">{item.score ?? 'N/A'}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
                       <span>{item.model}</span>
