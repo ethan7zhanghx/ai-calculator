@@ -80,10 +80,14 @@ interface BusinessEvaluationDetailedProps {
 }
 
 export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDetailedProps) {
+  if (!evaluation || !evaluation.dimensions) {
+    return null; // or a loading skeleton
+  }
   const { dimensions } = evaluation
 
   // 状态标识徽章
-  const getStatusBadge = (type: string, value: string) => {
+  const getStatusBadge = (type: string, value: string | undefined) => {
+    if (!value) return null;
     const configs: Record<string, Record<string, { variant: any; icon: any; label: string }>> = {
       fit: {
         strong: {
@@ -229,8 +233,8 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 <span className="font-semibold">问题-解决方案匹配度</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.problemSolutionFit.score}</span>
-                {getStatusBadge("fit", dimensions.problemSolutionFit.status)}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.problemSolutionFit?.score ?? 0}</span>
+                {getStatusBadge("fit", dimensions.problemSolutionFit?.status ?? 'weak')}
               </div>
             </div>
           </AccordionTrigger>
@@ -238,11 +242,11 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div>
               <h5 className="font-medium mb-2 text-sm">深度分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.problemSolutionFit.analysis}
+                {dimensions.problemSolutionFit?.analysis}
               </p>
             </div>
 
-            {dimensions.problemSolutionFit.painPoints.length > 0 && (
+            {dimensions.problemSolutionFit?.painPoints?.length > 0 && (
               <div>
                 <h5 className="font-medium mb-2 text-sm">识别的业务痛点</h5>
                 <ul className="space-y-1">
@@ -258,7 +262,7 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
 
             <div className="flex items-center gap-2 pt-2">
               <span className="text-sm font-medium">AI必要性:</span>
-              {getStatusBadge("necessity", dimensions.problemSolutionFit.aiNecessity)}
+              {getStatusBadge("necessity", dimensions.problemSolutionFit?.aiNecessity ?? 'low')}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -271,18 +275,18 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 <DollarSign className="h-5 w-5 text-primary" />
                 <span className="font-semibold">ROI预期合理性</span>
               </div>
-              <span className="text-sm text-muted-foreground">评分: {dimensions.roiFeasibility.score}</span>
+              <span className="text-sm text-muted-foreground">评分: {dimensions.roiFeasibility?.score ?? 0}</span>
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             <div>
               <h5 className="font-medium mb-2 text-sm">投入产出分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.roiFeasibility.analysis}
+                {dimensions.roiFeasibility?.analysis}
               </p>
             </div>
 
-            {dimensions.roiFeasibility.considerations.length > 0 && (
+            {dimensions.roiFeasibility?.considerations?.length > 0 && (
               <div>
                 <h5 className="font-medium mb-2 text-sm">关键考量因素</h5>
                 <ul className="space-y-1">
@@ -307,8 +311,8 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 <span className="font-semibold">市场竞争优势</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.competitiveAdvantage.score}</span>
-                {getStatusBadge("level", dimensions.competitiveAdvantage.level)}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.competitiveAdvantage?.score ?? 0}</span>
+                {getStatusBadge("level", dimensions.competitiveAdvantage?.level ?? 'lagging')}
               </div>
             </div>
           </AccordionTrigger>
@@ -316,11 +320,11 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div>
               <h5 className="font-medium mb-2 text-sm">竞争态势分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.competitiveAdvantage.analysis}
+                {dimensions.competitiveAdvantage?.analysis}
               </p>
             </div>
 
-            {dimensions.competitiveAdvantage.barriers.length > 0 && (
+            {dimensions.competitiveAdvantage?.barriers?.length > 0 && (
               <div>
                 <h5 className="font-medium mb-2 text-sm">潜在竞争壁垒</h5>
                 <ul className="space-y-1">
@@ -345,8 +349,8 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 <span className="font-semibold">可扩展性与增长潜力</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.scalability.score}</span>
-                {getStatusBadge("scalability", dimensions.scalability.level)}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.scalability?.score ?? 0}</span>
+                {getStatusBadge("scalability", dimensions.scalability?.level ?? 'low')}
               </div>
             </div>
           </AccordionTrigger>
@@ -354,11 +358,11 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div>
               <h5 className="font-medium mb-2 text-sm">扩展性分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.scalability.analysis}
+                {dimensions.scalability?.analysis}
               </p>
             </div>
 
-            {dimensions.scalability.growthPotential.length > 0 && (
+            {dimensions.scalability?.growthPotential?.length > 0 && (
               <div>
                 <h5 className="font-medium mb-2 text-sm">增长潜力</h5>
                 <ul className="space-y-1">
@@ -383,8 +387,8 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 <span className="font-semibold">落地风险评估</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.implementationRisk.score}</span>
-                {getStatusBadge("risk", dimensions.implementationRisk.level)}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.implementationRisk?.score ?? 0}</span>
+                {getStatusBadge("risk", dimensions.implementationRisk?.level ?? 'high')}
               </div>
             </div>
           </AccordionTrigger>
@@ -392,13 +396,13 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div>
               <h5 className="font-medium mb-2 text-sm">风险分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.implementationRisk.analysis}
+                {dimensions.implementationRisk?.analysis}
               </p>
             </div>
 
             {/* 风险分类 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dimensions.implementationRisk.risks.technical.length > 0 && (
+              {dimensions.implementationRisk?.risks?.technical?.length > 0 && (
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <h6 className="font-medium text-sm mb-2 text-red-700 dark:text-red-400">技术风险</h6>
                   <ul className="space-y-1">
@@ -412,7 +416,7 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 </div>
               )}
 
-              {dimensions.implementationRisk.risks.business.length > 0 && (
+              {dimensions.implementationRisk?.risks?.business?.length > 0 && (
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <h6 className="font-medium text-sm mb-2 text-amber-700 dark:text-amber-400">业务风险</h6>
                   <ul className="space-y-1">
@@ -426,7 +430,7 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 </div>
               )}
 
-              {dimensions.implementationRisk.risks.compliance.length > 0 && (
+              {dimensions.implementationRisk?.risks?.compliance?.length > 0 && (
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <h6 className="font-medium text-sm mb-2 text-purple-700 dark:text-purple-400">合规风险</h6>
                   <ul className="space-y-1">
@@ -440,7 +444,7 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 </div>
               )}
 
-              {dimensions.implementationRisk.risks.organizational.length > 0 && (
+              {dimensions.implementationRisk?.risks?.organizational?.length > 0 && (
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <h6 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">组织风险</h6>
                   <ul className="space-y-1">
@@ -456,7 +460,7 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             </div>
 
             {/* 缓解措施 */}
-            {dimensions.implementationRisk.mitigations.length > 0 && (
+            {dimensions.implementationRisk?.mitigations?.length > 0 && (
               <div>
                 <h5 className="font-medium mb-2 text-sm">风险缓解措施</h5>
                 <ul className="space-y-1">
@@ -481,8 +485,8 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
                 <span className="font-semibold">时间窗口与紧迫性</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.marketTiming.score}</span>
-                {getStatusBadge("timing", dimensions.marketTiming.status)}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.marketTiming?.score ?? 0}</span>
+                {getStatusBadge("timing", dimensions.marketTiming?.status ?? 'poor')}
               </div>
             </div>
           </AccordionTrigger>
@@ -490,13 +494,13 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div>
               <h5 className="font-medium mb-2 text-sm">时机分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.marketTiming.analysis}
+                {dimensions.marketTiming?.analysis}
               </p>
             </div>
 
             <div className="flex items-center gap-2 pt-2">
               <span className="text-sm font-medium">项目紧迫性:</span>
-              {getStatusBadge("urgency", dimensions.marketTiming.urgency)}
+              {getStatusBadge("urgency", dimensions.marketTiming?.urgency ?? 'low')}
             </div>
           </AccordionContent>
         </AccordionItem>
