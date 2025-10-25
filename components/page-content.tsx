@@ -936,7 +936,7 @@ export default function PageContent() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">评分:</span>
                           <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
-                            <span className="text-lg font-bold">{partialEvaluation.technicalFeasibility.score}</span>
+                            <span className="text-lg font-bold">{partialEvaluation.technicalFeasibility?.score}</span>
                             <span className="text-sm">/100</span>
                           </div>
                         </div>
@@ -954,13 +954,13 @@ export default function PageContent() {
                         <div
                           className="absolute -top-2.5 transition-all duration-500"
                           style={{
-                            left: `clamp(1.5rem, ${partialEvaluation.technicalFeasibility.score}%, calc(100% - 1.5rem))`,
+                            left: `clamp(1.5rem, ${partialEvaluation.technicalFeasibility?.score || 0}%, calc(100% - 1.5rem))`,
                             transform: "translateX(-50%)",
                           }}
                         >
                           <div className="relative">
                             <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
-                              {partialEvaluation.technicalFeasibility.score}
+                              {partialEvaluation.technicalFeasibility?.score}
                             </div>
                             <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
                           </div>
@@ -1012,7 +1012,7 @@ export default function PageContent() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">评分:</span>
                           <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
-                            <span className="text-lg font-bold">{partialEvaluation.businessValue.score}</span>
+                            <span className="text-lg font-bold">{partialEvaluation.businessValue?.score}</span>
                             <span className="text-sm">/100</span>
                           </div>
                         </div>
@@ -1030,13 +1030,13 @@ export default function PageContent() {
                         <div
                           className="absolute -top-2.5 transition-all duration-500"
                           style={{
-                            left: `clamp(1.5rem, ${partialEvaluation.businessValue.score}%, calc(100% - 1.5rem))`,
+                            left: `clamp(1.5rem, ${partialEvaluation.businessValue?.score || 0}%, calc(100% - 1.5rem))`,
                             transform: "translateX(-50%)",
                           }}
                         >
                           <div className="relative">
                             <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
-                              {partialEvaluation.businessValue.score}
+                              {partialEvaluation.businessValue?.score}
                             </div>
                             <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
                           </div>
@@ -1048,7 +1048,7 @@ export default function PageContent() {
                       ) : (
                         <div className="space-y-4">
                           <BusinessValueChart
-                            score={partialEvaluation.businessValue.score}
+                            score={partialEvaluation.businessValue?.score || 0}
                             risks={partialEvaluation.businessValue.risks}
                             opportunities={partialEvaluation.businessValue.opportunities}
                           />
@@ -1232,7 +1232,7 @@ export default function PageContent() {
                           下载完整报告
                         </Button>
                         <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
-                          <span className="text-lg font-bold">{evaluation.technicalFeasibility.score}</span>
+                          <span className="text-lg font-bold">{evaluation.technicalFeasibility?.score}</span>
                           <span className="text-sm">/100</span>
                         </div>
                       </div>
@@ -1251,13 +1251,13 @@ export default function PageContent() {
                       <div
                         className="absolute -top-2.5 transition-all duration-500"
                         style={{
-                          left: `clamp(1.5rem, ${evaluation.technicalFeasibility.score}%, calc(100% - 1.5rem))`,
+                          left: `clamp(1.5rem, ${evaluation.technicalFeasibility?.score || 0}%, calc(100% - 1.5rem))`,
                           transform: "translateX(-50%)",
                         }}
                       >
                         <div className="relative">
                           <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
-                            {evaluation.technicalFeasibility.score}
+                            {evaluation.technicalFeasibility?.score}
                           </div>
                           <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
                         </div>
@@ -1329,7 +1329,7 @@ export default function PageContent() {
                         <span>商业价值评估</span>
                         {/* 评分显示 */}
                         <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
-                          <span className="text-lg font-bold">{evaluation.businessValue.score}</span>
+                          <span className="text-lg font-bold">{evaluation.businessValue?.score}</span>
                           <span className="text-sm">/100</span>
                         </div>
                       </CardTitle>
@@ -1347,13 +1347,13 @@ export default function PageContent() {
                         <div
                           className="absolute -top-2.5 transition-all duration-500"
                           style={{
-                            left: `clamp(1.5rem, ${evaluation.businessValue.score}%, calc(100% - 1.5rem))`,
+                            left: `clamp(1.5rem, ${evaluation.businessValue?.score || 0}%, calc(100% - 1.5rem))`,
                             transform: "translateX(-50%)",
                           }}
                         >
                           <div className="relative">
                             <div className="bg-primary text-primary-foreground text-xs font-bold w-8 h-5 flex items-center justify-center rounded-sm shadow-md">
-                              {evaluation.businessValue.score}
+                              {evaluation.businessValue?.score}
                             </div>
                             <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-primary transform rotate-45 -bottom-1" />
                           </div>
@@ -1367,7 +1367,7 @@ export default function PageContent() {
                         /* 降级展示：如果没有详细评估数据，显示简化版 */
                         <div className="space-y-4">
                           <BusinessValueChart
-                            score={evaluation.businessValue.score}
+                            score={evaluation.businessValue?.score || 0}
                             risks={evaluation.businessValue.risks}
                             opportunities={evaluation.businessValue.opportunities}
                           />
