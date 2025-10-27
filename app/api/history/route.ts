@@ -29,12 +29,19 @@ export async function GET(request: NextRequest) {
     const history = await prisma.evaluation.findMany({
       where: { userId: userId },
       orderBy: { createdAt: "desc" },
-      // 只选择列表展示需要的字段，避免传输过多数据
+      // 选择列表展示需要的字段
       select: {
         id: true,
         createdAt: true,
         model: true,
+        hardware: true,
+        cardCount: true,
+        machineCount: true,
+        cardsPerMachine: true,
         businessScenario: true,
+        businessDataDescription: true,
+        performanceTPS: true,
+        performanceConcurrency: true,
         // 解析JSON字符串以获取总分
         technicalFeasibility: true,
         businessValue: true,
@@ -81,7 +88,14 @@ export async function GET(request: NextRequest) {
         id: item.id,
         createdAt: item.createdAt,
         model: item.model,
+        hardware: item.hardware,
+        cardCount: item.cardCount,
+        machineCount: item.machineCount,
+        cardsPerMachine: item.cardsPerMachine,
         businessScenario: item.businessScenario,
+        businessDataDescription: item.businessDataDescription,
+        performanceTPS: item.performanceTPS,
+        performanceConcurrency: item.performanceConcurrency,
         score: overallScore,
       }
     })

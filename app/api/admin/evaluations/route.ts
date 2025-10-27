@@ -51,16 +51,14 @@ export async function GET(request: NextRequest) {
           model: evaluation.model,
           hardware: evaluation.hardware,
           cardCount: evaluation.cardCount,
+          machineCount: evaluation.machineCount,
+          cardsPerMachine: evaluation.cardsPerMachine,
           businessScenario: evaluation.businessScenario,
-          performanceQPS: evaluation.performanceQPS,
+          businessDataDescription: evaluation.businessDataDescription,
+          businessDataQuality: evaluation.businessDataQuality,
+          performanceTPS: evaluation.performanceTPS,
           performanceConcurrency: evaluation.performanceConcurrency,
           createdAt: evaluation.createdAt,
-          // 解析JSON字段
-          businessDataTypes: evaluation.businessDataTypes
-            ? JSON.parse(evaluation.businessDataTypes)
-            : [],
-          businessDataQuality: evaluation.businessDataQuality,
-          businessDataVolume: evaluation.businessDataVolume,
         })),
         pagination: {
           page,

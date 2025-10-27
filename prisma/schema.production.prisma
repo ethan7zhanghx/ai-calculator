@@ -35,25 +35,22 @@ model Evaluation {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // 评估输入参数 (JSON存储)
+  // 评估输入参数 (对齐当前 EvaluationRequest 接口)
   model                    String
   hardware                 String
-  cardCount                Int
-  machineCount             Int?
-  cardsPerMachine          Int?
-  businessDataDescription  String?
-  businessDataVolume       Int?    // 保留兼容旧数据
-  businessDataTypes        String? // JSON array: ["text", "qa_pair", "image"]
-  businessDataQuality      String? // "low" | "medium" | "high"
-  businessScenario         String?
-  performanceTPS           Int?
-  performanceQPS           Int?    // 保留兼容旧数据
-  performanceConcurrency   Int?
+  cardCount                Int      // 总卡数 (machineCount * cardsPerMachine)
+  machineCount             Int      // 机器数量
+  cardsPerMachine          Int      // 每机卡数
+  businessDataDescription  String   @db.Text // 业务数据描述 (替代旧的 volume 和 types)
+  businessDataQuality      String   // "high" | "low"
+  businessScenario         String   @db.Text // 业务场景描述
+  performanceTPS           Int      // Tokens Per Second
+  performanceConcurrency   Int      // 并发数
 
   // 评估结果 (JSON存储完整结果)
-  resourceFeasibility  String // JSON
-  technicalFeasibility String // JSON
-  businessValue        String // JSON
+  resourceFeasibility  String @db.Text // JSON
+  technicalFeasibility String @db.Text // JSON
+  businessValue        String @db.Text // JSON
 
   createdAt DateTime @default(now())
 

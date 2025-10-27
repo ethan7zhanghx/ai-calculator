@@ -527,8 +527,10 @@ export async function evaluateBusinessValue(
 
   const prompt = buildBusinessPrompt(req)
 
+  console.log(`商业评估Prompt长度: ${prompt.length} 字符`)
+
   try {
-    // 使用带重试的 fetch,最多重试5次,单次超时45秒
+    // 使用带重试的 fetch,增加重试次数和更长超时
     const response = await fetchWithRetry(
       "https://qianfan.baidubce.com/v2/chat/completions",
       {
@@ -550,11 +552,11 @@ export async function evaluateBusinessValue(
         }),
       },
       {
-        maxRetries: 3,
-        timeout: 120000, // 120秒超时（商业评估prompt很长，需要更多时间）
+        maxRetries: 6, // 增加到6次重试
+        timeout: 180000, // 增加到180秒(3分钟)超时
         initialDelay: 3000,
         onRetry: (attempt, error) => {
-          console.log(`商业价值评估API重试 (${attempt}/3):`, error.message)
+          console.log(`商业价值评估API重试 (${attempt}/6):`, error.message)
         },
       }
     )
