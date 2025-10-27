@@ -25,29 +25,35 @@ export function ResourceCard({
   suggestions,
   extraInfo,
 }: ResourceCardProps) {
-  // 计算可行性得分
-  const feasibilityScore = calculateResourceScore(memoryUsagePercent)
+  // 显存占用率用于显示（限制在100%）
+  const displayUsagePercent = Math.min(memoryUsagePercent, 100)
 
-  // 根据可行性得分获取颜色和状态
+  // 根据显存占用率获取颜色和状态
   const getOccupancyStyle = () => {
-    if (feasibilityScore < 20) {
+    if (memoryUsagePercent > 90) {
+      // 高占用率：红色（危险）
       return {
         icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
         cardBg: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800",
         barBg: "bg-red-500",
+        circleColor: "text-red-600",
       }
     }
-    if (feasibilityScore < 50) {
+    if (memoryUsagePercent > 70) {
+      // 中占用率：黄色（警告）
       return {
         icon: <AlertTriangle className="h-4 w-4 text-amber-600" />,
         cardBg: "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800",
         barBg: "bg-amber-500",
+        circleColor: "text-amber-600",
       }
     }
+    // 低占用率：绿色（良好）
     return {
       icon: <CheckCircle2 className="h-4 w-4 text-green-600" />,
       cardBg: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
       barBg: "bg-green-500",
+      circleColor: "text-green-600",
     }
   }
 
@@ -71,9 +77,10 @@ export function ResourceCard({
         <div className="flex items-start gap-4 mb-3">
           <div className="flex-shrink-0">
             <CircularProgress
-              percentage={feasibilityScore}
-              label="可行性"
+              percentage={displayUsagePercent}
+              label="显存占用"
               size={100}
+              color={style.circleColor}
             />
           </div>
 
