@@ -16,7 +16,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
     const body: EvaluationRequest = await request.json()
 
     // 验证必填字段
-    if (!body.model || !body.hardware || !body.cardCount) {
+    if (!body.model || !body.hardware || !body.machineCount || !body.cardsPerMachine) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
@@ -29,11 +29,14 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
       )
     }
 
+    // 计算总卡数
+    const totalCards = body.machineCount * body.cardsPerMachine
+
     const resourceFeasibility = calculateResourceFeasibility(
       body.model,
       body.hardware,
-      body.cardCount,
-      body.performanceRequirements.qps
+      totalCards,
+      body.performanceRequirements.tps
     )
 
     if (!resourceFeasibility) {
@@ -182,12 +185,14 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
                   userId: user.userId,
                   model: body.model,
                   hardware: body.hardware,
-                  cardCount: body.cardCount,
-                  businessDataVolume: body.businessData?.volume || null,
-                  businessDataTypes: JSON.stringify(body.businessData?.dataTypes || []),
+                  cardCount: totalCards,
+                  machineCount: body.machineCount,
+                  cardsPerMachine: body.cardsPerMachine,
+                  businessDataDescription: body.businessData?.description || null,
+                  businessDataTypes: null, // 不再使用，设为null
                   businessDataQuality: body.businessData?.quality || null,
                   businessScenario: body.businessScenario || null,
-                  performanceQPS: body.performanceRequirements?.qps || null,
+                  performanceTPS: body.performanceRequirements?.tps || null,
                   performanceConcurrency: body.performanceRequirements?.concurrency || null,
                   resourceFeasibility: JSON.stringify(resourceFeasibility),
                   technicalFeasibility: JSON.stringify(technicalFeasibility),

@@ -9,11 +9,11 @@ import { Edit } from "lucide-react"
 interface InputSummaryProps {
   model: string
   hardware: string
-  cardCount: string
-  dataVolume: string
-  dataTypes: string[]
+  machineCount: string
+  cardsPerMachine: string
+  dataDescription: string
   dataQuality: string
-  qps: string
+  tps: string
   concurrency: string
   onEdit?: () => void
 }
@@ -21,21 +21,15 @@ interface InputSummaryProps {
 export function InputSummary({
   model,
   hardware,
-  cardCount,
-  dataVolume,
-  dataTypes,
+  machineCount,
+  cardsPerMachine,
+  dataDescription,
   dataQuality,
-  qps,
+  tps,
   concurrency,
   onEdit,
 }: InputSummaryProps) {
-  const dataTypeLabels: Record<string, string> = {
-    text: "文本",
-    image: "图片",
-    qa_pair: "QA Pair",
-    video: "视频",
-    audio: "音频",
-  }
+  const totalCards = (parseInt(machineCount) || 0) * (parseInt(cardsPerMachine) || 0)
 
   return (
     <Card className="shadow-lg lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
@@ -53,9 +47,13 @@ export function InputSummary({
             <span className="text-muted-foreground">硬件</span>
             <span className="font-medium">{hardware}</span>
           </div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-muted-foreground">机器配置</span>
+            <span className="font-medium">{machineCount} 机 × {cardsPerMachine} 卡</span>
+          </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">卡数</span>
-            <span className="font-medium">{cardCount} 张</span>
+            <span className="text-muted-foreground">总卡数</span>
+            <span className="font-medium">{totalCards} 张</span>
           </div>
         </div>
 
@@ -63,19 +61,9 @@ export function InputSummary({
 
         {/* 数据信息 */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">数据量</span>
-            <span className="font-medium">{Number(dataVolume).toLocaleString()} 条</span>
-          </div>
           <div className="mb-2">
-            <div className="text-muted-foreground mb-1">数据类型</div>
-            <div className="flex flex-wrap gap-1">
-              {dataTypes.map((type) => (
-                <Badge key={type} variant="secondary" className="text-xs">
-                  {dataTypeLabels[type] || type}
-                </Badge>
-              ))}
-            </div>
+            <div className="text-muted-foreground mb-1">微调数据</div>
+            <p className="text-sm font-medium leading-relaxed">{dataDescription}</p>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">数据治理</span>
@@ -90,8 +78,8 @@ export function InputSummary({
         {/* 性能要求 */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground">期望QPS</span>
-            <span className="font-medium">{qps}</span>
+            <span className="text-muted-foreground">期望TPS</span>
+            <span className="font-medium">{tps}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">并发数</span>

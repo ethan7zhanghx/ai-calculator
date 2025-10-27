@@ -491,6 +491,9 @@ const FEW_SHOT_EXAMPLES = `
 `
 
 function buildBusinessPrompt(req: EvaluationRequest): string {
+  const dataDescription = req.businessData.description || "未提供数据描述"
+  const qualityStr = req.businessData.quality === "high" ? "已治理" : "未治理"
+
   return `请对以下AI项目进行商业价值评估：
 
 ## 业务场景
@@ -499,8 +502,8 @@ ${req.businessScenario}
 ## 技术方案
 - 模型选择：${req.model}
 - 硬件配置：${req.hardware} x ${req.cardCount}张
-- 训练数据：${req.businessData.volume}条，类型：${req.businessData.dataTypes.join("、")}，质量：${req.businessData.quality === "high" ? "已治理" : "未治理"}
-- 性能需求：QPS ${req.performanceRequirements.qps}，并发${req.performanceRequirements.concurrency}
+- 训练数据：${dataDescription}，数据质量：${qualityStr}
+- 性能需求：TPS ${req.performanceRequirements.tps}，并发${req.performanceRequirements.concurrency}
 
 ## 评估要求
 

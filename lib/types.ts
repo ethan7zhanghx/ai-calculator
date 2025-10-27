@@ -10,15 +10,15 @@ export type GeneralFeedbackType = "bug" | "feature" | "improvement" | "other"
 export interface EvaluationRequest {
   model: string
   hardware: string
-  cardCount: number
+  machineCount: number
+  cardsPerMachine: number
   businessData: {
-    volume: number
-    dataTypes: DataType[]
+    description: string
     quality: DataQuality
   }
   businessScenario: string
   performanceRequirements: {
-    qps: number
+    tps: number
     concurrency: number
   }
 }

@@ -36,15 +36,19 @@ model Evaluation {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 评估输入参数 (JSON存储)
-  model                  String
-  hardware               String
-  cardCount              Int
-  businessDataVolume     Int?
-  businessDataTypes      String? // JSON array: ["text", "qa_pair", "image"]
-  businessDataQuality    String? // "low" | "medium" | "high"
-  businessScenario       String?
-  performanceQPS         Int?
-  performanceConcurrency Int?
+  model                    String
+  hardware                 String
+  cardCount                Int
+  machineCount             Int?
+  cardsPerMachine          Int?
+  businessDataDescription  String?
+  businessDataVolume       Int?    // 保留兼容旧数据
+  businessDataTypes        String? // JSON array: ["text", "qa_pair", "image"]
+  businessDataQuality      String? // "low" | "medium" | "high"
+  businessScenario         String?
+  performanceTPS           Int?
+  performanceQPS           Int?    // 保留兼容旧数据
+  performanceConcurrency   Int?
 
   // 评估结果 (JSON存储完整结果)
   resourceFeasibility  String // JSON

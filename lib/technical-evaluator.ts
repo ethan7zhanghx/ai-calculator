@@ -108,7 +108,7 @@ export async function evaluateTechnicalSolution(
       req.model,
       req.hardware,
       req.cardCount,
-      req.performanceRequirements.qps
+      req.performanceRequirements.tps
     )
 
     let resourceFeasibilityScore = 0
@@ -213,16 +213,15 @@ const SYSTEM_PROMPT = `你是一位资深AI技术架构师，擅长评估企业A
 
 ## 评估维度与权重
 
-你需要从以下8个维度全面评估技术方案，每个维度单独打分(0-100分)：
+你需要从以下7个维度全面评估技术方案，每个维度单独打分(0-100分)：
 
-1. **硬件资源可行性 (15%)** - 硬件配置是否能支持模型运行（这是预计算好的，你只需采纳）
-2. **模型类型与业务匹配度 (20%)** - 模型能力是否匹配业务需求
-3. **大模型必要性 (10%)** - 是否真的需要大模型，还是小模型/传统方案就能解决
-4. **微调必要性和数据充分性 (15%)** - 是否需要微调，数据量和质量是否足够
+1. **硬件资源可行性 (15%)** - 硬件配置是否能支持模型运行（这是预计算好的，你只需采纳该分数，不要展开讨论硬件细节）
+2. **模型类型与业务匹配度 (25%)** - 模型能力是否匹配业务需求（注意：这是独立维度，即使硬件不足也要客观评估模型选型本身的合理性）
+3. **大模型必要性 (15%)** - 是否真的需要大模型，还是小模型/传统方案就能解决
+4. **微调必要性和数据充分性 (15%)** - 首先判断该场景是否需要微调。如果不需要微调，即使数据量少也不应扣分；如果需要微调，再评估数据是否充足
 5. **业务可行性与实施路径 (15%)** - 业务需求是否在技术边界内，如何分阶段实施
-6. **性能需求合理性 (10%)** - QPS和并发数配比是否合理，是否符合业务场景
-7. **成本效益 (10%)** - 硬件选型、模型大小和运维成本是否构成合理的总体拥有成本(TCO)
-8. **领域特殊性 (5%)** - 是否有医疗/金融/法律等特殊领域的考虑
+6. **性能需求合理性 (10%)** - TPS和并发数配比是否合理，是否符合业务场景
+7. **成本效益 (5%)** - 模型选型和运维成本是否合理
 
 **总分计算**：按上述权重加权平均得出
 
@@ -230,9 +229,11 @@ const SYSTEM_PROMPT = `你是一位资深AI技术架构师，擅长评估企业A
 
 1. **客观性**：实事求是，发现问题要明确指出，不回避矛盾
 2. **连贯性**：每个维度的analysis字段用2-4句连贯的话进行深入分析（100-200字），而非简单罗列要点
-3. **分层性**：区分致命问题(criticalIssues)和警告(warnings)，不要混在一起
-4. **可操作性**：建议要具体可执行，不要只说"建议优化"这种空话
-5. **深度思考**：要解释"为什么"，不仅说"是什么"，提供有价值的洞察
+3. **独立性**：各维度相对独立评估。不要因为某一维度（如硬件资源）的问题，就在其他所有维度反复强调同一个问题
+4. **分层性**：区分致命问题(criticalIssues)和警告(warnings)，不要混在一起
+5. **可操作性**：建议要具体可执行，不要只说"建议优化"这种空话
+6. **深度思考**：要解释"为什么"，不仅说"是什么"，提供有价值的洞察
+7. **场景适应性**：对于微调评估，必须先判断该场景是否真正需要微调（如RAG方案可能不需要微调）。如果不需要微调，即使用户提供的数据量少，也不应该在这个维度给负面评价
 
 ## 评分标准
 
@@ -259,14 +260,19 @@ const SYSTEM_PROMPT = `你是一位资深AI技术架构师，擅长评估企业A
    - **scoreRationale**: 对该评分的简要说明(1-2句话)，解释为什么给出这个分数
    - **status/level**: 状态标识
    - **analysis**: 用段落式叙述进行深入分析（2-4句话，100-200字），解释"为什么"而非仅说"是什么"
-4. **implementationRoadmap**：
+4. **各维度评估的独立性要求**：
+   - **硬件资源可行性**：直接采纳预计算分数，简要说明即可，不要展开讨论显存占用细节
+   - **模型类型与业务匹配度**：专注评估模型类型（文本/多模态/代码等）与业务任务的匹配度，不要因为硬件资源不足就认为模型选型有问题
+   - **微调必要性和数据充分性**：必须先判断该场景是否需要微调。RAG、知识问答等场景通常不需要微调，此时即使数据量少也应给高分；只有在确实需要微调的场景下，才评估数据是否充足
+   - 其他维度：避免重复提及同一个问题。例如，如果硬件资源不足，只在"硬件资源可行性"维度指出即可，不要在每个维度都反复强调
+5. **implementationRoadmap**：
    - 如果场景复杂，必须给出分阶段实施路径（shortTerm、midTerm、notRecommended）
    - shortTerm：1-2个月可落地的功能
    - midTerm：3-6个月可落地的功能
    - notRecommended：高风险不建议做的部分
-5. **criticalIssues**：只放阻断性问题，导致方案无法实施的问题
-6. **warnings**：需要注意但不阻断的问题
-7. **recommendations**：3-5条具体可执行的建议，每条说明"做什么"和"为什么"
+6. **criticalIssues**：只放阻断性问题，导致方案无法实施的问题
+7. **warnings**：需要注意但不阻断的问题
+8. **recommendations**：3-5条具体可执行的建议，每条说明"做什么"和"为什么"
 
 ## 分析深度要求
 
@@ -282,20 +288,8 @@ function buildEvaluationPrompt(
   req: EvaluationRequest,
   resourceFeasibilityScore: number
 ): string {
-  const dataTypesStr = req.businessData.dataTypes
-    .map((t) => {
-      const map: Record<string, string> = {
-        text: "文本",
-        image: "图片",
-        qa_pair: "QA对话",
-        video: "视频",
-        audio: "音频",
-      }
-      return map[t] || t
-    })
-    .join("、")
-
   const qualityStr = req.businessData.quality === "high" ? "已治理" : "未治理"
+  const dataDescription = req.businessData.description || "未提供数据描述"
 
   // 获取模型信息
   const modelInfo = formatModelInfo(req.model)
@@ -699,9 +693,9 @@ ${modelInfo}
 ## 用户需求
 **业务场景：** ${req.businessScenario}
 
-**训练数据：** ${req.businessData.volume}条${dataTypesStr}数据，${qualityStr}
+**训练数据：** ${dataDescription}，数据质量：${qualityStr}
 
-**性能需求：** QPS ${req.performanceRequirements.qps}，并发 ${req.performanceRequirements.concurrency}
+**性能需求：** TPS ${req.performanceRequirements.tps}，并发 ${req.performanceRequirements.concurrency}
 
 **硬件配置：** ${req.hardware} × ${req.cardCount}张
 
@@ -709,7 +703,7 @@ ${modelInfo}
 
 ## 硬件资源可行性评估（预计算结果）
 - **硬件资源可行性得分**：${Math.round(resourceFeasibilityScore)} / 100
-- **说明**：这个分数是基于你的硬件配置和模型大小预先计算得出的。0分表示完全不可行，100分表示资源非常充裕。你需要将这个分数作为"硬件资源可行性"维度的最终得分，并围绕它进行分析。
+- **说明**：这个分数已经通过精确计算得出（基于显存占用率、模型大小等），请直接采纳该分数作为"硬件资源可行性"维度的评分。你只需简要说明硬件是否充足即可，无需展开讨论显存细节。重点是，硬件资源不足不应影响其他维度（如模型选型匹配度）的独立评估。
 
 ---
 

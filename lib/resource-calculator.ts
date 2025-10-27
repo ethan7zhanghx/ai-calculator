@@ -51,12 +51,13 @@ export interface ResourceFeasibility {
 
 /**
  * 计算硬件资源可行性
+ * @param tps - Tokens Per Second，每秒生成的token数
  */
 export function calculateResourceFeasibility(
   model: string,
   hardware: string,
   cardCount: number,
-  qps: number
+  tps: number
 ): ResourceFeasibility | null {
   const hwSpec = hardwareSpecs[hardware]
   const modelSpec = MODEL_KNOWLEDGE[model]
@@ -101,31 +102,39 @@ export function calculateResourceFeasibility(
   const qloraRequired = qloraBaseVram * 1.5 // 1.5倍开销
   const qloraFeasible = totalVRAM >= qloraRequired
 
-  // --- QPS 计算 ---
-  // 这是一个非常简化的估算，实际QPS受多种因素影响
-  const baseQPS = cardCount * 10 // 假设基准QPS
-  const supportedQPS = inferenceFeasible ? baseQPS * (totalVRAM / inferenceRequired) : 0
-  const meetsQPSRequirements = supportedQPS >= qps
+  // --- TPS (Tokens Per Second) 计算 ---
+  // 大模型token生成速度估算
+  // 基准：单张A100在FP16精度下，7B模型约150 tokens/s，13B约80 tokens/s，70B约15 tokens/s
+  // 简化公式：baseTPS = cardCount * (1000 / sqrt(paramsB))
+  const baseTPS = cardCount * (1000 / Math.sqrt(paramsB))
+
+  // 根据显存利用率调整TPS（显存利用率越高，可用于批处理的空间越小）
+  const memoryUtilizationFactor = Math.max(0.3, 1 - (inferencePercent / 100) * 0.5)
+  const supportedTPS = inferenceFeasible ? baseTPS * memoryUtilizationFactor : 0
+  const meetsTPSRequirements = supportedTPS >= tps
+
+  // 简化估算：假设平均每个请求生成100个tokens
+  const supportedQPS = Math.round(supportedTPS / 100)
 
   // 量化选项
   const quantizationOptions = [
     {
       type: "FP16" as const,
       memoryUsagePercent: Math.round(inferencePercent),
-      supportedQPS: Math.round(supportedQPS),
-      meetsRequirements: meetsQPSRequirements,
+      supportedQPS: supportedQPS,
+      meetsRequirements: meetsTPSRequirements,
     },
     {
       type: "INT8" as const,
       memoryUsagePercent: Math.round(Math.min(inferencePercent * 0.5, 100)),
-      supportedQPS: Math.round(supportedQPS * 1.8), // INT8加速比
-      meetsRequirements: supportedQPS * 1.8 >= qps,
+      supportedQPS: Math.round(supportedQPS * 1.6), // INT8加速比
+      meetsRequirements: supportedTPS * 1.6 >= tps,
     },
     {
       type: "INT4" as const,
       memoryUsagePercent: Math.round(Math.min(inferencePercent * 0.25, 100)),
-      supportedQPS: Math.round(supportedQPS * 2.5), // INT4加速比
-      meetsRequirements: supportedQPS * 2.5 >= qps,
+      supportedQPS: Math.round(supportedQPS * 2.2), // INT4加速比
+      meetsRequirements: supportedTPS * 2.2 >= tps,
     },
   ]
 
@@ -159,19 +168,19 @@ export function calculateResourceFeasibility(
       memoryUsagePercent: Math.round(inferencePercent),
       memoryRequired: Math.round(inferenceRequired),
       memoryAvailable: totalVRAM,
-      supportedThroughput: Math.round(supportedQPS * 10), // 简化估算
-      supportedQPS: Math.round(supportedQPS),
-      meetsRequirements: meetsQPSRequirements,
+      supportedThroughput: Math.round(supportedTPS), // TPS作为吞吐量指标
+      supportedQPS: Math.round(supportedQPS), // 估算的请求数
+      meetsRequirements: meetsTPSRequirements,
       quantizationOptions,
-      suggestions: meetsQPSRequirements
-        ? ["当前配置可以满足QPS要求"]
+      suggestions: meetsTPSRequirements
+        ? ["当前配置可以满足TPS要求"]
         : quantizationOptions.find((q) => q.meetsRequirements)
         ? [
             `建议使用${
               quantizationOptions.find((q) => q.meetsRequirements)?.type
-            }量化以满足QPS要求`,
+            }量化以满足TPS要求`,
           ]
-        : ["即使使用量化也无法满足QPS要求,建议增加GPU数量"],
+        : ["即使使用量化也无法满足TPS要求,建议增加GPU数量"],
     },
   }
 }
