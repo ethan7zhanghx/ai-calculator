@@ -51,19 +51,15 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
   const status = getOverallStatus()
   const StatusIcon = status.icon
 
-  // 雷达图数据 - 只在商业价值存在时包含
+  // 雷达图数据 - 简化为三个主要维度
   const radarScores = evaluation.businessValue
     ? [
-        { label: "预训练", value: pretrainingScore, color: "#3b82f6" },
-        { label: "微调", value: fineTuningScore, color: "#8b5cf6" },
-        { label: "推理", value: inferenceScore, color: "#06b6d4" },
+        { label: "硬件资源", value: resourceScore, color: "#3b82f6" },
         { label: "技术方案", value: technicalScore, color: "#10b981" },
         { label: "商业价值", value: businessScore, color: "#f59e0b" },
       ]
     : [
-        { label: "预训练", value: pretrainingScore, color: "#3b82f6" },
-        { label: "微调", value: fineTuningScore, color: "#8b5cf6" },
-        { label: "推理", value: inferenceScore, color: "#06b6d4" },
+        { label: "硬件资源", value: resourceScore, color: "#3b82f6" },
         { label: "技术方案", value: technicalScore, color: "#10b981" },
       ]
 
