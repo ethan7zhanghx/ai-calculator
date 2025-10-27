@@ -120,19 +120,19 @@ export function calculateResourceFeasibility(
   const quantizationOptions = [
     {
       type: "FP16" as const,
-      memoryUsagePercent: Math.round(inferencePercent),
+      memoryUsagePercent: Math.ceil(inferencePercent),
       supportedQPS: supportedQPS,
       meetsRequirements: meetsTPSRequirements,
     },
     {
       type: "INT8" as const,
-      memoryUsagePercent: Math.round(Math.min(inferencePercent * 0.5, 100)),
+      memoryUsagePercent: Math.ceil(Math.min(inferencePercent * 0.5, 100)),
       supportedQPS: Math.round(supportedQPS * 1.6), // INT8加速比
       meetsRequirements: supportedTPS * 1.6 >= tps,
     },
     {
       type: "INT4" as const,
-      memoryUsagePercent: Math.round(Math.min(inferencePercent * 0.25, 100)),
+      memoryUsagePercent: Math.ceil(Math.min(inferencePercent * 0.25, 100)),
       supportedQPS: Math.round(supportedQPS * 2.2), // INT4加速比
       meetsRequirements: supportedTPS * 2.2 >= tps,
     },
@@ -141,7 +141,7 @@ export function calculateResourceFeasibility(
   return {
     pretraining: {
       feasible: pretrainingFeasible,
-      memoryUsagePercent: Math.round(pretrainingPercent),
+      memoryUsagePercent: Math.ceil(pretrainingPercent),
       memoryRequired: Math.round(pretrainingRequired),
       memoryAvailable: totalVRAM,
       suggestions: pretrainingFeasible
@@ -150,7 +150,7 @@ export function calculateResourceFeasibility(
     },
     fineTuning: {
       feasible: finetuningFeasible,
-      memoryUsagePercent: Math.round(finetuningPercent),
+      memoryUsagePercent: Math.ceil(finetuningPercent),
       memoryRequired: Math.round(finetuningRequired),
       memoryAvailable: totalVRAM,
       loraFeasible,
@@ -165,7 +165,7 @@ export function calculateResourceFeasibility(
     },
     inference: {
       feasible: inferenceFeasible,
-      memoryUsagePercent: Math.round(inferencePercent),
+      memoryUsagePercent: Math.ceil(inferencePercent),
       memoryRequired: Math.round(inferenceRequired),
       memoryAvailable: totalVRAM,
       supportedThroughput: Math.round(supportedTPS), // TPS作为吞吐量指标

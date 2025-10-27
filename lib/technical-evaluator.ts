@@ -137,7 +137,7 @@ export async function evaluateTechnicalSolution(
     }
 
     // 2. 构建Prompt并调用LLM
-    const prompt = buildEvaluationPrompt(req, resourceFeasibilityScore)
+    const prompt = buildEvaluationPrompt(req, totalCards, resourceFeasibilityScore)
 
     console.log(`技术评估Prompt长度: ${prompt.length} 字符`)
 
@@ -689,6 +689,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
  */
 function buildEvaluationPrompt(
   req: EvaluationRequest,
+  totalCards: number,
   resourceFeasibilityScore: number
 ): string {
   const qualityStr = req.businessData.quality === "high" ? "已治理" : "未治理"
@@ -709,7 +710,7 @@ ${modelInfo}
 
 **性能需求：** TPS ${req.performanceRequirements.tps}，并发 ${req.performanceRequirements.concurrency}
 
-**硬件配置：** ${req.hardware} × ${req.cardCount}张
+**硬件配置：** ${req.hardware}，${req.machineCount}机 × ${req.cardsPerMachine}卡 = ${totalCards}张
 
 ---
 
