@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Loader2, Eye } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2, Eye, ExternalLink } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -29,12 +29,13 @@ interface Evaluation {
   model: string
   hardware: string
   cardCount: number
+  machineCount: number
+  cardsPerMachine: number
   businessScenario: string
-  performanceQPS: number | null
-  performanceConcurrency: number | null
-  businessDataTypes: string[]
-  businessDataQuality: string | null
-  businessDataVolume: number | null
+  businessDataDescription: string
+  businessDataQuality: string
+  performanceTPS: number
+  performanceConcurrency: number
   createdAt: string
 }
 
@@ -218,6 +219,20 @@ export function EvaluationsTable() {
           </DialogHeader>
           {selectedEvaluation && (
             <div className="space-y-4">
+              {/* 查看完整报告按钮 */}
+              <div className="flex justify-end">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    window.open(`/?evaluationId=${selectedEvaluation.id}`, '_blank')
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  查看完整评估报告
+                </Button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm font-semibold mb-1">用户邮箱</div>
@@ -242,54 +257,44 @@ export function EvaluationsTable() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm font-semibold mb-1">卡数</div>
-                  <div className="text-sm text-muted-foreground">{selectedEvaluation.cardCount}</div>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold mb-1">数据量</div>
+                  <div className="text-sm font-semibold mb-1">机器配置</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedEvaluation.businessDataVolume?.toLocaleString() || "-"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-semibold mb-1">数据类型</div>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedEvaluation.businessDataTypes.map((type) => (
-                      <Badge key={type} variant="secondary" className="text-xs">
-                        {type}
-                      </Badge>
-                    ))}
+                    {selectedEvaluation.machineCount}机 × {selectedEvaluation.cardsPerMachine}卡 = {selectedEvaluation.cardCount}卡
                   </div>
                 </div>
                 <div>
                   <div className="text-sm font-semibold mb-1">数据质量</div>
-                  <div className="text-sm text-muted-foreground">
-                    {selectedEvaluation.businessDataQuality || "-"}
-                  </div>
+                  <Badge variant={selectedEvaluation.businessDataQuality === "high" ? "default" : "secondary"}>
+                    {selectedEvaluation.businessDataQuality === "high" ? "已治理" : "未治理"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-semibold mb-1">训练数据</div>
+                <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                  {selectedEvaluation.businessDataDescription}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm font-semibold mb-1">QPS要求</div>
+                  <div className="text-sm font-semibold mb-1">TPS要求</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedEvaluation.performanceQPS || "-"}
+                    {selectedEvaluation.performanceTPS}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm font-semibold mb-1">并发数</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedEvaluation.performanceConcurrency || "-"}
+                    {selectedEvaluation.performanceConcurrency}
                   </div>
                 </div>
               </div>
 
               <div>
                 <div className="text-sm font-semibold mb-1">业务场景</div>
-                <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md whitespace-pre-wrap">
                   {selectedEvaluation.businessScenario}
                 </div>
               </div>

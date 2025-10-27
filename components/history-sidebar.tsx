@@ -13,7 +13,14 @@ interface HistoryItem {
   id: string
   createdAt: string
   model: string
+  hardware: string
+  cardCount: number
+  machineCount: number
+  cardsPerMachine: number
   businessScenario: string
+  businessDataDescription: string
+  performanceTPS: number
+  performanceConcurrency: number
   score: number | null
 }
 
@@ -119,21 +126,57 @@ export function HistorySidebar() {
             </div>
           ) : (
             <ScrollArea className="h-full pr-4">
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {history.map((item) => (
                   <div
                     key={item.id}
                     onClick={() => handleItemClick(item.id)}
-                    className="p-3 rounded-lg border bg-card hover:bg-muted transition-colors cursor-pointer"
+                    className="p-4 rounded-lg border bg-card hover:bg-muted transition-colors cursor-pointer"
                   >
-                    <div className="flex items-start justify-between">
+                    {/* 标题和评分 */}
+                    <div className="flex items-start justify-between mb-3">
                       <p className="font-semibold text-sm line-clamp-2 pr-4">
                         {item.businessScenario}
                       </p>
-                      <Badge variant="outline">{item.score ?? 'N/A'}</Badge>
+                      <Badge variant={item.score && item.score >= 70 ? "default" : "secondary"}>
+                        {item.score ?? 'N/A'}
+                      </Badge>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                      <span>{item.model}</span>
+
+                    {/* 用户输入摘要 */}
+                    <div className="space-y-2 text-xs">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-muted-foreground">模型：</span>
+                          <span className="font-medium ml-1">{item.model}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">硬件：</span>
+                          <span className="font-medium ml-1">{item.hardware}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-muted-foreground">配置：</span>
+                          <span className="font-medium ml-1">{item.machineCount}机×{item.cardsPerMachine}卡</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">TPS：</span>
+                          <span className="font-medium ml-1">{item.performanceTPS}</span>
+                        </div>
+                      </div>
+
+                      {item.businessDataDescription && (
+                        <div>
+                          <span className="text-muted-foreground">数据：</span>
+                          <span className="font-medium ml-1 line-clamp-1">{item.businessDataDescription}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 时间戳 */}
+                    <div className="flex items-center justify-end text-xs text-muted-foreground mt-3 pt-2 border-t">
                       <span>{timeAgo(item.createdAt)}</span>
                     </div>
                   </div>

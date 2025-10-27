@@ -31,15 +31,12 @@ export async function GET(
       model: evaluation.model,
       hardware: evaluation.hardware,
       cardCount: String(evaluation.cardCount),
-      machineCount: evaluation.machineCount ? String(evaluation.machineCount) : String(1),
-      cardsPerMachine: evaluation.cardsPerMachine ? String(evaluation.cardsPerMachine) : String(evaluation.cardCount),
-      businessDataDescription: evaluation.businessDataDescription || '',
-      businessDataVolume: String(evaluation.businessDataVolume), // 兼容旧数据
-      businessDataTypes: JSON.parse(evaluation.businessDataTypes || '[]'),
+      machineCount: String(evaluation.machineCount),
+      cardsPerMachine: String(evaluation.cardsPerMachine),
+      businessDataDescription: evaluation.businessDataDescription,
       businessDataQuality: evaluation.businessDataQuality,
       businessScenario: evaluation.businessScenario,
-      performanceTPS: evaluation.performanceTPS ? String(evaluation.performanceTPS) : String(evaluation.performanceQPS || ''),
-      performanceQPS: String(evaluation.performanceQPS), // 兼容旧数据
+      performanceTPS: String(evaluation.performanceTPS),
       performanceConcurrency: String(evaluation.performanceConcurrency),
     };
 
