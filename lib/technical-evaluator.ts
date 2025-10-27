@@ -103,11 +103,14 @@ export async function evaluateTechnicalSolution(
   }
 
   try {
+    // 计算总卡数
+    const totalCards = req.machineCount * req.cardsPerMachine
+
     // 1. 首先计算资源可行性
     const resourceFeasibility = calculateResourceFeasibility(
       req.model,
       req.hardware,
-      req.cardCount,
+      totalCards,
       req.performanceRequirements.tps
     )
 
