@@ -3,7 +3,9 @@ import path from "path"
 import { getPrismaClient } from "@/lib/prisma"
 import { verifyToken } from "@/lib/jwt"
 import { calculateResourceScore } from "@/lib/resource-calculator"
-import { mdToPdf } from "md-to-pdf"
+import puppeteer from "puppeteer"
+import { marked } from "marked"
+import fs from "fs/promises"
 
 export async function GET(
   request: NextRequest,
@@ -49,28 +51,124 @@ export async function GET(
     // 生成Markdown格式的完整报告
     const reportMarkdown = generateMarkdownReport(parsedEvaluation)
 
-    // 将Markdown转换为PDF
-    const pdf = await mdToPdf(
-      { content: reportMarkdown },
-      { stylesheet: [path.join(process.cwd(), "styles", "markdown.css")] }
-    ).catch((err) => {
-      console.error("PDF conversion failed:", err)
-      throw new Error("Failed to convert report to PDF")
-    })
+    // 使用Puppeteer直接生成PDF
+    try {
+      // 将Markdown转换为HTML
+      const htmlContent = marked.parse(reportMarkdown) as string
 
-    if (!pdf) {
-      throw new Error("PDF content is empty")
+      // 读取CSS样式
+      const cssPath = path.join(process.cwd(), "styles", "markdown.css")
+      let cssContent = ""
+      try {
+        cssContent = await fs.readFile(cssPath, "utf-8")
+      } catch (e) {
+        console.warn("无法读取CSS文件，使用默认样式")
+      }
+
+      // 构建完整的HTML文档
+      const fullHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
     }
-    
-    const pdfBuffer = Buffer.from(pdf.content)
+    h1, h2, h3, h4 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+    h3 { font-size: 1.25em; }
+    h4 { font-size: 1em; }
+    ul, ol { padding-left: 2em; }
+    li { margin: 0.25em 0; }
+    code {
+      background: #f6f8fa;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 85%;
+    }
+    pre {
+      background: #f6f8fa;
+      padding: 16px;
+      border-radius: 6px;
+      overflow: auto;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+    blockquote {
+      border-left: 4px solid #dfe2e5;
+      padding-left: 16px;
+      color: #6a737d;
+      margin: 0;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid #eaecef;
+      margin: 24px 0;
+    }
+    ${cssContent}
+  </style>
+</head>
+<body>
+  ${htmlContent}
+</body>
+</html>
+      `
 
-    // 返回PDF文件
-    const filename = `ai-evaluation-report-${evaluation.id}.pdf`;
-    const headers = new Headers();
-    headers.append("Content-Type", "application/pdf");
-    headers.append("Content-Disposition", `attachment; filename="${filename}"`);
+      // 启动Puppeteer并生成PDF
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      })
 
-    return new Response(pdfBuffer, { headers });
+      const page = await browser.newPage()
+      await page.setContent(fullHtml, { waitUntil: 'networkidle0' })
+
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        margin: {
+          top: '20mm',
+          right: '20mm',
+          bottom: '20mm',
+          left: '20mm'
+        },
+        printBackground: true
+      })
+
+      await browser.close()
+
+      // 返回PDF
+      const filename = `AI评估报告_${new Date().toLocaleDateString()}.pdf`
+      const headers = new Headers()
+      headers.append("Content-Type", "application/pdf")
+      headers.append("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
+
+      return new Response(pdfBuffer, { headers })
+
+    } catch (pdfError) {
+      console.error("PDF生成失败:", pdfError)
+      // 降级方案：返回Markdown文件
+      const filename = `ai-evaluation-report-${evaluation.id}.md`
+      const headers = new Headers()
+      headers.append("Content-Type", "text/markdown; charset=utf-8")
+      headers.append("Content-Disposition", `attachment; filename="${filename}"`)
+
+      return new Response(reportMarkdown, { headers })
+    }
   } catch (error) {
     console.error("生成报告失败:", error)
     return NextResponse.json(

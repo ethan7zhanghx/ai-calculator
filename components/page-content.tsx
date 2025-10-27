@@ -23,6 +23,7 @@ import {
   Sparkles,
   Download,
   History,
+  HelpCircle,
 } from "lucide-react"
 import { AuthDialog } from "@/components/auth-dialog"
 import { FeedbackButton } from "@/components/feedback-button"
@@ -36,18 +37,34 @@ import { BusinessEvaluationSimple } from "@/components/business-evaluation-simpl
 import { EvaluationProgress } from "@/components/evaluation-progress"
 import { ModuleLoadingIndicator } from "@/components/module-loading-indicator"
 import { BusinessEvaluationDetailed } from "@/components/business-evaluation-detailed"
-import { MultiSelect, type Option } from "@/components/multi-select"
 import { InputSummary } from "@/components/input-summary"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
 import { calculateResourceFeasibility, type ResourceFeasibility } from "@/lib/resource-calculator"
 import type {
-  DataType,
   DataQuality,
   EvaluationResponse,
   ModuleType,
   FeedbackType,
 } from "@/lib/types"
+
+// 带提示的Label组件
+function LabelWithTooltip({ htmlFor, children, tooltip }: { htmlFor: string; children: React.ReactNode; tooltip: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{children}</Label>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p>{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
 
 export default function PageContent() {
   const { toast } = useToast()
@@ -63,12 +80,12 @@ export default function PageContent() {
   // 表单状态
   const [model, setModel] = useState("")
   const [hardware, setHardware] = useState("")
-  const [cardCount, setCardCount] = useState("")
-  const [dataVolume, setDataVolume] = useState("")
-  const [dataTypes, setDataTypes] = useState<DataType[]>([])
+  const [machineCount, setMachineCount] = useState("")
+  const [cardsPerMachine, setCardsPerMachine] = useState("")
+  const [dataDescription, setDataDescription] = useState("")
   const [dataQuality, setDataQuality] = useState<DataQuality>("high")
   const [businessScenario, setBusinessScenario] = useState("")
-  const [qps, setQps] = useState("")
+  const [tps, setTps] = useState("")
   const [concurrency, setConcurrency] = useState("")
 
   // 评估结果
@@ -121,12 +138,12 @@ export default function PageContent() {
             // 填充表单输入以供摘要卡使用
             setModel(data.model || "")
             setHardware(data.hardware || "")
-            setCardCount(data.cardCount || "")
-            setDataVolume(data.businessDataVolume || "")
-            setDataTypes(data.businessDataTypes || [])
+            setMachineCount(data.machineCount || "")
+            setCardsPerMachine(data.cardsPerMachine || "")
+            setDataDescription(data.businessDataDescription || "")
             setDataQuality(data.businessDataQuality || "high")
             setBusinessScenario(data.businessScenario || "")
-            setQps(data.performanceQPS || "")
+            setTps(data.performanceTPS || "")
             setConcurrency(data.performanceConcurrency || "")
 
             toast({
@@ -167,18 +184,19 @@ export default function PageContent() {
 
   // 实时计算硬件资源可行性
   useEffect(() => {
-    if (model && hardware && cardCount && qps) {
+    if (model && hardware && machineCount && cardsPerMachine && tps) {
+      const totalCards = parseInt(machineCount) * parseInt(cardsPerMachine)
       const resource = calculateResourceFeasibility(
         model,
         hardware,
-        parseInt(cardCount),
-        parseInt(qps)
+        totalCards,
+        parseInt(tps)
       )
       setResourceEvaluation(resource)
     } else {
       setResourceEvaluation(null)
     }
-  }, [model, hardware, cardCount, qps])
+  }, [model, hardware, machineCount, cardsPerMachine, tps])
 
   // 监听部分评估完成，更新最终评估结果
   useEffect(() => {
@@ -258,15 +276,15 @@ export default function PageContent() {
         body: JSON.stringify({
           model,
           hardware,
-          cardCount: parseInt(cardCount),
+          machineCount: parseInt(machineCount),
+          cardsPerMachine: parseInt(cardsPerMachine),
           businessData: {
-            volume: parseInt(dataVolume),
-            dataTypes,
+            description: dataDescription,
             quality: dataQuality,
           },
           businessScenario,
           performanceRequirements: {
-            qps: parseInt(qps),
+            tps: parseInt(tps),
             concurrency: parseInt(concurrency),
           },
         }),
@@ -421,19 +439,10 @@ export default function PageContent() {
   }
 
   const handleEvaluate = async () => {
-    if (!model || !hardware || !cardCount || !dataVolume || !businessScenario || !qps || !concurrency) {
+    if (!model || !hardware || !machineCount || !cardsPerMachine || !dataDescription || !businessScenario || !tps || !concurrency) {
       toast({
         title: "请填写完整信息",
         description: "所有字段均为必填项",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (dataTypes.length === 0) {
-      toast({
-        title: "请选择数据类型",
-        description: "至少选择一种数据类型",
         variant: "destructive",
       })
       return
@@ -513,11 +522,6 @@ export default function PageContent() {
     }
   }
 
-  const toggleDataType = (type: DataType) => {
-    setDataTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    )
-  }
 
   // 下载完整报告
   const handleDownloadReport = async () => {
@@ -540,7 +544,7 @@ export default function PageContent() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = `AI评估报告_${new Date().toLocaleDateString()}.md`
+        a.download = `AI评估报告_${new Date().toLocaleDateString()}.pdf`
         document.body.appendChild(a)
         a.click()
         window.URL.revokeObjectURL(url)
@@ -562,7 +566,7 @@ export default function PageContent() {
     }
   }
 
-  const isFormComplete = model && hardware && cardCount && dataVolume && dataTypes.length > 0 && businessScenario && qps && concurrency
+  const isFormComplete = model && hardware && machineCount && cardsPerMachine && dataDescription && businessScenario && tps && concurrency
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -642,7 +646,12 @@ export default function PageContent() {
                 <CardContent className="space-y-6">
                 {/* 模型选择 */}
                 <div className="space-y-2">
-                  <Label htmlFor="model">模型选择</Label>
+                  <LabelWithTooltip
+                    htmlFor="model"
+                    tooltip="选择您计划使用的AI大语言模型。不同模型有不同的参数量和能力特点。"
+                  >
+                    模型选择
+                  </LabelWithTooltip>
                   <Select value={model} onValueChange={setModel}>
                     <SelectTrigger id="model" className="w-full">
                       <SelectValue placeholder="选择AI模型" />
@@ -658,87 +667,112 @@ export default function PageContent() {
                 </div>
 
                 {/* 硬件配置 */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="hardware"
+                    tooltip="选择您拥有或计划采购的GPU型号。不同GPU在显存容量和计算性能上有差异。"
+                  >
+                    硬件型号
+                  </LabelWithTooltip>
+                  <Select value={hardware} onValueChange={setHardware}>
+                    <SelectTrigger id="hardware" className="w-full">
+                      <SelectValue placeholder="选择硬件" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NVIDIA A100 (80GB)">NVIDIA A100 (80GB)</SelectItem>
+                      <SelectItem value="NVIDIA A100 (40GB)">NVIDIA A100 (40GB)</SelectItem>
+                      <SelectItem value="NVIDIA H100">NVIDIA H100</SelectItem>
+                      <SelectItem value="NVIDIA V100">NVIDIA V100</SelectItem>
+                      <SelectItem value="NVIDIA RTX 4090">NVIDIA RTX 4090</SelectItem>
+                      <SelectItem value="NVIDIA RTX 3090">NVIDIA RTX 3090</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 机卡配置 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="hardware">硬件型号</Label>
-                    <Select value={hardware} onValueChange={setHardware}>
-                      <SelectTrigger id="hardware" className="w-full">
-                        <SelectValue placeholder="选择硬件" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NVIDIA A100 (80GB)">NVIDIA A100 (80GB)</SelectItem>
-                        <SelectItem value="NVIDIA A100 (40GB)">NVIDIA A100 (40GB)</SelectItem>
-                        <SelectItem value="NVIDIA H100">NVIDIA H100</SelectItem>
-                        <SelectItem value="NVIDIA V100">NVIDIA V100</SelectItem>
-                        <SelectItem value="NVIDIA RTX 4090">NVIDIA RTX 4090</SelectItem>
-                        <SelectItem value="NVIDIA RTX 3090">NVIDIA RTX 3090</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <LabelWithTooltip
+                      htmlFor="machineCount"
+                      tooltip="您拥有或计划采购的服务器（机器）数量。"
+                    >
+                      机器数量
+                    </LabelWithTooltip>
+                    <Input
+                      id="machineCount"
+                      type="number"
+                      min="1"
+                      placeholder="台"
+                      value={machineCount}
+                      onChange={(e) => setMachineCount(e.target.value)}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cardCount">卡数</Label>
+                    <LabelWithTooltip
+                      htmlFor="cardsPerMachine"
+                      tooltip="每台服务器上配备的GPU卡数。例如：一台8卡A100服务器，这里填8。"
+                    >
+                      每机卡数
+                    </LabelWithTooltip>
                     <Input
-                      id="cardCount"
+                      id="cardsPerMachine"
                       type="number"
                       min="1"
-                      placeholder="GPU数量"
-                      value={cardCount}
-                      onChange={(e) => setCardCount(e.target.value)}
+                      placeholder="卡/台"
+                      value={cardsPerMachine}
+                      onChange={(e) => setCardsPerMachine(e.target.value)}
                       className="w-full"
                     />
                   </div>
                 </div>
 
-                {/* 业务数据 */}
+                {/* 业务数据描述 */}
                 <div className="space-y-2">
-                  <Label htmlFor="dataVolume">业务数据量</Label>
-                  <Input
-                    id="dataVolume"
-                    type="number"
-                    placeholder="数据条数"
-                    value={dataVolume}
-                    onChange={(e) => setDataVolume(e.target.value)}
+                  <LabelWithTooltip
+                    htmlFor="dataDescription"
+                    tooltip="请描述您是否拥有可用于模型微调的业务数据，包括数据类型和大致数量。例如：有10000条客服对话记录用于训练问答模型。"
+                  >
+                    微调数据情况
+                  </LabelWithTooltip>
+                  <Textarea
+                    id="dataDescription"
+                    placeholder="请描述您是否有用于微调的业务数据，以及数据量（例如：有10000条客服对话记录，5000条产品说明文档）"
+                    rows={3}
+                    value={dataDescription}
+                    onChange={(e) => setDataDescription(e.target.value)}
                     className="w-full"
                   />
                 </div>
 
-                {/* 数据类型和数据治理 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>数据类型</Label>
-                    <MultiSelect
-                      options={[
-                        { value: "text", label: "文本" },
-                        { value: "image", label: "图片" },
-                        { value: "qa_pair", label: "QA Pair" },
-                        { value: "video", label: "视频" },
-                        { value: "audio", label: "音频" },
-                      ]}
-                      selected={dataTypes}
-                      onChange={(selected) => setDataTypes(selected as DataType[])}
-                      placeholder="选择数据类型"
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dataQuality">数据治理</Label>
-                    <Select value={dataQuality} onValueChange={(v) => setDataQuality(v as DataQuality)}>
-                      <SelectTrigger id="dataQuality" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="high">是</SelectItem>
-                        <SelectItem value="low">否</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* 数据治理 */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="dataQuality"
+                    tooltip="数据治理指是否对数据进行过清洗、标注、去重等预处理工作。良好的数据治理能显著提升模型效果。"
+                  >
+                    数据治理
+                  </LabelWithTooltip>
+                  <Select value={dataQuality} onValueChange={(v) => setDataQuality(v as DataQuality)}>
+                    <SelectTrigger id="dataQuality" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">是</SelectItem>
+                      <SelectItem value="low">否</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* 业务场景 */}
                 <div className="space-y-2">
-                  <Label htmlFor="businessScenario">业务场景</Label>
+                  <LabelWithTooltip
+                    htmlFor="businessScenario"
+                    tooltip="详细描述您想用AI解决的业务问题或实现的功能。例如：智能客服、内容审核、文档摘要等。"
+                  >
+                    业务场景
+                  </LabelWithTooltip>
                   <Textarea
                     id="businessScenario"
                     placeholder="描述您想要做的业务场景..."
@@ -752,20 +786,30 @@ export default function PageContent() {
                 {/* 性能要求 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="qps">期望QPS</Label>
+                    <LabelWithTooltip
+                      htmlFor="tps"
+                      tooltip="TPS (Tokens Per Second)：大模型每秒生成的token数量。这是衡量模型推理性能的关键指标，影响响应速度和用户体验。"
+                    >
+                      期望TPS
+                    </LabelWithTooltip>
                     <Input
-                      id="qps"
+                      id="tps"
                       type="number"
                       min="1"
-                      placeholder="每秒查询数"
-                      value={qps}
-                      onChange={(e) => setQps(e.target.value)}
+                      placeholder="每秒token数"
+                      value={tps}
+                      onChange={(e) => setTps(e.target.value)}
                       className="w-full"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="concurrency">用户并发数</Label>
+                    <LabelWithTooltip
+                      htmlFor="concurrency"
+                      tooltip="系统需要同时支持多少用户在线使用。并发数越高，对系统资源要求越大。"
+                    >
+                      用户并发数
+                    </LabelWithTooltip>
                     <Input
                       id="concurrency"
                       type="number"
@@ -802,11 +846,11 @@ export default function PageContent() {
               <InputSummary
                 model={model}
                 hardware={hardware}
-                cardCount={cardCount}
-                dataVolume={dataVolume}
-                dataTypes={dataTypes}
+                machineCount={machineCount}
+                cardsPerMachine={cardsPerMachine}
+                dataDescription={dataDescription}
                 dataQuality={dataQuality}
-                qps={qps}
+                tps={tps}
                 concurrency={concurrency}
                 onEdit={() => {
                   setEvaluation(null)
@@ -893,15 +937,15 @@ export default function PageContent() {
                               <div className="grid grid-cols-2 gap-1.5">
                                 <div className="text-center p-1.5 rounded bg-primary/10">
                                   <div className="text-sm font-bold text-primary">
-                                    {partialEvaluation.resourceFeasibility.inference.supportedQPS}
+                                    {partialEvaluation.resourceFeasibility.inference.supportedThroughput}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">QPS</div>
+                                  <div className="text-xs text-muted-foreground">TPS</div>
                                 </div>
                                 <div className="text-center p-1.5 rounded bg-primary/10">
                                   <div className="text-sm font-bold text-primary">
-                                    {partialEvaluation.resourceFeasibility.inference.supportedThroughput}
+                                    {partialEvaluation.resourceFeasibility.inference.supportedQPS}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">吞吐</div>
+                                  <div className="text-xs text-muted-foreground">QPS</div>
                                 </div>
                               </div>
 
@@ -1161,15 +1205,15 @@ export default function PageContent() {
                             <div className="grid grid-cols-2 gap-1.5">
                               <div className="text-center p-1.5 rounded bg-primary/10">
                                 <div className="text-sm font-bold text-primary">
-                                  {evaluation.resourceFeasibility.inference.supportedQPS}
+                                  {evaluation.resourceFeasibility.inference.supportedThroughput}
                                 </div>
-                                <div className="text-xs text-muted-foreground">QPS</div>
+                                <div className="text-xs text-muted-foreground">TPS</div>
                               </div>
                               <div className="text-center p-1.5 rounded bg-primary/10">
                                 <div className="text-sm font-bold text-primary">
-                                  {evaluation.resourceFeasibility.inference.supportedThroughput}
+                                  {evaluation.resourceFeasibility.inference.supportedQPS}
                                 </div>
-                                <div className="text-xs text-muted-foreground">吞吐</div>
+                                <div className="text-xs text-muted-foreground">QPS</div>
                               </div>
                             </div>
 
@@ -1221,20 +1265,9 @@ export default function PageContent() {
                     <CardTitle className="flex items-center justify-between">
                       <span>技术方案合理性评估</span>
                       {/* 评分显示 */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDownloadReport}
-                          className="gap-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          下载完整报告
-                        </Button>
-                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
-                          <span className="text-lg font-bold">{evaluation.technicalFeasibility?.score}</span>
-                          <span className="text-sm">/100</span>
-                        </div>
+                      <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
+                        <span className="text-lg font-bold">{evaluation.technicalFeasibility?.score}</span>
+                        <span className="text-sm">/100</span>
                       </div>
                     </CardTitle>
                     <CardDescription>AI深度评估技术选型是否合理</CardDescription>
@@ -1419,6 +1452,19 @@ export default function PageContent() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* 下载完整报告按钮 */}
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="default"
+                    size="lg"
+                    onClick={handleDownloadReport}
+                    className="gap-2"
+                  >
+                    <Download className="h-5 w-5" />
+                    下载完整报告
+                  </Button>
+                </div>
               </>
             )}
           </div>

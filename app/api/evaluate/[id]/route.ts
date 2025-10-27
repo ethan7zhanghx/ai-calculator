@@ -3,11 +3,11 @@ import { getPrismaClient } from "@/lib/prisma"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const prisma = getPrismaClient();
   try {
-    const evaluationId = params.id
+    const { id: evaluationId } = await params
 
     const evaluation = await prisma.evaluation.findUnique({
       where: { id: evaluationId },
@@ -31,11 +31,15 @@ export async function GET(
       model: evaluation.model,
       hardware: evaluation.hardware,
       cardCount: String(evaluation.cardCount),
-      businessDataVolume: String(evaluation.businessDataVolume),
+      machineCount: evaluation.machineCount ? String(evaluation.machineCount) : String(1),
+      cardsPerMachine: evaluation.cardsPerMachine ? String(evaluation.cardsPerMachine) : String(evaluation.cardCount),
+      businessDataDescription: evaluation.businessDataDescription || '',
+      businessDataVolume: String(evaluation.businessDataVolume), // 兼容旧数据
       businessDataTypes: JSON.parse(evaluation.businessDataTypes || '[]'),
       businessDataQuality: evaluation.businessDataQuality,
       businessScenario: evaluation.businessScenario,
-      performanceQPS: String(evaluation.performanceQPS),
+      performanceTPS: evaluation.performanceTPS ? String(evaluation.performanceTPS) : String(evaluation.performanceQPS || ''),
+      performanceQPS: String(evaluation.performanceQPS), // 兼容旧数据
       performanceConcurrency: String(evaluation.performanceConcurrency),
     };
 
