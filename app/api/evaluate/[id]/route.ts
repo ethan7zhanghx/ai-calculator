@@ -31,13 +31,13 @@ export async function GET(
       model: evaluation.model,
       hardware: evaluation.hardware,
       cardCount: String(evaluation.cardCount),
-      machineCount: String(evaluation.machineCount),
-      cardsPerMachine: String(evaluation.cardsPerMachine),
-      businessDataDescription: evaluation.businessDataDescription,
-      businessDataQuality: evaluation.businessDataQuality,
-      businessScenario: evaluation.businessScenario,
-      performanceTPS: String(evaluation.performanceTPS),
-      performanceConcurrency: String(evaluation.performanceConcurrency),
+      machineCount: String(evaluation.machineCount || 1),
+      cardsPerMachine: String(evaluation.cardsPerMachine || evaluation.cardCount),
+      businessDataDescription: evaluation.businessDataDescription || "",
+      businessDataQuality: evaluation.businessDataQuality || "high",
+      businessScenario: evaluation.businessScenario || "",
+      performanceTPS: String(evaluation.performanceTPS || 50),
+      performanceConcurrency: String(evaluation.performanceConcurrency || 100),
     };
 
 

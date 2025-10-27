@@ -38,13 +38,13 @@ model Evaluation {
   model                    String
   hardware                 String
   cardCount                Int      // 总卡数 (machineCount * cardsPerMachine)
-  machineCount             Int      @default(1) // 机器数量
-  cardsPerMachine          Int      @default(1) // 每机卡数
-  businessDataDescription  String   @default("") // 业务数据描述 (替代旧的 volume 和 types)
-  businessDataQuality      String   @default("high") // "high" | "low"
-  businessScenario         String   @default("") // 业务场景描述
-  performanceTPS           Int      @default(50) // Tokens Per Second
-  performanceConcurrency   Int      @default(100) // 并发数
+  machineCount             Int?     @default(1) // 机器数量 (暂时可选以兼容旧数据)
+  cardsPerMachine          Int?     @default(1) // 每机卡数 (暂时可选以兼容旧数据)
+  businessDataDescription  String?  @default("") // 业务数据描述 (暂时可选以兼容旧数据)
+  businessDataQuality      String?  @default("high") // "high" | "low"
+  businessScenario         String?  @default("") // 业务场景描述
+  performanceTPS           Int?     @default(50) // Tokens Per Second (暂时可选以兼容旧数据)
+  performanceConcurrency   Int?     @default(100) // 并发数
 
   // 评估结果 (JSON存储完整结果)
   resourceFeasibility  String // JSON
