@@ -136,7 +136,9 @@ export async function evaluateTechnicalSolution(
     // 2. 构建Prompt并调用LLM
     const prompt = buildEvaluationPrompt(req, resourceFeasibilityScore)
 
-    // 使用带重试的 fetch,最多重试5次,单次超时45秒
+    console.log(`技术评估Prompt长度: ${prompt.length} 字符`)
+
+    // 使用带重试的 fetch,增加重试次数和更长超时
     const response = await fetchWithRetry(
       "https://qianfan.baidubce.com/v2/chat/completions",
       {
@@ -151,11 +153,15 @@ export async function evaluateTechnicalSolution(
           messages: [
             {
               role: "system",
-              content: SYSTEM_PROMPT,
+              content: SYSTEM_PROMPT, // 评估原则和输出要求（会被API缓存）
+            },
+            {
+              role: "system",
+              content: FEW_SHOT_EXAMPLES, // Few-Shot案例（会被API缓存）
             },
             {
               role: "user",
-              content: prompt,
+              content: prompt, // 只包含当前用户的具体需求
             },
           ],
           response_format: {
@@ -165,11 +171,11 @@ export async function evaluateTechnicalSolution(
         }),
       },
       {
-        maxRetries: 5,
-        timeout: 120000, // 120秒超时
-        initialDelay: 2000,
+        maxRetries: 6, // 增加到6次重试
+        timeout: 180000, // 增加到180秒(3分钟)超时
+        initialDelay: 3000, // 增加初始延迟到3秒
         onRetry: (attempt, error) => {
-          console.log(`技术评估API重试 (${attempt}/5):`, error.message)
+          console.log(`技术评估API重试 (${attempt}/6):`, error.message)
         },
       }
     )
@@ -282,19 +288,9 @@ const SYSTEM_PROMPT = `你是一位资深AI技术架构师，擅长评估企业A
 - **平衡视角**：既要看到优点，也要指出风险`
 
 /**
- * 构建评估Prompt（包含Few-Shot案例和当前输入）
+ * Few-Shot评估案例（固定，会被千帆缓存）
  */
-function buildEvaluationPrompt(
-  req: EvaluationRequest,
-  resourceFeasibilityScore: number
-): string {
-  const qualityStr = req.businessData.quality === "high" ? "已治理" : "未治理"
-  const dataDescription = req.businessData.description || "未提供数据描述"
-
-  // 获取模型信息
-  const modelInfo = formatModelInfo(req.model)
-
-  return `# Few-Shot 评估案例
+const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 
 ## 案例1：致命错误 - 视觉任务选择文本模型
 
@@ -448,7 +444,7 @@ function buildEvaluationPrompt(
     "重新选型：优先考虑传统的机器学习方法（如XGBoost）或微调一个小型语言模型（如Mistral 7B, Llama 3 8B）。",
     "成本估算：基于新方案重新进行成本和ROI分析，重点关注硬件、电力和运维的总体拥有成本(TCO)。",
     "性能测试：在选定的小型模型上进行压力测试，确保其能满足QPS 100的性能要求。",
-    "关注效率：在AI项目初期，应始终追求用最简单、最经济有效的方法解决问题，避免盲目追求“最强”模型。"
+    "关注效率：在AI项目初期，应始终追求用最简单、最经济有效的方法解决问题，避免盲目追求"最强"模型。"
   ]
 }
 \`\`\`
@@ -478,7 +474,7 @@ function buildEvaluationPrompt(
     "llmNecessity": {
       "score": 90,
       "status": "necessary",
-      "analysis": "客服场景的复杂性和开放性决定了必须使用大语言模型。用户咨询千变万化，传统NLU方案只能处理固定模式的问答，无法应对灵活性和多样性。大模型的In-Context Learning能力让它能够理解各种表达方式，生成个性化的回复，这是客服体验的关键。传统客服机器人往往被用户吐槽“答非所问”，正是因为缺乏这种理解和生成能力。"
+      "analysis": "客服场景的复杂性和开放性决定了必须使用大语言模型。用户咨询千变万化，传统NLU方案只能处理固定模式的问答，无法应对灵活性和多样性。大模型的In-Context Learning能力让它能够理解各种表达方式，生成个性化的回复，这是客服体验的关键。传统客服机器人往往被用户吐槽"答非所问"，正是因为缺乏这种理解和生成能力。"
     },
     "fineTuning": {
       "score": 75,
@@ -683,9 +679,22 @@ function buildEvaluationPrompt(
 }
 \`\`\`
 
----
+请严格参考以上案例的风格和深度进行评估。`
 
-# 现在请评估以下项目
+/**
+ * 构建用户评估Prompt（只包含当前用户的具体需求）
+ */
+function buildEvaluationPrompt(
+  req: EvaluationRequest,
+  resourceFeasibilityScore: number
+): string {
+  const qualityStr = req.businessData.quality === "high" ? "已治理" : "未治理"
+  const dataDescription = req.businessData.description || "未提供数据描述"
+
+  // 获取模型信息
+  const modelInfo = formatModelInfo(req.model)
+
+  return `# 现在请评估以下项目
 
 ## 模型信息
 ${modelInfo}
