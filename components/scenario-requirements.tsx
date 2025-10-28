@@ -29,39 +29,39 @@ export function ScenarioRequirements({ scenarioRequirements }: ScenarioRequireme
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* 需求标记 */}
-        <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            {needsInference ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            ) : (
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            )}
-            <Badge variant={needsInference ? "default" : "outline"}>推理</Badge>
+        {/* 需求标记和说明 */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              {needsInference ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              )}
+              <Badge variant={needsInference ? "default" : "outline"}>推理</Badge>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {needsFineTuning ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              )}
+              <Badge variant={needsFineTuning ? "default" : "outline"}>微调</Badge>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {needsPretraining ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              )}
+              <Badge variant={needsPretraining ? "default" : "outline"}>预训练</Badge>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {needsFineTuning ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            ) : (
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            )}
-            <Badge variant={needsFineTuning ? "default" : "outline"}>微调</Badge>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {needsPretraining ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            ) : (
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            )}
-            <Badge variant={needsPretraining ? "default" : "outline"}>预训练</Badge>
-          </div>
-        </div>
-
-        {/* 说明文本 */}
-        <div className="p-4 rounded-lg bg-muted/50">
-          <p className="text-sm leading-relaxed">{explanation}</p>
+          {/* 说明文本 */}
+          <p className="text-sm text-muted-foreground">{explanation}</p>
         </div>
 
         {/* 预训练特殊说明 */}
@@ -69,9 +69,8 @@ export function ScenarioRequirements({ scenarioRequirements }: ScenarioRequireme
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              <strong>关于预训练硬件资源计算：</strong>
-              预训练的硬件需求计算基于训练一个与您所选模型同等规模的基础模型。
-              实际需求会因训练数据量、训练步数、批次大小等因素而有所不同。
+              <strong>预训练硬件资源说明：</strong>
+              预训练的硬件需求计算基于训练一个与您所选模型同等规模的基础模型。实际需求会因训练数据量、训练步数、批次大小等因素而有所不同。
             </AlertDescription>
           </Alert>
         )}
