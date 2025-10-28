@@ -272,38 +272,42 @@ function generateScenarioExplanation(tasks: {
   needsPretraining: boolean
 }): string {
   const needs: string[] = []
+  const notNeeds: string[] = []
 
   if (tasks.needsInference) {
     needs.push("推理")
+  } else {
+    notNeeds.push("推理")
   }
+
   if (tasks.needsFineTuning) {
     needs.push("微调")
+  } else {
+    notNeeds.push("微调")
   }
+
   if (tasks.needsPretraining) {
     needs.push("预训练")
+  } else {
+    notNeeds.push("预训练")
   }
+
+  // 构建简洁的说明
+  let explanation = ""
 
   if (needs.length === 0) {
     return "该场景无需进行模型训练或推理。"
   }
 
-  let explanation = `该场景需要进行${needs.join("和")}。`
-
-  // 添加详细说明
-  const details: string[] = []
-
-  if (tasks.needsInference) {
-    details.push("推理用于实时响应用户请求")
-  }
-  if (tasks.needsFineTuning) {
-    details.push("微调用于适应您的业务数据和场景特点")
-  }
-  if (tasks.needsPretraining) {
-    details.push("预训练用于从零训练一个同等规模的基础模型（需要海量数据和计算资源）")
-  }
-
-  if (details.length > 0) {
-    explanation += " " + details.join("；") + "。"
+  if (needs.length === 3) {
+    explanation = "该场景需要推理、微调和预训练。"
+  } else {
+    explanation = `该场景需要${needs.join("、")}，`
+    if (notNeeds.length === 1) {
+      explanation += `无需${notNeeds[0]}。`
+    } else {
+      explanation += `无需${notNeeds.join("和")}。`
+    }
   }
 
   return explanation
