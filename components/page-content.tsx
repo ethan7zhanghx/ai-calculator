@@ -685,6 +685,7 @@ export default function PageContent() {
                       <SelectItem value="NVIDIA A100 (40GB)">NVIDIA A100 (40GB)</SelectItem>
                       <SelectItem value="NVIDIA H100">NVIDIA H100</SelectItem>
                       <SelectItem value="NVIDIA V100">NVIDIA V100</SelectItem>
+                      <SelectItem value="NVIDIA A10">NVIDIA A10</SelectItem>
                       <SelectItem value="NVIDIA RTX 4090">NVIDIA RTX 4090</SelectItem>
                       <SelectItem value="NVIDIA RTX 3090">NVIDIA RTX 3090</SelectItem>
                     </SelectContent>
