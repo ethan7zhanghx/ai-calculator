@@ -742,13 +742,13 @@ export default function PageContent() {
                 <div className="space-y-2">
                   <LabelWithTooltip
                     htmlFor="dataDescription"
-                    tooltip="请描述您是否拥有可用于模型微调的业务数据，包括数据类型和大致数量。例如：有「10000条电商领域」的「客服对话记录」数据样例，且该数据「已经过数据治理、精调」。"
+                    tooltip="请描述您是否拥有可用于模型精调的业务数据，包括数据类型和大致数量。例如：有「10000条电商领域」的「客服对话记录」数据样例，且该数据「已经过数据治理、精调」。"
                   >
-                    微调数据情况
+                    精调数据情况
                   </LabelWithTooltip>
                   <Textarea
                     id="dataDescription"
-                    placeholder="请描述您是否有用于微调的业务数据，以及数据量（例如：有「10000条电商领域」的「客服对话记录」数据样例，且该数据「已经过数据治理、精调」）"
+                    placeholder="请描述您是否有用于精调的业务数据，以及数据量（例如：有「10000条电商领域」的「客服对话记录」数据样例，且该数据「已经过数据治理、精调」）"
                     rows={3}
                     value={dataDescription}
                     onChange={(e) => setDataDescription(e.target.value)}
@@ -917,7 +917,7 @@ export default function PageContent() {
                         />
 
                         <ResourceCard
-                          title="微调"
+                          title="精调"
                           feasible={partialEvaluation.resourceFeasibility.fineTuning.feasible}
                           memoryUsagePercent={partialEvaluation.resourceFeasibility.fineTuning.memoryUsagePercent}
                           memoryRequired={partialEvaluation.resourceFeasibility.fineTuning.memoryRequired}
@@ -1199,7 +1199,7 @@ export default function PageContent() {
                       />
 
                       <ResourceCard
-                        title="微调"
+                        title="精调"
                         feasible={evaluation.resourceFeasibility.fineTuning.feasible}
                         memoryUsagePercent={evaluation.resourceFeasibility.fineTuning.memoryUsagePercent}
                         memoryRequired={evaluation.resourceFeasibility.fineTuning.memoryRequired}
