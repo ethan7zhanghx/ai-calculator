@@ -545,6 +545,21 @@ export default function PageContent() {
       console.log("下载响应状态:", response.status, response.statusText)
       console.log("响应头 Content-Type:", response.headers.get('content-type'))
       console.log("响应头 Content-Length:", response.headers.get('content-length'))
+      console.log("响应头 Content-Disposition:", response.headers.get('content-disposition'))
+
+      // 检查是否有PDF生成错误
+      const pdfErrorHeader = response.headers.get('x-pdf-error')
+      let pdfError = null
+      if (pdfErrorHeader) {
+        try {
+          // 解码Base64编码的错误信息
+          pdfError = Buffer.from(pdfErrorHeader, 'base64').toString('utf-8')
+          console.warn("服务器报告PDF生成失败:", pdfError)
+          console.warn("将返回Markdown文件作为替代")
+        } catch (decodeError) {
+          console.warn("无法解码PDF错误信息")
+        }
+      }
 
       if (response.ok) {
         const blob = await response.blob()
@@ -573,9 +588,14 @@ export default function PageContent() {
           if (!filename.endsWith('.pdf')) {
             filename += '.pdf'
           }
+          console.log("✅ PDF文件生成成功")
         } else if (contentType.includes('text/markdown')) {
           if (!filename.endsWith('.md')) {
             filename += '.md'
+          }
+          if (pdfError) {
+            console.warn("⚠️ PDF生成失败，返回Markdown文件")
+            filename = filename.replace('.pdf', '_PDF失败已转为MD.md')
           }
         } else if (contentType.includes('text/plain')) {
           if (!filename.endsWith('.txt')) {
