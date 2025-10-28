@@ -1,5 +1,7 @@
 // 共享类型定义
 
+import type { TechnicalEvaluationResult } from "./technical-evaluator"
+
 export type DataType = "text" | "image" | "qa_pair" | "video" | "audio"
 export type DataQuality = "high" | "medium" | "low"
 export type QuantizationType = "FP16" | "INT8" | "INT4"
@@ -62,64 +64,7 @@ export interface TechnicalFeasibility {
   issues: string[]
   recommendations: string[]
   // 完整的LLM评估结果（可选，用于详细展示）
-  detailedEvaluation?: {
-    score: number
-    summary: string
-    dimensions: {
-      modelTaskAlignment: {
-        status: "matched" | "mismatched" | "partial"
-        analysis: string
-        score: number
-        scoreRationale: string
-      }
-      llmNecessity: {
-        status: "necessary" | "unnecessary" | "debatable"
-        analysis: string
-        alternatives?: string
-        score: number
-        scoreRationale: string
-      }
-      fineTuning: {
-        necessary: boolean
-        dataAdequacy: "sufficient" | "marginal" | "insufficient"
-        analysis: string
-        score: number
-        scoreRationale: string
-      }
-      implementationRoadmap: {
-        feasible: boolean
-        analysis: string
-        phases: {
-          shortTerm?: string[]
-          midTerm?: string[]
-          notRecommended?: string[]
-        }
-        score: number
-        scoreRationale: string
-      }
-      performanceRequirements: {
-        reasonable: boolean
-        analysis: string
-        score: number
-        scoreRationale: string
-      }
-      costEfficiency: {
-        level: "reasonable" | "high" | "excessive"
-        analysis: string
-        score: number
-        scoreRationale: string
-      }
-      domainConsiderations?: {
-        applicable: boolean
-        analysis: string
-        score?: number
-        scoreRationale?: string
-      }
-    }
-    criticalIssues: string[]
-    warnings: string[]
-    recommendations: string[]
-  }
+  detailedEvaluation?: TechnicalEvaluationResult
 }
 
 export interface BusinessValue {

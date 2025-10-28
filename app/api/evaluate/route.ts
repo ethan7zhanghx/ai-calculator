@@ -76,14 +76,11 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
           let technicalEvaluation
           try {
             console.log("开始技术方案评估...")
-            technicalEvaluation = await evaluateTechnicalSolution(body)
+            technicalEvaluation = await evaluateTechnicalSolution(body, "ernie-4.5-turbo-128k")
             console.log("技术方案评估完成,得分:", technicalEvaluation.score)
 
             const technicalScore = technicalEvaluation.score
-            const technicalIssues = [
-              ...technicalEvaluation.criticalIssues,
-              ...technicalEvaluation.warnings,
-            ]
+            const technicalIssues = technicalEvaluation.criticalIssues
             const technicalRecommendations = technicalEvaluation.recommendations
 
             const technicalFeasibility = {
@@ -118,7 +115,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
           let businessEvaluation
           try {
             console.log("开始商业价值评估...")
-            businessEvaluation = await evaluateBusinessValue(body)
+            businessEvaluation = await evaluateBusinessValue(body, "ernie-4.5-turbo-128k")
             console.log("商业价值评估完成,得分:", businessEvaluation.score)
 
             const businessScore = businessEvaluation?.score || 0
@@ -157,10 +154,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             try {
               const prisma = getPrismaClient();
               const technicalScore = technicalEvaluation.score
-              const technicalIssues = [
-                ...technicalEvaluation.criticalIssues,
-                ...technicalEvaluation.warnings,
-              ]
+              const technicalIssues = technicalEvaluation.criticalIssues
               const technicalRecommendations = technicalEvaluation.recommendations
 
               const technicalFeasibility = {
