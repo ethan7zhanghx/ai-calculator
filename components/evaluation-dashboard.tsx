@@ -138,10 +138,10 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
             </div>
 
             {/* 关键指标 */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="flex flex-wrap gap-3">
               {keyMetrics.map((metric, i) => (
-                <Card key={i} className={metric.status === "good" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"}>
-                  <CardContent className="p-3 text-center flex flex-col justify-center h-full">
+                <Card key={i} className={`flex-1 basis-full sm:basis-[48%] lg:basis-[23%] ${metric.status === "good" ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"}`}>
+                  <CardContent className="p-3 text-center flex flex-col justify-center h-full w-full">
                     <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
                       <span className="whitespace-nowrap">{metric.label}</span>
                       {metric.trend === "up" ? (
