@@ -12,6 +12,14 @@ export interface TechnicalEvaluationResult {
   score: number; // 0-100, 综合评分
   summary?: string; // 核心评估结论（可选，会在第二阶段生成）
 
+  // 场景需求分析结果
+  scenarioRequirements?: {
+    needsInference: boolean;
+    needsFineTuning: boolean;
+    needsPretraining: boolean;
+    explanation: string; // 对需求的文字说明
+  };
+
   dimensions: {
     // 1. 技术可行性
     technicalFeasibility: {
@@ -256,6 +264,52 @@ async function calculateObjectiveHardwareScore(
 }
 
 /**
+ * 生成场景需求的用户友好说明文本
+ */
+function generateScenarioExplanation(tasks: {
+  needsInference: boolean
+  needsFineTuning: boolean
+  needsPretraining: boolean
+}): string {
+  const needs: string[] = []
+
+  if (tasks.needsInference) {
+    needs.push("推理")
+  }
+  if (tasks.needsFineTuning) {
+    needs.push("微调")
+  }
+  if (tasks.needsPretraining) {
+    needs.push("预训练")
+  }
+
+  if (needs.length === 0) {
+    return "该场景无需进行模型训练或推理。"
+  }
+
+  let explanation = `该场景需要进行${needs.join("和")}。`
+
+  // 添加详细说明
+  const details: string[] = []
+
+  if (tasks.needsInference) {
+    details.push("推理用于实时响应用户请求")
+  }
+  if (tasks.needsFineTuning) {
+    details.push("微调用于适应您的业务数据和场景特点")
+  }
+  if (tasks.needsPretraining) {
+    details.push("预训练用于从零训练一个同等规模的基础模型（需要海量数据和计算资源）")
+  }
+
+  if (details.length > 0) {
+    explanation += " " + details.join("；") + "。"
+  }
+
+  return explanation
+}
+
+/**
  * 为高分方案生成summary（≥ 75分）
  * 强调对比传统方案、说明LLM增量价值、提供优化建议
  */
@@ -472,10 +526,17 @@ export async function evaluateTechnicalSolution(
       req.performanceRequirements.tps
     )
 
-    // 2. 基于场景需求计算客观的硬件评分
+    // 2. 分析场景需求（推理/微调/预训练）
+    const requiredTasks = await analyzeRequiredTasks(req.businessScenario)
+    console.log(`场景需求分析完成 - ${req.businessScenario}`)
+    console.log(`- 需要推理: ${requiredTasks.needsInference ? '✅' : '❌'}`)
+    console.log(`- 需要微调: ${requiredTasks.needsFineTuning ? '✅' : '❌'}`)
+    console.log(`- 需要预训练: ${requiredTasks.needsPretraining ? '✅' : '❌'}`)
+
+    // 3. 基于场景需求计算客观的硬件评分
     const hardwareScore = await calculateObjectiveHardwareScore(req, resourceFeasibility)
 
-    // 3. 构建Prompt，传递客观评分和详细硬件信息
+    // 4. 构建Prompt，传递客观评分和详细硬件信息
     const prompt = buildEvaluationPrompt(req, totalCards, hardwareScore, resourceFeasibility)
 
     console.log(`技术评估Prompt长度: ${prompt.length} 字符`)
@@ -566,6 +627,14 @@ export async function evaluateTechnicalSolution(
       result.summary = result.score >= 75
         ? "技术方案评估完成，具体分析请参考各维度详情。"
         : "技术方案存在一些问题，具体分析请参考各维度详情。"
+    }
+
+    // 添加场景需求分析结果
+    result.scenarioRequirements = {
+      needsInference: requiredTasks.needsInference,
+      needsFineTuning: requiredTasks.needsFineTuning,
+      needsPretraining: requiredTasks.needsPretraining,
+      explanation: generateScenarioExplanation(requiredTasks)
     }
 
     return result
