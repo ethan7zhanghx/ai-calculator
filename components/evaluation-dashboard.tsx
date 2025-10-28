@@ -25,13 +25,13 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
     )
   }
 
-  // 安全地计算各项资源的得分
-  const pretrainingScore = calculateResourceScore(evaluation.resourceFeasibility?.pretraining?.memoryUsagePercent ?? 0)
-  const fineTuningScore = calculateResourceScore(evaluation.resourceFeasibility?.fineTuning?.memoryUsagePercent ?? 0)
-  const inferenceScore = calculateResourceScore(evaluation.resourceFeasibility?.inference?.memoryUsagePercent ?? 0)
-
-  // 计算总体资源分
-  const resourceScore = Math.round((pretrainingScore + fineTuningScore + inferenceScore) / 3)
+  // 使用技术评估时计算的硬件评分（与LLM评估时保持一致）
+  const resourceScore = evaluation.hardwareScore ??
+    Math.round((
+      calculateResourceScore(evaluation.resourceFeasibility?.pretraining?.memoryUsagePercent ?? 0) +
+      calculateResourceScore(evaluation.resourceFeasibility?.fineTuning?.memoryUsagePercent ?? 0) +
+      calculateResourceScore(evaluation.resourceFeasibility?.inference?.memoryUsagePercent ?? 0)
+    ) / 3) // 降级：如果没有硬件评分，使用简单平均分
 
   const technicalScore = evaluation.technicalFeasibility?.score ?? 0
   const businessScore = evaluation.businessValue?.score ?? 0

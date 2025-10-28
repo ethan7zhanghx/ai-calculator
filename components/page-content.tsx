@@ -212,6 +212,7 @@ export default function PageContent() {
         resourceFeasibility: partialEvaluation.resourceFeasibility,
         technicalFeasibility: partialEvaluation.technicalFeasibility,
         businessValue: partialEvaluation.businessValue ?? null, // 使用nullish coalescing确保类型正确
+        hardwareScore: partialEvaluation.hardwareScore, // 保存硬件评分
         createdAt: partialEvaluation.createdAt || new Date().toISOString(),
       })
     }
@@ -330,11 +331,12 @@ export default function PageContent() {
                   createdAt: data.data.createdAt,
                 }))
               } else if (data.type === 'technical') {
-                // 技术评估完成
+                // 技术评估完成（包含硬件评分）
                 setModuleStatuses(prev => ({ ...prev, resource: 'completed', technical: 'completed' }))
                 setPartialEvaluation(prev => ({
                   ...prev,
                   technicalFeasibility: data.data.technicalFeasibility,
+                  hardwareScore: data.data.hardwareScore, // 保存硬件评分
                 }))
               } else if (data.type === 'business') {
                 // 商业价值评估完成
