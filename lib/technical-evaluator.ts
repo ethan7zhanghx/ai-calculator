@@ -10,7 +10,7 @@ import { calculateResourceFeasibility } from "./resource-calculator"
 
 export interface TechnicalEvaluationResult {
   score: number; // 0-100, 综合评分
-  summary: string; // 核心评估结论
+  summary?: string; // 核心评估结论（可选，会在第二阶段生成）
 
   dimensions: {
     // 1. 技术可行性
@@ -256,6 +256,198 @@ async function calculateObjectiveHardwareScore(
 }
 
 /**
+ * 为高分方案生成summary（≥ 75分）
+ * 强调对比传统方案、说明LLM增量价值、提供优化建议
+ */
+async function generateHighScoreSummary(
+  result: TechnicalEvaluationResult,
+  req: EvaluationRequest,
+  modelName: string
+): Promise<string> {
+  const apiKey = process.env.QIANFAN_API_KEY
+  if (!apiKey) {
+    throw new Error("QIANFAN_API_KEY 环境变量未设置")
+  }
+
+  const prompt = `你是一位资深的AI技术架构师。现在需要你为一个技术评估报告生成核心摘要（summary）。
+
+## 评估方案信息
+
+**业务场景**：${req.businessScenario}
+
+**技术选型**：
+- 模型：${req.model}
+- 硬件：${req.hardware}，${req.machineCount}机 × ${req.cardsPerMachine}卡
+- 数据：${req.businessData.description}（${req.businessData.quality === 'high' ? '已治理' : '未治理'}）
+
+**综合评分**：${result.score}/100（优秀方案）
+
+**各维度评估结果**：
+1. 技术可行性（${result.dimensions.technicalFeasibility.score}分）：${result.dimensions.technicalFeasibility.analysis}
+2. 大模型必要性（${result.dimensions.llmNecessity.score}分）：${result.dimensions.llmNecessity.analysis}
+3. 模型适配度（${result.dimensions.modelFit.score}分）：${result.dimensions.modelFit.analysis}
+4. 数据充足性（${result.dimensions.dataAdequacy.score}分）：${result.dimensions.dataAdequacy.analysis}
+5. 硬件性能匹配（${result.dimensions.hardwarePerformanceFit.score}分）：${result.dimensions.hardwarePerformanceFit.analysis}
+6. 实施风险（${result.dimensions.implementationRisk.score}分）：${result.dimensions.implementationRisk.analysis}
+
+## 摘要生成要求
+
+由于这是一个高分优秀方案（${result.score}≥75分），请按以下要求生成摘要：
+
+1. **禁止使用空洞词汇**：
+   - ❌ 禁止："表现出色"、"非常适合"、"完美契合"、"充足"、"良好"、"成熟"、"高性价比"、"匹配度高"、"满足需求"
+   - ✅ 使用：具体的技术能力描述、对比性分析、可行性解释
+
+2. **对比传统方案的局限性**：
+   - 说明传统方案（纯OCR、规则引擎、人工处理、传统ML）的具体技术局限和痛点
+   - 用技术术语解释为什么传统方案无法解决问题
+
+3. **说明LLM的增量价值**：
+   - LLM相比传统方案，具体增加了什么技术能力？
+   - 解决了哪些过去无法解决的技术难题？
+
+4. **给出进阶优化建议**：
+   - 提供具体可执行的技术优化方向（LoRA微调、数据增强、RAG优化、模型量化等）
+   - 如果涉及微调或训练，必须结合数据量和质量进行分析
+
+5. **字数控制**：2-3句话，每句话50-80字，总共120-200字
+
+请直接输出摘要文本，不要有任何前缀或解释。`
+
+  try {
+    const response = await fetchWithRetry(
+      "https://qianfan.baidubce.com/v2/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "X-Appbuilder-Authorization": apiKey,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.3,
+        }),
+      },
+      {
+        maxRetries: 3,
+        timeout: 60000,
+        onRetry: (attempt, error) => {
+          console.log(`高分Summary生成API重试 (${attempt}/3):`, error.message)
+        },
+      }
+    )
+
+    const data = await response.json()
+    if (data.error_code || data.error_msg) {
+      throw new Error(`Summary生成API错误: ${data.error_msg || data.error_code}`)
+    }
+
+    return data.choices?.[0]?.message?.content || "（摘要生成失败）"
+  } catch (error) {
+    console.error("高分Summary生成失败:", error)
+    return "技术方案评估完成，具体分析请参考各维度详情。"
+  }
+}
+
+/**
+ * 为低分方案生成summary（< 75分）
+ * 直接指出问题、说明原因、提供正确方向
+ */
+async function generateLowScoreSummary(
+  result: TechnicalEvaluationResult,
+  req: EvaluationRequest,
+  modelName: string
+): Promise<string> {
+  const apiKey = process.env.QIANFAN_API_KEY
+  if (!apiKey) {
+    throw new Error("QIANFAN_API_KEY 环境变量未设置")
+  }
+
+  const prompt = `你是一位资深的AI技术架构师。现在需要你为一个技术评估报告生成核心摘要（summary）。
+
+## 评估方案信息
+
+**业务场景**：${req.businessScenario}
+
+**技术选型**：
+- 模型：${req.model}
+- 硬件：${req.hardware}，${req.machineCount}机 × ${req.cardsPerMachine}卡
+- 数据：${req.businessData.description}（${req.businessData.quality === 'high' ? '已治理' : '未治理'}）
+
+**综合评分**：${result.score}/100（存在问题）
+
+**各维度评估结果**：
+1. 技术可行性（${result.dimensions.technicalFeasibility.score}分）：${result.dimensions.technicalFeasibility.analysis}
+2. 大模型必要性（${result.dimensions.llmNecessity.score}分）：${result.dimensions.llmNecessity.analysis}
+3. 模型适配度（${result.dimensions.modelFit.score}分）：${result.dimensions.modelFit.analysis}
+4. 数据充足性（${result.dimensions.dataAdequacy.score}分）：${result.dimensions.dataAdequacy.analysis}
+5. 硬件性能匹配（${result.dimensions.hardwarePerformanceFit.score}分）：${result.dimensions.hardwarePerformanceFit.analysis}
+6. 实施风险（${result.dimensions.implementationRisk.score}分）：${result.dimensions.implementationRisk.analysis}
+
+**关键问题**：
+${result.criticalIssues.map(issue => `- ${issue}`).join('\n')}
+
+## 摘要生成要求
+
+由于这是一个存在严重问题的方案（${result.score}<75分），请按以下要求生成摘要：
+
+1. **直接指出核心问题**：
+   - 可以使用"不可行"、"不适合"、"严重不足"等明确判断
+   - 无需强行对比传统方案（如果根本不应该用LLM）
+
+2. **说明根本原因**：
+   - 技术选型错误（如文本模型处理视觉任务）
+   - 资源严重不足（如数据量/硬件配置）
+   - 成本效益问题（如过度设计）
+
+3. **提供正确方向**：
+   - 如果不应该用LLM，直接推荐更合适的传统方案
+   - 如果方案需要调整，说明具体调整方向（换模型、增加数据、改架构等）
+
+4. **字数控制**：2-3句话，每句话50-80字，总共120-200字
+
+请直接输出摘要文本，不要有任何前缀或解释。`
+
+  try {
+    const response = await fetchWithRetry(
+      "https://qianfan.baidubce.com/v2/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "X-Appbuilder-Authorization": apiKey,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.3,
+        }),
+      },
+      {
+        maxRetries: 3,
+        timeout: 60000,
+        onRetry: (attempt, error) => {
+          console.log(`低分Summary生成API重试 (${attempt}/3):`, error.message)
+        },
+      }
+    )
+
+    const data = await response.json()
+    if (data.error_code || data.error_msg) {
+      throw new Error(`Summary生成API错误: ${data.error_msg || data.error_code}`)
+    }
+
+    return data.choices?.[0]?.message?.content || "（摘要生成失败）"
+  } catch (error) {
+    console.error("低分Summary生成失败:", error)
+    return "技术方案存在严重问题，具体分析请参考各维度详情。"
+  }
+}
+
+/**
  * 使用ERNIE-4.5评估技术方案
  */
 export async function evaluateTechnicalSolution(
@@ -355,6 +547,27 @@ export async function evaluateTechnicalSolution(
 
     // 直接解析JSON，和商业评估模块保持一致
     const result = JSON.parse(content) as TechnicalEvaluationResult
+
+    // 第二阶段：根据评分生成summary
+    console.log(`开始生成summary，当前评分: ${result.score}`)
+    try {
+      if (result.score >= 75) {
+        // 高分方案：强调对比传统方案、说明LLM增量价值
+        result.summary = await generateHighScoreSummary(result, req, modelName)
+        console.log(`高分Summary生成成功`)
+      } else {
+        // 低分方案：直接指出问题、说明原因、提供正确方向
+        result.summary = await generateLowScoreSummary(result, req, modelName)
+        console.log(`低分Summary生成成功`)
+      }
+    } catch (summaryError) {
+      console.error("Summary生成失败，使用默认摘要:", summaryError)
+      // Summary生成失败不影响整体评估结果
+      result.summary = result.score >= 75
+        ? "技术方案评估完成，具体分析请参考各维度详情。"
+        : "技术方案存在一些问题，具体分析请参考各维度详情。"
+    }
+
     return result
   } catch (error) {
     console.error("技术评估失败:", error)
@@ -531,51 +744,7 @@ const SYSTEM_PROMPT = `你是一位资深的AI技术架构师，擅长评估AI�
 
 ## 输出要求
 
-### 关于返回JSON中的 summary 字段的特别要求（极其重要）
-
-**summary 字段是对整个技术方案合理性的核心总结，必须根据方案质量灵活调整写作策略：**
-
-#### 【当方案合理时（score ≥ 75分）】
-
-1. **禁止使用空洞词汇**：
-   - ❌ 禁止："表现出色"、"非常适合"、"完美契合"、"充足"、"良好"、"成熟"、"高性价比"、"匹配度高"、"满足需求"
-   - ✅ 使用：具体的技术能力描述、对比性分析、可行性解释
-
-2. **对比传统方案的局限性**：
-   - 说明传统方案（纯OCR、规则引擎、人工处理、传统ML）的具体技术局限和痛点
-   - 用技术术语解释为什么传统方案无法解决问题
-
-3. **说明LLM的增量价值**：
-   - LLM相比传统方案，具体增加了什么技术能力？
-   - 解决了哪些过去无法解决的技术难题？
-
-4. **给出进阶优化建议**：
-   - 提供具体可执行的技术优化方向（LoRA微调、数据增强、RAG优化、模型量化等）
-   - 如果涉及微调或训练，必须结合数据量和质量进行分析
-
-5. **示例**：
-   - ✅ "传统OCR方案只能逐行提取文字，无法理解费用报销单据中'项目名称-金额-日期'的结构化关系，导致提取准确率低。多模态VLM通过视觉语言联合理解，可自动识别表格结构和字段语义，解决了传统方案的核心痛点。建议后续使用企业真实单据数据进行LoRA微调，进一步提升特定格式的识别准确率"
-
-#### 【当方案存在严重问题时（score < 75分）】
-
-1. **直接指出核心问题**：
-   - 可以使用"不可行"、"不适合"、"严重不足"等明确判断
-   - 无需强行对比传统方案（如果根本不应该用LLM）
-
-2. **说明根本原因**：
-   - 技术选型错误（如文本模型处理视觉任务）
-   - 资源严重不足（如数据量/硬件配置）
-   - 成本效益问题（如过度设计）
-
-3. **提供正确方向**：
-   - 如果不应该用LLM，直接推荐更合适的传统方案
-   - 如果方案需要调整，说明具体调整方向（换模型、增加数据、改架构等）
-
-4. **示例**：
-   - ✅ "技术方案存在根本性致命错误，完全无法实施。核心需求是理解图片内容，但所选的Llama 3 8B是纯文本模型，无法处理图像输入。必须更换为支持视觉的多模态模型。"
-   - ✅ "情感分析是简单的文本分类任务，使用685B参数的超大模型是典型的高射炮打蚊子，导致TCO（总体拥有成本）极高。建议立即更换为小型模型或传统机器学习方法。"
-
-### 其他输出要求
+**重要：本次评估不需要生成summary字段，请只返回各维度的详细评估结果。**
 
 1. **段落式分析**：每个维度用2-4句连贯的话进行深入分析
 2. **平衡视角**：既要看到技术优势，也要识别风险
@@ -602,7 +771,6 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 15,
-  "summary": "技术方案存在根本性致命错误，完全无法实施。核心需求是理解图片内容，但所选的Llama 3 8B是纯文本模型，无法处理图像输入。必须更换为支持视觉的多模态模型。",
   "dimensions": {
     "technicalFeasibility": {
       "score": 0,
@@ -668,7 +836,6 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 48,
-  "summary": "技术方案存在严重的过度设计和成本效益问题。情感分析是简单的文本分类任务，使用685B参数的超大模型是典型的高射炮打蚊子，导致TCO（总体拥有成本）极高。建议立即更换为小型模型或传统机器学习方法。",
   "dimensions": {
     "technicalFeasibility": {
       "score": 70,
@@ -739,7 +906,6 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 92,
-  "summary": "客服场景的复杂性体现在用户提问的开放性和答案的个性化需求上，这正是传统NLU+规则引擎方案难以解决的核心痛点。RAG架构巧妙地结合了知识库的准确性和LLM的理解能力，是当前最成熟的解决方案。建议在中期阶段考虑使用积累的真实对话数据进行LoRA微调，进一步提升回答的个性化和领域适应性。",
   "dimensions": {
     "technicalFeasibility": {
       "score": 95,
@@ -815,7 +981,6 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 55,
-  "summary": "医疗场景的核心挑战在于对准确性的极高要求和风险的可控性。当前方案的问题不在于技术选型，而在于功能定位和数据基础的严重不足。AI的合理定位应该是医生的'智能助手'而非'替代者'，专注于知识检索和症状结构化等低风险、高价值功能。必须建立严格的数据质量控制和合规体系，将数据量扩充至10万条以上才能真正支撑可靠的医疗AI应用。",
   "dimensions": {
     "technicalFeasibility": {
       "score": 65,
@@ -889,7 +1054,6 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 40,
-  "summary": "方案存在多个严重问题：数据量严重不足，无法训练可靠模型；技术选型不当，金融风控更适合传统机器学习；性能需求与模型能力不匹配。不建议按此方案推进。",
   "dimensions": {
     "technicalFeasibility": {
       "score": 40,
