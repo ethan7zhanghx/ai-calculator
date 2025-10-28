@@ -36,7 +36,7 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
   const technicalScore = evaluation.technicalFeasibility?.score ?? 0
   const businessScore = evaluation.businessValue?.score ?? 0
 
-  // 如果商业价值评估失败，则只计算资源和技术的平均分
+  // 如果场景价值评估失败，则只计算资源和技术的平均分
   const overallScore = evaluation.businessValue
     ? Math.round((resourceScore + technicalScore + businessScore) / 3)
     : Math.round((resourceScore + technicalScore) / 2)
@@ -56,14 +56,14 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
     ? [
         { label: "硬件资源", value: resourceScore, color: "#3b82f6" },
         { label: "技术方案", value: technicalScore, color: "#10b981" },
-        { label: "商业价值", value: businessScore, color: "#f59e0b" },
+        { label: "场景价值", value: businessScore, color: "#f59e0b" },
       ]
     : [
         { label: "硬件资源", value: resourceScore, color: "#3b82f6" },
         { label: "技术方案", value: technicalScore, color: "#10b981" },
       ]
 
-  // 关键指标 - 只在商业价值存在时包含
+  // 关键指标 - 只在场景价值存在时包含
   const keyMetrics = [
     {
       label: "资源可行性",
@@ -80,7 +80,7 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
     ...(evaluation.businessValue
       ? [
           {
-            label: "商业价值",
+            label: "场景价值",
             value: businessScore,
             trend: businessScore >= 70 ? "up" : "down",
             status: businessScore >= 70 ? "good" : "poor",
@@ -194,12 +194,12 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
             <div>
               <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                商业价值
+                场景价值
               </h5>
               <p className="text-sm text-muted-foreground">
                 {businessScore >= 70
-                  ? "商业价值较高,建议推进"
-                  : "商业价值有待评估,需优化方案"}
+                  ? "场景价值较高,建议推进"
+                  : "场景价值有待评估,需优化方案"}
               </p>
             </div>
           )}

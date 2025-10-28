@@ -327,7 +327,7 @@ function generateMarkdownReport(evaluation: any): string {
   markdown += `- 资源可行性: **${resourceScore}** / 100\n`
   markdown += `- 技术合理性: **${technicalScore}** / 100\n`
   if (data.businessValue) {
-    markdown += `- 商业价值: **${businessScore}** / 100\n`
+    markdown += `- 场景价值: **${businessScore}** / 100\n`
   }
   markdown += `\n---\n\n`
 
@@ -482,9 +482,9 @@ function generateMarkdownReport(evaluation: any): string {
 
   markdown += `\n---\n\n`
 
-  // 4. 商业价值评估
+  // 4. 场景价值评估
   if (data.businessValue) {
-    markdown += `## 💰 商业价值评估\n\n`
+    markdown += `## 💰 场景价值评估\n\n`
     markdown += `### 评分: **${data.businessValue.score}** / 100\n\n`
 
     if (data.businessValue.detailedEvaluation) {

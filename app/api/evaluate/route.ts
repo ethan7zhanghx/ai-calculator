@@ -190,12 +190,12 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             }
           }
 
-          // 第3步：执行商业价值评估
+          // 第3步：执行场景价值评估
           let businessEvaluation
           try {
-            console.log("开始商业价值评估...")
+            console.log("开始场景价值评估...")
             businessEvaluation = await evaluateBusinessValue(body, "ernie-4.5-turbo-128k")
-            console.log("商业价值评估完成,得分:", businessEvaluation.score)
+            console.log("场景价值评估完成,得分:", businessEvaluation.score)
 
             const businessScore = businessEvaluation?.score || 0
             const businessAnalysis = businessEvaluation?.summary || ""
@@ -208,7 +208,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
               detailedEvaluation: businessEvaluation,
             } : null
 
-            // 发送商业价值评估结果
+            // 发送场景价值评估结果
             if (controller.desiredSize) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'business',
@@ -217,13 +217,13 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             }
 
           } catch (error) {
-            console.error("商业价值评估失败:", error)
-            // 发送商业价值评估失败通知（不中断整体流程）
+            console.error("场景价值评估失败:", error)
+            // 发送场景价值评估失败通知（不中断整体流程）
             if (controller.desiredSize) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'error',
                 module: 'business',
-                error: error instanceof Error ? error.message : "商业价值评估失败"
+                error: error instanceof Error ? error.message : "场景价值评估失败"
               })}\n\n`))
             }
           }

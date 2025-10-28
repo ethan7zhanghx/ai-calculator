@@ -14,14 +14,14 @@ const STAGES = [
   { text: "正在评估性能需求合理性...", duration: 5000 },
   { text: "正在分析技术成本效益...", duration: 5000 },
   { text: "正在生成技术方案建议...", duration: 10000 },
-  // 商业价值评估阶段
+  // 场景价值评估阶段
   { text: "正在评估问题与解决方案匹配度...", duration: 5000 },
   { text: "正在分析ROI预期合理性...", duration: 5000 },
   { text: "正在评估市场竞争优势...", duration: 5000 },
   { text: "正在分析可扩展性与增长潜力...", duration: 5000 },
   { text: "正在识别落地风险...", duration: 5000 },
   { text: "正在评估时间窗口与紧迫性...", duration: 7500 },
-  { text: "正在生成商业价值报告...", duration: 10000 },
+  { text: "正在生成场景价值报告...", duration: 10000 },
 ]
 
 export function EvaluationProgress() {
@@ -106,7 +106,7 @@ export function EvaluationProgress() {
 
         {/* 提示信息 */}
         <div className="text-center text-xs text-muted-foreground pt-2 border-t">
-          💡 完整评估包含技术方案和商业价值两大模块，预计需要 1-3 分钟，感谢您的耐心等待
+          💡 完整评估包含技术方案和场景价值两大模块，预计需要 1-3 分钟，感谢您的耐心等待
         </div>
       </CardContent>
     </Card>

@@ -72,7 +72,7 @@ export interface BusinessValue {
   analysis: string
   risks: string[]
   opportunities: string[]
-  // 完整的LLM商业价值评估结果（可选，用于详细展示）
+  // 完整的LLM场景价值评估结果（可选，用于详细展示）
   detailedEvaluation?: {
     score: number
     summary: string
