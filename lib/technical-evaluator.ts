@@ -63,11 +63,102 @@ export interface TechnicalEvaluationResult {
 }
 
 /**
- * 分析业务场景所需的任务类型
+ * 使用LLM智能分析业务场景所需的任务类型
  * @param scenario 业务场景描述
  * @returns 所需任务类型的布尔值
  */
-function analyzeRequiredTasks(scenario: string): {
+async function analyzeRequiredTasks(scenario: string): Promise<{
+  needsInference: boolean
+  needsFineTuning: boolean
+  needsPretraining: boolean
+}> {
+  const apiKey = process.env.QIANFAN_API_KEY
+
+  if (!apiKey) {
+    // 如果没有API密钥，回退到简单逻辑
+    console.warn('未找到QIANFAN_API_KEY，回退到简单关键词匹配逻辑')
+    return fallbackAnalyzeRequiredTasks(scenario)
+  }
+
+  try {
+    const response = await fetchWithRetry(
+      "https://qianfan.baidubce.com/v2/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "X-Appbuilder-Authorization": apiKey,
+        },
+        body: JSON.stringify({
+          model: "ERNIE-4.5-8K", // 使用较小的模型进行快速分析
+          messages: [
+            {
+              role: "user",
+              content: `请分析以下业务场景，判断是否需要推理、微调、预训练这三种AI任务。
+
+业务场景描述：
+"${scenario}"
+
+请严格按照JSON格式输出分析结果，不要添加任何其他解释：
+
+{
+  "needsInference": true/false,
+  "needsFineTuning": true/false,
+  "needsPretraining": true/false,
+  "reasoning": "简要说明判断理由"
+}
+
+判断标准：
+- **推理（Inference）**：场景需要AI模型进行实时的预测、生成或分类等操作
+- **微调（Fine-tuning）**：场景需要AI模型适应特定的领域、风格或数据分布
+- **预训练（Pretraining）**：场景需要从零开始训练一个基础模型，通常需要海量数据和计算资源`
+            }
+          ],
+          response_format: {
+            type: "json_object",
+          },
+          temperature: 0.1, // 低温度保证一致性
+        }),
+      },
+      {
+        maxRetries: 3,
+        timeout: 30000, // 30秒超时
+        onRetry: (attempt, error) => {
+          console.log(`任务分析API重试 (${attempt}/3):`, error.message)
+        },
+      }
+    )
+
+    const data = await response.json()
+
+    if (data.error_code || data.error_msg) {
+      throw new Error(`任务分析API错误: ${data.error_msg || data.error_code}`)
+    }
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error("任务分析API返回数据格式异常")
+    }
+
+    const result = JSON.parse(data.choices[0].message.content)
+
+    console.log(`LLM任务分析结果:`, result)
+
+    return {
+      needsInference: result.needsInference || false,
+      needsFineTuning: result.needsFineTuning || false,
+      needsPretraining: result.needsPretraining || false
+    }
+  } catch (error) {
+    console.error("LLM任务分析失败，回退到简单逻辑:", error)
+    return fallbackAnalyzeRequiredTasks(scenario)
+  }
+}
+
+/**
+ * 简单关键词匹配逻辑（作为LLM分析的备选方案）
+ */
+function fallbackAnalyzeRequiredTasks(scenario: string): {
   needsInference: boolean
   needsFineTuning: boolean
   needsPretraining: boolean
@@ -106,14 +197,14 @@ function analyzeRequiredTasks(scenario: string): {
  * @param resourceFeasibility 硬件资源计算结果
  * @returns 0-100的客观评分
  */
-function calculateObjectiveHardwareScore(
+async function calculateObjectiveHardwareScore(
   req: EvaluationRequest,
   resourceFeasibility: any
-): number {
+): Promise<number> {
   if (!resourceFeasibility) return 0
 
   const { pretraining, fineTuning, inference } = resourceFeasibility
-  const requiredTasks = analyzeRequiredTasks(req.businessScenario)
+  const requiredTasks = await analyzeRequiredTasks(req.businessScenario)
 
   console.log(`场景需求分析 - ${req.businessScenario}`)
   console.log(`- 需要推理: ${requiredTasks.needsInference ? '✅' : '❌'}`)
@@ -190,7 +281,7 @@ export async function evaluateTechnicalSolution(
     )
 
     // 2. 基于场景需求计算客观的硬件评分
-    const hardwareScore = calculateObjectiveHardwareScore(req, resourceFeasibility)
+    const hardwareScore = await calculateObjectiveHardwareScore(req, resourceFeasibility)
 
     // 3. 构建Prompt，传递客观评分和详细硬件信息
     const prompt = buildEvaluationPrompt(req, totalCards, hardwareScore, resourceFeasibility)
@@ -323,6 +414,7 @@ const SYSTEM_PROMPT = `你是一位资深的AI技术架构师，擅长评估AI�
   - **Fine-tuning场景**：领域适应适合有充足标注数据的垂直应用
   - **Agent场景**：多步骤推理适合复杂任务和工具调用需求
   - **General场景**：通用推理适合开放性对话和内容生成
+  - **其他**: 更多适合在当前业务场景引入的技术方案
 - **实施路径设计**：
   - **短期（1-3个月）**：MVP快速验证，核心功能优先
   - **中期（3-6个月）**：功能完善，性能优化，用户体验提升

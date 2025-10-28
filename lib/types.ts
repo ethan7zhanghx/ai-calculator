@@ -133,6 +133,7 @@ export interface EvaluationResponse {
   technicalFeasibility: TechnicalFeasibility
   businessValue: BusinessValue | null
   createdAt: string
+  hardwareScore?: number // 可选的硬件评分
 }
 
 export interface ApiResponse<T = any> {
