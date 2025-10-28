@@ -52,6 +52,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
+    "docx": "^9.5.1",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
     "jsonwebtoken": "^9.0.2",
