@@ -530,6 +530,7 @@ export default function PageContent() {
     if (!evaluation) return
 
     try {
+      console.log("开始下载报告...")
       const token = localStorage.getItem("token")
       const headers: HeadersInit = {}
       if (token) {
@@ -541,28 +542,89 @@ export default function PageContent() {
         headers,
       })
 
+      console.log("下载响应状态:", response.status, response.statusText)
+      console.log("响应头 Content-Type:", response.headers.get('content-type'))
+      console.log("响应头 Content-Length:", response.headers.get('content-length'))
+
       if (response.ok) {
         const blob = await response.blob()
+        console.log("Blob创建成功，大小:", blob.size, "bytes")
+        console.log("Blob类型:", blob.type)
+
+        // 检查blob是否有效
+        if (blob.size === 0) {
+          throw new Error("下载的文件为空")
+        }
+
+        // 从响应头获取文件名或使用默认文件名
+        const contentDisposition = response.headers.get('content-disposition')
+        let filename = `AI评估报告_${new Date().toLocaleDateString('zh-CN')}`
+
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, '')
+          }
+        }
+
+        // 根据Content-Type确定文件扩展名
+        const contentType = blob.type || response.headers.get('content-type') || ''
+        if (contentType.includes('application/pdf')) {
+          if (!filename.endsWith('.pdf')) {
+            filename += '.pdf'
+          }
+        } else if (contentType.includes('text/markdown')) {
+          if (!filename.endsWith('.md')) {
+            filename += '.md'
+          }
+        } else if (contentType.includes('text/plain')) {
+          if (!filename.endsWith('.txt')) {
+            filename += '.txt'
+          }
+        }
+
+        console.log("最终文件名:", filename)
+
+        // 创建下载链接
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = `AI评估报告_${new Date().toLocaleDateString()}.pdf`
+        a.download = filename
+        a.style.display = 'none'
+
+        // 添加到DOM并触发点击
         document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
+
+        // 使用用户手势触发下载
+        try {
+          a.click()
+        } catch (clickError) {
+          console.error("点击下载失败:", clickError)
+          // 备用方案：使用window.open
+          window.open(url, '_blank')
+        }
+
+        // 清理资源
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }, 100)
 
         toast({
           title: "下载成功",
-          description: "完整评估报告已下载",
+          description: `${filename} 已下载到您的设备`,
         })
+
       } else {
-        throw new Error("下载失败")
+        const errorText = await response.text()
+        console.error("下载失败，服务器响应:", errorText)
+        throw new Error(`下载失败 (${response.status}): ${response.statusText}`)
       }
     } catch (error) {
+      console.error("下载报告失败:", error)
       toast({
         title: "下载失败",
-        description: "无法下载报告，请稍后重试",
+        description: error instanceof Error ? error.message : "无法下载报告，请稍后重试",
         variant: "destructive",
       })
     }
