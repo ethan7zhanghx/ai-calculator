@@ -253,8 +253,8 @@ function generateMarkdownReport(evaluation: any): string {
   markdown += `## 🔧 技术方案合理性评估\n\n`
   markdown += `### 评分: **${data.technicalFeasibility.score}** / 100\n\n`
 
-  if (data.technicalFeasibility.detailedEvaluation) {
-    const tech = data.technicalFeasibility.detailedEvaluation
+  if (data.technicalFeasibility.summary) {
+    const tech = data.technicalFeasibility
     markdown += `**评估总结**:\n${tech.summary}\n\n`
 
     if (tech.criticalIssues && tech.criticalIssues.length > 0) {
@@ -265,76 +265,73 @@ function generateMarkdownReport(evaluation: any): string {
       markdown += `\n`
     }
 
-    if (tech.warnings && tech.warnings.length > 0) {
-      markdown += `### ⚡ 警告\n\n`
-      tech.warnings.forEach((warning: string) => {
-        markdown += `- ${warning}\n`
+    // 各维度详细分析
+    markdown += `### 详细维度分析\n\n`
+
+    markdown += `#### 1. 技术可行性\n`
+    markdown += `**评分**: ${tech.dimensions.technicalFeasibility.score} / 100\n\n`
+    markdown += `**分析**: ${tech.dimensions.technicalFeasibility.analysis}\n\n`
+    markdown += `**推荐技术范式**: ${tech.dimensions.technicalFeasibility.implementationPath.paradigm}\n\n`
+
+    if (tech.dimensions.technicalFeasibility.implementationPath.shortTerm && tech.dimensions.technicalFeasibility.implementationPath.shortTerm.length > 0) {
+      markdown += `**短期可落地** (1-2个月):\n`
+      tech.dimensions.technicalFeasibility.implementationPath.shortTerm.forEach((item: string) => {
+        markdown += `- ${item}\n`
       })
       markdown += `\n`
     }
 
-    // 各维度详细分析
-    markdown += `### 详细维度分析\n\n`
-
-    markdown += `#### 1. 模型与业务匹配度\n`
-    markdown += `**状态**: ${tech.dimensions.modelTaskAlignment.status}\n\n`
-    markdown += `${tech.dimensions.modelTaskAlignment.analysis}\n\n`
+    if (tech.dimensions.technicalFeasibility.implementationPath.midTerm && tech.dimensions.technicalFeasibility.implementationPath.midTerm.length > 0) {
+      markdown += `**中期可落地** (3-6个月):\n`
+      tech.dimensions.technicalFeasibility.implementationPath.midTerm.forEach((item: string) => {
+        markdown += `- ${item}\n`
+      })
+      markdown += `\n`
+    }
 
     markdown += `#### 2. 大模型必要性\n`
-    markdown += `**状态**: ${tech.dimensions.llmNecessity.status}\n\n`
-    markdown += `${tech.dimensions.llmNecessity.analysis}\n\n`
+    markdown += `**评分**: ${tech.dimensions.llmNecessity.score} / 100\n\n`
+    markdown += `**分析**: ${tech.dimensions.llmNecessity.analysis}\n\n`
     if (tech.dimensions.llmNecessity.alternatives) {
       markdown += `**替代方案**: ${tech.dimensions.llmNecessity.alternatives}\n\n`
     }
 
-    markdown += `#### 3. 微调必要性与数据充分性\n`
-    markdown += `**微调必要**: ${tech.dimensions.fineTuning.necessary ? "是" : "否"}\n`
-    markdown += `**数据充分性**: ${tech.dimensions.fineTuning.dataAdequacy}\n\n`
-    markdown += `${tech.dimensions.fineTuning.analysis}\n\n`
+    markdown += `#### 3. 模型适配度\n`
+    markdown += `**评分**: ${tech.dimensions.modelFit.score} / 100\n\n`
+    markdown += `**分析**: ${tech.dimensions.modelFit.analysis}\n\n`
 
-    markdown += `#### 4. 业务可行性与实施路径\n`
-    markdown += `**可行性**: ${tech.dimensions.implementationRoadmap.feasible ? "可行" : "不可行"}\n\n`
-    markdown += `${tech.dimensions.implementationRoadmap.analysis}\n\n`
+    markdown += `#### 4. 数据质量与充足性\n`
+    markdown += `**评分**: ${tech.dimensions.dataAdequacy.score} / 100\n\n`
+    markdown += `**分析**: ${tech.dimensions.dataAdequacy.analysis}\n\n`
+    markdown += `**数据质量评估**: ${tech.dimensions.dataAdequacy.qualityAssessment}\n\n`
+    markdown += `**数据数量评估**: ${tech.dimensions.dataAdequacy.quantityAssessment}\n\n`
 
-    if (tech.dimensions.implementationRoadmap.phases.shortTerm) {
-      markdown += `**短期可落地** (1-2个月):\n`
-      tech.dimensions.implementationRoadmap.phases.shortTerm.forEach((item: string) => {
-        markdown += `- ${item}\n`
+    markdown += `#### 5. 硬件与性能匹配度\n`
+    markdown += `**评分**: ${tech.dimensions.hardwarePerformanceFit.score} / 100\n\n`
+    markdown += `**分析**: ${tech.dimensions.hardwarePerformanceFit.analysis}\n\n`
+
+    if (tech.dimensions.hardwarePerformanceFit.recommendations && tech.dimensions.hardwarePerformanceFit.recommendations.length > 0) {
+      markdown += `**硬件建议**:\n`
+      tech.dimensions.hardwarePerformanceFit.recommendations.forEach((rec: string) => {
+        markdown += `- ${rec}\n`
       })
       markdown += `\n`
     }
 
-    if (tech.dimensions.implementationRoadmap.phases.midTerm) {
-      markdown += `**中期可落地** (3-6个月):\n`
-      tech.dimensions.implementationRoadmap.phases.midTerm.forEach((item: string) => {
-        markdown += `- ${item}\n`
+    markdown += `#### 6. 实施风险\n`
+    markdown += `**评分**: ${tech.dimensions.implementationRisk.score} / 100\n\n`
+    markdown += `**分析**: ${tech.dimensions.implementationRisk.analysis}\n\n`
+
+    if (tech.dimensions.implementationRisk.riskItems && tech.dimensions.implementationRisk.riskItems.length > 0) {
+      markdown += `**具体风险点**:\n`
+      tech.dimensions.implementationRisk.riskItems.forEach((risk: string) => {
+        markdown += `- ${risk}\n`
       })
       markdown += `\n`
-    }
-
-    if (tech.dimensions.implementationRoadmap.phases.notRecommended) {
-      markdown += `**不建议做**:\n`
-      tech.dimensions.implementationRoadmap.phases.notRecommended.forEach((item: string) => {
-        markdown += `- ${item}\n`
-      })
-      markdown += `\n`
-    }
-
-    markdown += `#### 5. 性能需求合理性\n`
-    markdown += `**合理性**: ${tech.dimensions.performanceRequirements.reasonable ? "合理" : "不合理"}\n\n`
-    markdown += `${tech.dimensions.performanceRequirements.analysis}\n\n`
-
-    markdown += `#### 6. 成本效益\n`
-    markdown += `**等级**: ${tech.dimensions.costEfficiency.level}\n\n`
-    markdown += `${tech.dimensions.costEfficiency.analysis}\n\n`
-
-    if (tech.dimensions.domainConsiderations?.applicable) {
-      markdown += `#### 7. 领域特殊考虑\n`
-      markdown += `${tech.dimensions.domainConsiderations.analysis}\n\n`
     }
 
     if (tech.recommendations && tech.recommendations.length > 0) {
-      markdown += `### 💡 实施建议\n\n`
+      markdown += `### 💡 总体建议\n\n`
       tech.recommendations.forEach((rec: string) => {
         markdown += `- ${rec}\n`
       })
