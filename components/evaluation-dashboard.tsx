@@ -25,8 +25,9 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
     )
   }
 
-  // 使用技术评估时计算的硬件评分（与LLM评估时保持一致）
+  // 使用保存的硬件评分，确保历史记录显示一致性
   const resourceScore = evaluation.hardwareScore ??
+    evaluation.technicalFeasibility?.hardwareScore ??
     Math.round((
       calculateResourceScore(evaluation.resourceFeasibility?.pretraining?.memoryUsagePercent ?? 0) +
       calculateResourceScore(evaluation.resourceFeasibility?.fineTuning?.memoryUsagePercent ?? 0) +
