@@ -1,5 +1,5 @@
 /**
- * 商业价值评估模块
+ * 场景价值评估模块
  * 使用百度千帆 ERNIE-4.5 API 进行深度商业分析
  * 采用两阶段架构：第一阶段生成详细评估，第二阶段根据评分生成摘要
  */
@@ -66,7 +66,7 @@ export interface BusinessValueResult {
 /**
  * 系统提示词（固定，会被千帆缓存）
  */
-const SYSTEM_PROMPT = `你是一位资深的AI商业顾问，擅长评估AI项目的商业价值和投资回报。
+const SYSTEM_PROMPT = `你是一位资深的AI商业顾问，擅长评估AI项目的场景价值和投资回报。
 
 ## 评估原则
 
@@ -79,10 +79,10 @@ const SYSTEM_PROMPT = `你是一位资深的AI商业顾问，擅长评估AI项�
 
 **总分范围：0-100分**
 
-- 80-100分：极具商业价值，强烈建议投资
-- 60-79分：有商业价值，可以推进但需优化
-- 40-59分：商业价值存疑，需重新论证或调整方向
-- 0-39分：商业价值低，不建议投入资源
+- 80-100分：极具场景价值，强烈建议投资
+- 60-79分：有场景价值，可以推进但需优化
+- 40-59分：场景价值存疑，需重新论证或调整方向
+- 0-39分：场景价值低，不建议投入资源
 
 ## 评估维度
 
@@ -202,7 +202,7 @@ const SYSTEM_PROMPT = `你是一位资深的AI商业顾问，擅长评估AI项�
  */
 const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 
-## 案例1：智能客服系统（高商业价值）
+## 案例1：智能客服系统（高场景价值）
 
 **输入：**
 - 业务场景：我们是一家电商平台，目前有200人的客服团队处理售前咨询、订单查询、退换货等问题。客服人力成本持续攀升，且无法提供7x24小时服务。希望引入AI客服系统，处理常见问题，人工客服专注处理复杂投诉。
@@ -215,7 +215,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 85,
-  "disclaimer": "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际商业价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。建议在正式立项前进行更详细的可行性研究和ROI测算。",
+  "disclaimer": "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际场景价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。建议在正式立项前进行更详细的可行性研究和ROI测算。",
   "dimensions": {
     "problemScenarioFocus": {
       "score": 92,
@@ -299,7 +299,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 
 ---
 
-## 案例2：OCR发票识别（中等商业价值）
+## 案例2：OCR发票识别（中等场景价值）
 
 **输入：**
 - 业务场景：我们公司每月需要处理5000张纸质发票的报销，财务人员手工录入效率低且容易出错。希望用OCR技术自动识别发票信息，提升财务效率。
@@ -312,7 +312,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 52,
-  "disclaimer": "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际商业价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。建议在正式立项前进行更详细的可行性研究和ROI测算。",
+  "disclaimer": "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际场景价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。建议在正式立项前进行更详细的可行性研究和ROI测算。",
   "dimensions": {
     "problemScenarioFocus": {
       "score": 75,
@@ -404,7 +404,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 \`\`\`json
 {
   "score": 28,
-  "disclaimer": "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际商业价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。建议在正式立项前进行更详细的可行性研究和ROI测算。特别提醒：医疗健康领域受到严格监管，任何涉及诊断、治疗建议的AI应用均需通过相关部门审批，切勿擅自上线。",
+  "disclaimer": "本评估基于AI模型分析生成，仅供决策参考，不构成投资建议。实际场景价值受市场环境、执行能力、技术迭代等多种因素影响，企业应结合自身情况审慎评估。建议在正式立项前进行更详细的可行性研究和ROI测算。特别提醒：医疗健康领域受到严格监管，任何涉及诊断、治疗建议的AI应用均需通过相关部门审批，切勿擅自上线。",
   "dimensions": {
     "problemScenarioFocus": {
       "score": 35,
@@ -483,7 +483,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 
 /**
  * 为高分方案生成summary（≥ 70分）
- * 强调商业价值、投资回报、市场机会
+ * 强调场景价值、投资回报、市场机会
  */
 async function generateHighScoreBusinessSummary(
   result: BusinessValueResult,
@@ -495,7 +495,7 @@ async function generateHighScoreBusinessSummary(
     throw new Error("QIANFAN_API_KEY 环境变量未设置")
   }
 
-  const prompt = `你是一位资深的AI商业顾问。现在需要你为一个商业价值评估报告生成核心摘要（summary）。
+  const prompt = `你是一位资深的AI商业顾问。现在需要你为一个场景价值评估报告生成核心摘要（summary）。
 
 ## 评估方案信息
 
@@ -520,7 +520,7 @@ async function generateHighScoreBusinessSummary(
 
 由于这是一个高分优秀方案（${result.score}≥70分），请按以下要求生成摘要：
 
-1. **突出商业价值**：
+1. **突出场景价值**：
    - 明确指出该方案解决了什么核心业务痛点
    - 说明AI相比传统方案的独特优势
    - 强调长期的战略价值和竞争壁垒
@@ -576,7 +576,7 @@ async function generateHighScoreBusinessSummary(
     return data.choices?.[0]?.message?.content || "（摘要生成失败）"
   } catch (error) {
     console.error("高分商业Summary生成失败:", error)
-    return "商业价值评估完成，具体分析请参考各维度详情。"
+    return "场景价值评估完成，具体分析请参考各维度详情。"
   }
 }
 
@@ -594,7 +594,7 @@ async function generateLowScoreBusinessSummary(
     throw new Error("QIANFAN_API_KEY 环境变量未设置")
   }
 
-  const prompt = `你是一位资深的AI商业顾问。现在需要你为一个商业价值评估报告生成核心摘要（summary）。
+  const prompt = `你是一位资深的AI商业顾问。现在需要你为一个场景价值评估报告生成核心摘要（summary）。
 
 ## 评估方案信息
 
@@ -623,7 +623,7 @@ ${result.risks.map(risk => `- ${risk}`).join('\n')}
 由于这是一个存在严重问题的方案（${result.score}<70分），请按以下要求生成摘要：
 
 1. **直接指出核心问题**：
-   - 可以使用"商业价值有限"、"不建议投入"、"需要重新论证"等明确判断
+   - 可以使用"场景价值有限"、"不建议投入"、"需要重新论证"等明确判断
    - 无需回避问题，要坦诚指出方案的不足
 
 2. **说明根本原因**：
@@ -677,7 +677,7 @@ ${result.risks.map(risk => `- ${risk}`).join('\n')}
     return data.choices?.[0]?.message?.content || "（摘要生成失败）"
   } catch (error) {
     console.error("低分商业Summary生成失败:", error)
-    return "商业价值评估存在严重问题，具体分析请参考各维度详情。"
+    return "场景价值评估存在严重问题，具体分析请参考各维度详情。"
   }
 }
 
@@ -688,7 +688,7 @@ function buildBusinessPrompt(req: EvaluationRequest): string {
   const dataDescription = req.businessData.description || "未提供数据描述"
   const qualityStr = req.businessData.quality === "high" ? "已治理" : "未治理"
 
-  return `# 现在请评估以下项目的商业价值
+  return `# 现在请评估以下项目的场景价值
 
 ## 业务场景
 ${req.businessScenario}
@@ -699,11 +699,11 @@ ${req.businessScenario}
 - 训练数据：${dataDescription}，数据质量：${qualityStr}
 - 性能需求：TPS ${req.performanceRequirements.tps}，并发${req.performanceRequirements.concurrency}
 
-请严格参考以上案例的评估深度和风格，对当前项目进行全面的商业价值评估。`
+请严格参考以上案例的评估深度和风格，对当前项目进行全面的场景价值评估。`
 }
 
 /**
- * 使用ERNIE-4.5评估商业价值
+ * 使用ERNIE-4.5评估场景价值
  */
 export async function evaluateBusinessValue(
   req: EvaluationRequest,
@@ -757,7 +757,7 @@ export async function evaluateBusinessValue(
         timeout: 180000,
         initialDelay: 3000,
         onRetry: (attempt, error) => {
-          console.log(`商业价值评估API重试 (${attempt}/6):`, error.message)
+          console.log(`场景价值评估API重试 (${attempt}/6):`, error.message)
         },
       }
     )
@@ -786,7 +786,7 @@ export async function evaluateBusinessValue(
     console.log(`开始生成商业summary，当前评分: ${result.score}`)
     try {
       if (result.score >= 70) {
-        // 高分方案：强调商业价值、投资回报、市场机会
+        // 高分方案：强调场景价值、投资回报、市场机会
         result.summary = await generateHighScoreBusinessSummary(result, req, modelName)
         console.log(`高分商业Summary生成成功`)
       } else {
@@ -798,13 +798,13 @@ export async function evaluateBusinessValue(
       console.error("商业Summary生成失败，使用默认摘要:", summaryError)
       // Summary生成失败不影响整体评估结果
       result.summary = result.score >= 70
-        ? "商业价值评估完成，具体分析请参考各维度详情。"
-        : "商业价值评估存在一些问题，具体分析请参考各维度详情。"
+        ? "场景价值评估完成，具体分析请参考各维度详情。"
+        : "场景价值评估存在一些问题，具体分析请参考各维度详情。"
     }
 
     return result
   } catch (error) {
-    console.error("商业价值评估失败:", error)
+    console.error("场景价值评估失败:", error)
 
     if (error instanceof SyntaxError) {
       console.error("JSON解析错误详情:")
@@ -816,6 +816,6 @@ export async function evaluateBusinessValue(
       throw error
     }
 
-    throw new Error("商业价值评估服务暂时不可用，请稍后重试")
+    throw new Error("场景价值评估服务暂时不可用，请稍后重试")
   }
 }

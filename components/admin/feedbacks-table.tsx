@@ -477,7 +477,7 @@ export function FeedbacksTable() {
                     <div className="text-xs text-muted-foreground mt-1">分/100</div>
                   </div>
                   <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">商业价值</div>
+                    <div className="text-sm text-muted-foreground mb-1">场景价值</div>
                     <div className="text-2xl font-bold">
                       {evaluationDetail.businessValue.score}
                     </div>

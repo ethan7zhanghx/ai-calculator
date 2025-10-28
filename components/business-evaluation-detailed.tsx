@@ -22,6 +22,8 @@ import {
   Lightbulb,
   AlertTriangle,
   Award,
+  Database,
+  Users,
 } from "lucide-react"
 
 interface BusinessEvaluationDetailedProps {
@@ -30,47 +32,50 @@ interface BusinessEvaluationDetailedProps {
     summary: string
     disclaimer: string
     dimensions: {
-      problemSolutionFit: {
+      // 1. 问题-场景聚焦程度
+      problemScenarioFocus: {
         score: number
-        status: "strong" | "moderate" | "weak"
         analysis: string
-        painPoints: string[]
-        aiNecessity: "high" | "medium" | "low"
+        painPointClarity: "clear" | "moderate" | "unclear"
+        aiNecessity: "essential" | "helpful" | "unnecessary"
       }
+      // 2. 技术壁垒优势
+      technicalBarrier: {
+        score: number
+        analysis: string
+        differentiationLevel: "high" | "medium" | "low"
+        competitiveAdvantages: string[]
+      }
+      // 3. 数据支撑潜力
+      dataSupportPotential: {
+        score: number
+        analysis: string
+        dataCompleteness: number
+        dataAccuracy: number
+        dataTimeliness: number
+        flywheelPotential: "strong" | "moderate" | "weak"
+      }
+      // 4. AI人才储备
+      aiTalentReserve: {
+        score: number
+        analysis: string
+        talentLevel: "strong" | "moderate" | "weak"
+        capabilityGaps: string[]
+        developmentSuggestions: string[]
+      }
+      // 5. ROI合理度
       roiFeasibility: {
         score: number
         analysis: string
-        considerations: string[]
+        investmentLevel: "high" | "medium" | "low"
+        returnPath: string[]
       }
-      competitiveAdvantage: {
+      // 6. 市场竞争力
+      marketCompetitiveness: {
         score: number
-        level: "differentiated" | "parity" | "lagging"
         analysis: string
-        barriers: string[]
-      }
-      scalability: {
-        score: number
-        level: "high" | "medium" | "low"
-        analysis: string
-        growthPotential: string[]
-      }
-      implementationRisk: {
-        score: number
-        level: "low" | "medium" | "high"
-        analysis: string
-        risks: {
-          technical: string[]
-          business: string[]
-          compliance: string[]
-          organizational: string[]
-        }
-        mitigations: string[]
-      }
-      marketTiming: {
-        score: number
-        status: "optimal" | "acceptable" | "poor"
-        analysis: string
-        urgency: "high" | "medium" | "low"
+        marketTiming: "optimal" | "acceptable" | "poor"
+        competitivePosition: "leading" | "following" | "lagging"
       }
     }
     opportunities: string[]
@@ -81,72 +86,53 @@ interface BusinessEvaluationDetailedProps {
 
 export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDetailedProps) {
   if (!evaluation || !evaluation.dimensions) {
-    return null; // or a loading skeleton
+    return null
   }
   const { dimensions } = evaluation
 
   // 状态标识徽章
   const getStatusBadge = (type: string, value: string | undefined) => {
-    if (!value) return null;
+    if (!value) return null
     const configs: Record<string, Record<string, { variant: any; icon: any; label: string }>> = {
-      fit: {
-        strong: {
-          variant: "default",
-          icon: CheckCircle2,
-          label: "强匹配",
-        },
-        moderate: {
-          variant: "secondary",
-          icon: AlertCircle,
-          label: "中等匹配",
-        },
-        weak: {
-          variant: "destructive",
-          icon: XCircle,
-          label: "弱匹配",
-        },
+      clarity: {
+        clear: { variant: "default", icon: CheckCircle2, label: "明确" },
+        moderate: { variant: "secondary", icon: AlertCircle, label: "中等" },
+        unclear: { variant: "destructive", icon: XCircle, label: "不明确" },
       },
       necessity: {
-        high: { variant: "default", icon: CheckCircle2, label: "高必要性" },
-        medium: { variant: "secondary", icon: AlertCircle, label: "中等必要性" },
-        low: { variant: "destructive", icon: XCircle, label: "低必要性" },
+        essential: { variant: "default", icon: CheckCircle2, label: "必要" },
+        helpful: { variant: "secondary", icon: AlertCircle, label: "有帮助" },
+        unnecessary: { variant: "destructive", icon: XCircle, label: "非必要" },
       },
-      level: {
-        differentiated: {
-          variant: "default",
-          icon: Award,
-          label: "差异化优势",
-        },
-        parity: {
-          variant: "secondary",
-          icon: AlertCircle,
-          label: "持平",
-        },
-        lagging: {
-          variant: "destructive",
-          icon: XCircle,
-          label: "落后",
-        },
+      differentiation: {
+        high: { variant: "default", icon: Award, label: "高差异化" },
+        medium: { variant: "secondary", icon: AlertCircle, label: "中等差异化" },
+        low: { variant: "destructive", icon: XCircle, label: "低差异化" },
       },
-      scalability: {
-        high: { variant: "default", icon: TrendingUp, label: "高扩展性" },
-        medium: { variant: "secondary", icon: AlertCircle, label: "中等扩展性" },
-        low: { variant: "destructive", icon: XCircle, label: "低扩展性" },
+      flywheel: {
+        strong: { variant: "default", icon: TrendingUp, label: "强飞轮效应" },
+        moderate: { variant: "secondary", icon: AlertCircle, label: "中等飞轮效应" },
+        weak: { variant: "destructive", icon: XCircle, label: "弱飞轮效应" },
       },
-      risk: {
-        low: { variant: "default", icon: CheckCircle2, label: "低风险" },
-        medium: { variant: "secondary", icon: AlertCircle, label: "中等风险" },
-        high: { variant: "destructive", icon: AlertTriangle, label: "高风险" },
+      talent: {
+        strong: { variant: "default", icon: CheckCircle2, label: "储备充足" },
+        moderate: { variant: "secondary", icon: AlertCircle, label: "储备中等" },
+        weak: { variant: "destructive", icon: XCircle, label: "储备不足" },
+      },
+      investment: {
+        high: { variant: "destructive", icon: AlertTriangle, label: "投入较高" },
+        medium: { variant: "secondary", icon: AlertCircle, label: "投入中等" },
+        low: { variant: "default", icon: CheckCircle2, label: "投入较低" },
       },
       timing: {
         optimal: { variant: "default", icon: CheckCircle2, label: "最佳时机" },
         acceptable: { variant: "secondary", icon: AlertCircle, label: "可接受" },
         poor: { variant: "destructive", icon: XCircle, label: "时机不佳" },
       },
-      urgency: {
-        high: { variant: "destructive", icon: AlertTriangle, label: "高紧迫性" },
-        medium: { variant: "secondary", icon: AlertCircle, label: "中等紧迫性" },
-        low: { variant: "outline", icon: Clock, label: "低紧迫性" },
+      position: {
+        leading: { variant: "default", icon: Award, label: "领先" },
+        following: { variant: "secondary", icon: AlertCircle, label: "跟随" },
+        lagging: { variant: "destructive", icon: XCircle, label: "落后" },
       },
     }
 
@@ -186,12 +172,12 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
         </p>
       </div>
 
-      {/* 商业机会 */}
+      {/* 场景机会 */}
       {evaluation.opportunities.length > 0 && (
         <div className="p-4 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800">
           <h4 className="font-semibold mb-3 flex items-center gap-2 text-green-900 dark:text-green-100">
             <TrendingUp className="h-5 w-5" />
-            商业机会
+            场景机会
           </h4>
           <ul className="space-y-2">
             {evaluation.opportunities.map((opportunity, index) => (
@@ -223,18 +209,18 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
       )}
 
       {/* 详细维度分析 */}
-      <Accordion type="multiple" defaultValue={["fit", "roi", "advantage", "scalability"]} className="space-y-2">
-        {/* 1. 问题-解决方案匹配度 */}
-        <AccordionItem value="fit" className="border rounded-lg px-4">
+      <Accordion type="multiple" defaultValue={["focus", "barrier", "data", "talent"]} className="space-y-2">
+        {/* 1. 问题-场景聚焦程度 */}
+        <AccordionItem value="focus" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center justify-between w-full pr-4">
               <div className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                <span className="font-semibold">问题-解决方案匹配度</span>
+                <span className="font-semibold">问题-场景聚焦程度</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.problemSolutionFit?.score ?? 0}</span>
-                {getStatusBadge("fit", dimensions.problemSolutionFit?.status ?? 'weak')}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.problemScenarioFocus?.score ?? 0}</span>
+                {getStatusBadge("clarity", dimensions.problemScenarioFocus?.painPointClarity ?? 'unclear')}
               </div>
             </div>
           </AccordionTrigger>
@@ -242,40 +228,159 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div>
               <h5 className="font-medium mb-2 text-sm">深度分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.problemSolutionFit?.analysis}
+                {dimensions.problemScenarioFocus?.analysis}
               </p>
             </div>
 
-            {dimensions.problemSolutionFit?.painPoints?.length > 0 && (
+            <div className="flex items-center gap-2 pt-2">
+              <span className="text-sm font-medium">AI必要性:</span>
+              {getStatusBadge("necessity", dimensions.problemScenarioFocus?.aiNecessity ?? 'unnecessary')}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* 2. 技术壁垒优势 */}
+        <AccordionItem value="barrier" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-primary" />
+                <span className="font-semibold">技术壁垒优势</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">评分: {dimensions.technicalBarrier?.score ?? 0}</span>
+                {getStatusBadge("differentiation", dimensions.technicalBarrier?.differentiationLevel ?? 'low')}
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            <div>
+              <h5 className="font-medium mb-2 text-sm">竞争优势分析</h5>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {dimensions.technicalBarrier?.analysis}
+              </p>
+            </div>
+
+            {dimensions.technicalBarrier?.competitiveAdvantages?.length > 0 && (
               <div>
-                <h5 className="font-medium mb-2 text-sm">识别的业务痛点</h5>
+                <h5 className="font-medium mb-2 text-sm">竞争优势</h5>
                 <ul className="space-y-1">
-                  {dimensions.problemSolutionFit.painPoints.map((point, index) => (
+                  {dimensions.technicalBarrier.competitiveAdvantages.map((advantage, index) => (
                     <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                       <span className="text-primary mt-1">•</span>
-                      <span>{point}</span>
+                      <span>{advantage}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* 3. 数据支撑潜力 */}
+        <AccordionItem value="data" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                <span className="font-semibold">数据支撑潜力</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">评分: {dimensions.dataSupportPotential?.score ?? 0}</span>
+                {getStatusBadge("flywheel", dimensions.dataSupportPotential?.flywheelPotential ?? 'weak')}
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            <div>
+              <h5 className="font-medium mb-2 text-sm">数据质量分析</h5>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {dimensions.dataSupportPotential?.analysis}
+              </p>
+            </div>
+
+            {/* 数据评分指标 */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">数据完整性</div>
+                <div className="text-lg font-bold">{dimensions.dataSupportPotential?.dataCompleteness ?? 0}</div>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">数据准确性</div>
+                <div className="text-lg font-bold">{dimensions.dataSupportPotential?.dataAccuracy ?? 0}</div>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">数据时效性</div>
+                <div className="text-lg font-bold">{dimensions.dataSupportPotential?.dataTimeliness ?? 0}</div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* 4. AI人才储备 */}
+        <AccordionItem value="talent" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <span className="font-semibold">AI人才储备</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">评分: {dimensions.aiTalentReserve?.score ?? 0}</span>
+                {getStatusBadge("talent", dimensions.aiTalentReserve?.talentLevel ?? 'weak')}
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            <div>
+              <h5 className="font-medium mb-2 text-sm">人才能力分析</h5>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {dimensions.aiTalentReserve?.analysis}
+              </p>
+            </div>
+
+            {dimensions.aiTalentReserve?.capabilityGaps?.length > 0 && (
+              <div>
+                <h5 className="font-medium mb-2 text-sm">能力缺口</h5>
+                <ul className="space-y-1">
+                  {dimensions.aiTalentReserve.capabilityGaps.map((gap, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                      <span>{gap}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            <div className="flex items-center gap-2 pt-2">
-              <span className="text-sm font-medium">AI必要性:</span>
-              {getStatusBadge("necessity", dimensions.problemSolutionFit?.aiNecessity ?? 'low')}
-            </div>
+            {dimensions.aiTalentReserve?.developmentSuggestions?.length > 0 && (
+              <div>
+                <h5 className="font-medium mb-2 text-sm">发展建议</h5>
+                <ul className="space-y-1">
+                  {dimensions.aiTalentReserve.developmentSuggestions.map((suggestion, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                      <span>{suggestion}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </AccordionContent>
         </AccordionItem>
 
-        {/* 2. ROI预期合理性 */}
+        {/* 5. ROI合理度 */}
         <AccordionItem value="roi" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center justify-between w-full pr-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-primary" />
-                <span className="font-semibold">ROI预期合理性</span>
+                <span className="font-semibold">ROI合理度</span>
               </div>
-              <span className="text-sm text-muted-foreground">评分: {dimensions.roiFeasibility?.score ?? 0}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">评分: {dimensions.roiFeasibility?.score ?? 0}</span>
+                {getStatusBadge("investment", dimensions.roiFeasibility?.investmentLevel ?? 'high')}
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
@@ -286,14 +391,14 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
               </p>
             </div>
 
-            {dimensions.roiFeasibility?.considerations?.length > 0 && (
+            {dimensions.roiFeasibility?.returnPath?.length > 0 && (
               <div>
-                <h5 className="font-medium mb-2 text-sm">关键考量因素</h5>
+                <h5 className="font-medium mb-2 text-sm">回报路径</h5>
                 <ul className="space-y-1">
-                  {dimensions.roiFeasibility.considerations.map((item, index) => (
+                  {dimensions.roiFeasibility.returnPath.map((path, index) => (
                     <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                       <span className="text-primary mt-1">•</span>
-                      <span>{item}</span>
+                      <span>{path}</span>
                     </li>
                   ))}
                 </ul>
@@ -302,205 +407,31 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
           </AccordionContent>
         </AccordionItem>
 
-        {/* 3. 市场竞争优势 */}
-        <AccordionItem value="advantage" className="border rounded-lg px-4">
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center justify-between w-full pr-4">
-              <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-primary" />
-                <span className="font-semibold">市场竞争优势</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.competitiveAdvantage?.score ?? 0}</span>
-                {getStatusBadge("level", dimensions.competitiveAdvantage?.level ?? 'lagging')}
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <div>
-              <h5 className="font-medium mb-2 text-sm">竞争态势分析</h5>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.competitiveAdvantage?.analysis}
-              </p>
-            </div>
-
-            {dimensions.competitiveAdvantage?.barriers?.length > 0 && (
-              <div>
-                <h5 className="font-medium mb-2 text-sm">潜在竞争壁垒</h5>
-                <ul className="space-y-1">
-                  {dimensions.competitiveAdvantage.barriers.map((barrier, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      <span>{barrier}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* 4. 可扩展性与增长潜力 */}
-        <AccordionItem value="scalability" className="border rounded-lg px-4">
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center justify-between w-full pr-4">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
-                <span className="font-semibold">可扩展性与增长潜力</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.scalability?.score ?? 0}</span>
-                {getStatusBadge("scalability", dimensions.scalability?.level ?? 'low')}
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <div>
-              <h5 className="font-medium mb-2 text-sm">扩展性分析</h5>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.scalability?.analysis}
-              </p>
-            </div>
-
-            {dimensions.scalability?.growthPotential?.length > 0 && (
-              <div>
-                <h5 className="font-medium mb-2 text-sm">增长潜力</h5>
-                <ul className="space-y-1">
-                  {dimensions.scalability.growthPotential.map((potential, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <TrendingUp className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                      <span>{potential}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* 5. 落地风险评估 */}
-        <AccordionItem value="risk" className="border rounded-lg px-4">
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center justify-between w-full pr-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <span className="font-semibold">落地风险评估</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.implementationRisk?.score ?? 0}</span>
-                {getStatusBadge("risk", dimensions.implementationRisk?.level ?? 'high')}
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <div>
-              <h5 className="font-medium mb-2 text-sm">风险分析</h5>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.implementationRisk?.analysis}
-              </p>
-            </div>
-
-            {/* 风险分类 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dimensions.implementationRisk?.risks?.technical?.length > 0 && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <h6 className="font-medium text-sm mb-2 text-red-700 dark:text-red-400">技术风险</h6>
-                  <ul className="space-y-1">
-                    {dimensions.implementationRisk.risks.technical.map((risk, index) => (
-                      <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <span className="text-red-500 mt-0.5">•</span>
-                        <span>{risk}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {dimensions.implementationRisk?.risks?.business?.length > 0 && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <h6 className="font-medium text-sm mb-2 text-amber-700 dark:text-amber-400">业务风险</h6>
-                  <ul className="space-y-1">
-                    {dimensions.implementationRisk.risks.business.map((risk, index) => (
-                      <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <span className="text-amber-500 mt-0.5">•</span>
-                        <span>{risk}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {dimensions.implementationRisk?.risks?.compliance?.length > 0 && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <h6 className="font-medium text-sm mb-2 text-purple-700 dark:text-purple-400">合规风险</h6>
-                  <ul className="space-y-1">
-                    {dimensions.implementationRisk.risks.compliance.map((risk, index) => (
-                      <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <span className="text-purple-500 mt-0.5">•</span>
-                        <span>{risk}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {dimensions.implementationRisk?.risks?.organizational?.length > 0 && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <h6 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">组织风险</h6>
-                  <ul className="space-y-1">
-                    {dimensions.implementationRisk.risks.organizational.map((risk, index) => (
-                      <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <span className="text-blue-500 mt-0.5">•</span>
-                        <span>{risk}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* 缓解措施 */}
-            {dimensions.implementationRisk?.mitigations?.length > 0 && (
-              <div>
-                <h5 className="font-medium mb-2 text-sm">风险缓解措施</h5>
-                <ul className="space-y-1">
-                  {dimensions.implementationRisk.mitigations.map((mitigation, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                      <span>{mitigation}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* 6. 时间窗口与紧迫性 */}
-        <AccordionItem value="timing" className="border rounded-lg px-4">
+        {/* 6. 市场竞争力 */}
+        <AccordionItem value="market" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center justify-between w-full pr-4">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
-                <span className="font-semibold">时间窗口与紧迫性</span>
+                <span className="font-semibold">市场竞争力</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">评分: {dimensions.marketTiming?.score ?? 0}</span>
-                {getStatusBadge("timing", dimensions.marketTiming?.status ?? 'poor')}
+                <span className="text-sm text-muted-foreground">评分: {dimensions.marketCompetitiveness?.score ?? 0}</span>
+                {getStatusBadge("timing", dimensions.marketCompetitiveness?.marketTiming ?? 'poor')}
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             <div>
-              <h5 className="font-medium mb-2 text-sm">时机分析</h5>
+              <h5 className="font-medium mb-2 text-sm">市场分析</h5>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {dimensions.marketTiming?.analysis}
+                {dimensions.marketCompetitiveness?.analysis}
               </p>
             </div>
 
             <div className="flex items-center gap-2 pt-2">
-              <span className="text-sm font-medium">项目紧迫性:</span>
-              {getStatusBadge("urgency", dimensions.marketTiming?.urgency ?? 'low')}
+              <span className="text-sm font-medium">竞争地位:</span>
+              {getStatusBadge("position", dimensions.marketCompetitiveness?.competitivePosition ?? 'lagging')}
             </div>
           </AccordionContent>
         </AccordionItem>

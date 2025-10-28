@@ -10,12 +10,37 @@ interface BusinessEvaluationSimpleProps {
     summary: string
     disclaimer: string
     dimensions: {
-      problemSolutionFit: { score: number; status: "strong" | "moderate" | "weak" }
-      roiFeasibility: { score: number }
-      competitiveAdvantage: { score: number; level: "differentiated" | "parity" | "lagging" }
-      scalability: { score: number; level: "high" | "medium" | "low" }
-      implementationRisk: { score: number; level: "low" | "medium" | "high" }
-      marketTiming: { score: number; status: "optimal" | "acceptable" | "poor" }
+      // 1. 问题-场景聚焦程度
+      problemScenarioFocus: {
+        score: number
+        painPointClarity: "clear" | "moderate" | "unclear"
+        aiNecessity: "essential" | "helpful" | "unnecessary"
+      }
+      // 2. 技术壁垒优势
+      technicalBarrier: {
+        score: number
+        differentiationLevel: "high" | "medium" | "low"
+      }
+      // 3. 数据支撑潜力
+      dataSupportPotential: {
+        score: number
+        flywheelPotential: "strong" | "moderate" | "weak"
+      }
+      // 4. AI人才储备
+      aiTalentReserve: {
+        score: number
+        talentLevel: "strong" | "moderate" | "weak"
+      }
+      // 5. ROI合理度
+      roiFeasibility: {
+        score: number
+        investmentLevel: "high" | "medium" | "low"
+      }
+      // 6. 市场竞争力
+      marketCompetitiveness: {
+        score: number
+        marketTiming: "optimal" | "acceptable" | "poor"
+      }
     }
     opportunities: string[]
     risks: string[]
@@ -35,35 +60,41 @@ export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpl
 
   // 维度评分数据
   const dimensionScores = [
-    { label: "问题匹配度", value: dimensions?.problemSolutionFit?.score ?? 0, status: dimensions?.problemSolutionFit?.status ?? 'weak' },
-    { label: "ROI合理性", value: dimensions?.roiFeasibility?.score ?? 0, status: "neutral" },
-    { label: "竞争优势", value: dimensions?.competitiveAdvantage?.score ?? 0, status: dimensions?.competitiveAdvantage?.level ?? 'lagging' },
-    { label: "可扩展性", value: dimensions?.scalability?.score ?? 0, status: dimensions?.scalability?.level ?? 'low' },
-    { label: "实施风险", value: dimensions?.implementationRisk?.score ?? 0, status: dimensions?.implementationRisk?.level ?? 'high' },
-    { label: "市场时机", value: dimensions?.marketTiming?.score ?? 0, status: dimensions?.marketTiming?.status ?? 'poor' },
+    { label: "问题-场景聚焦", value: dimensions?.problemScenarioFocus?.score ?? 0, status: dimensions?.problemScenarioFocus?.painPointClarity ?? 'unclear' },
+    { label: "技术壁垒优势", value: dimensions?.technicalBarrier?.score ?? 0, status: dimensions?.technicalBarrier?.differentiationLevel ?? 'low' },
+    { label: "数据支撑潜力", value: dimensions?.dataSupportPotential?.score ?? 0, status: dimensions?.dataSupportPotential?.flywheelPotential ?? 'weak' },
+    { label: "AI人才储备", value: dimensions?.aiTalentReserve?.score ?? 0, status: dimensions?.aiTalentReserve?.talentLevel ?? 'weak' },
+    { label: "ROI合理度", value: dimensions?.roiFeasibility?.score ?? 0, status: dimensions?.roiFeasibility?.investmentLevel ?? 'high' },
+    { label: "市场竞争力", value: dimensions?.marketCompetitiveness?.score ?? 0, status: dimensions?.marketCompetitiveness?.marketTiming ?? 'poor' },
   ]
 
   const getStatusColor = (status: string) => {
-    if (status === "strong" || status === "differentiated" || status === "high" || status === "optimal" || status === "low") {
+    // 正面状态（绿色）
+    if (status === "clear" || status === "essential" || status === "high" || status === "strong" || status === "optimal" || status === "low") {
       return "text-green-600"
     }
-    if (status === "moderate" || status === "parity" || status === "medium" || status === "acceptable") {
+    // 中性状态（琥珀色）
+    if (status === "moderate" || status === "helpful" || status === "medium" || status === "acceptable") {
       return "text-amber-600"
     }
-    if (status === "weak" || status === "lagging" || status === "poor") {
+    // 负面状态（红色）
+    if (status === "unclear" || status === "unnecessary" || status === "weak" || status === "poor") {
       return "text-red-600"
     }
     return "text-blue-600"
   }
 
   const getStatusIcon = (status: string) => {
-    if (status === "strong" || status === "differentiated" || status === "optimal") {
+    // 正面状态图标
+    if (status === "clear" || status === "essential" || status === "high" || status === "strong" || status === "optimal" || status === "low") {
       return <CheckCircle2 className="h-3 w-3" />
     }
-    if (status === "moderate" || status === "parity" || status === "medium" || status === "acceptable") {
+    // 中性状态图标
+    if (status === "moderate" || status === "helpful" || status === "medium" || status === "acceptable") {
       return <AlertCircle className="h-3 w-3" />
     }
-    if (status === "weak" || status === "lagging" || status === "poor" || status === "high") {
+    // 负面状态图标
+    if (status === "unclear" || status === "unnecessary" || status === "weak" || status === "poor") {
       return <XCircle className="h-3 w-3" />
     }
     return <TrendingUp className="h-3 w-3" />
@@ -108,14 +139,14 @@ export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpl
         ))}
       </div>
 
-      {/* 商业机会和风险 - 横向布局 */}
+      {/* 场景机会和风险 - 横向布局 */}
       <div className="grid md:grid-cols-2 gap-3">
-        {/* 商业机会 */}
+        {/* 场景机会 */}
         {evaluation.opportunities.length > 0 && (
           <div className="p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800">
             <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-green-900 dark:text-green-100">
               <TrendingUp className="h-4 w-4" />
-              商业机会 ({evaluation.opportunities.length})
+              场景机会 ({evaluation.opportunities.length})
             </h4>
             <ul className="space-y-1">
               {evaluation.opportunities.slice(0, showAllOpportunities ? evaluation.opportunities.length : 3).map((opportunity, index) => (

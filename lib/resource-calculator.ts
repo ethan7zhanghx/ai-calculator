@@ -6,6 +6,12 @@ import { MODEL_KNOWLEDGE } from "./model-knowledge-base"
 
 // 硬件规格数据
 const hardwareSpecs: Record<string, { vram: number }> = {
+  "昆仑芯 P800": { vram: 96 },
+  "昇腾 910B": { vram: 64 },
+  "海光 K100": { vram: 64 },
+  "寒武纪MLU590": { vram: 80 },
+  "曦云 C500": { vram: 64 },
+  "思元 MLU370": { vram: 64 },
   "NVIDIA A100 (80GB)": { vram: 80 },
   "NVIDIA A100 (40GB)": { vram: 40 },
   "NVIDIA H100": { vram: 80 },

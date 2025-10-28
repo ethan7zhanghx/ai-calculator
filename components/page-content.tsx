@@ -38,7 +38,6 @@ import { EvaluationProgress } from "@/components/evaluation-progress"
 import { ModuleLoadingIndicator } from "@/components/module-loading-indicator"
 import { BusinessEvaluationDetailed } from "@/components/business-evaluation-detailed"
 import { InputSummary } from "@/components/input-summary"
-import { ScenarioRequirements } from "@/components/scenario-requirements"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
@@ -115,9 +114,6 @@ export default function PageContent() {
     technical: null,
     business: null,
   })
-
-  // 下载状态
-  const [isDownloading, setIsDownloading] = useState(false)
 
   // 从URL加载评估结果
   useEffect(() => {
@@ -343,7 +339,7 @@ export default function PageContent() {
                   hardwareScore: data.data.hardwareScore, // 保存硬件评分
                 }))
               } else if (data.type === 'business') {
-                // 商业价值评估完成
+                // 场景价值评估完成
                 setModuleStatuses(prev => ({ ...prev, business: 'completed' }))
                 setPartialEvaluation(prev => ({
                   ...prev,
@@ -533,11 +529,7 @@ export default function PageContent() {
   const handleDownloadReport = async () => {
     if (!evaluation) return
 
-    // 添加下载中状态
-    setIsDownloading(true)
-
     try {
-      console.log("开始下载报告...")
       const token = localStorage.getItem("token")
       const headers: HeadersInit = {}
       if (token) {
@@ -549,123 +541,30 @@ export default function PageContent() {
         headers,
       })
 
-      console.log("=== 开始下载报告调试信息 ===")
-      console.log("下载响应状态:", response.status, response.statusText)
-      console.log("响应头 Content-Type:", response.headers.get('content-type'))
-      console.log("响应头 Content-Length:", response.headers.get('content-length'))
-      console.log("响应头 Content-Disposition:", response.headers.get('content-disposition'))
-      console.log("响应URL:", `/api/evaluate/${evaluation.evaluationId}/report`)
-
-      // 检查是否有PDF生成错误
-      const pdfErrorHeader = response.headers.get('x-pdf-error')
-      let pdfError = null
-      if (pdfErrorHeader) {
-        try {
-          // 解码Base64编码的错误信息
-          pdfError = Buffer.from(pdfErrorHeader, 'base64').toString('utf-8')
-          console.warn("服务器报告PDF生成失败:", pdfError)
-          console.warn("将返回Markdown文件作为替代")
-        } catch (decodeError) {
-          console.warn("无法解码PDF错误信息")
-        }
-      }
-
       if (response.ok) {
         const blob = await response.blob()
-        console.log("Blob创建成功，大小:", blob.size, "bytes")
-        console.log("Blob类型:", blob.type)
-
-        // 检查blob是否有效
-        if (blob.size === 0) {
-          throw new Error("下载的文件为空")
-        }
-
-        // 从响应头获取文件名或使用默认文件名
-        const contentDisposition = response.headers.get('content-disposition')
-        let filename = `AI评估报告_${new Date().toLocaleDateString('zh-CN')}`
-
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
-          if (filenameMatch && filenameMatch[1]) {
-            // 解码可能被编码的文件名
-            filename = filenameMatch[1].replace(/['"]/g, '')
-            try {
-              // 尝试解码 UTF-8 编码的文件名
-              filename = decodeURIComponent(filename)
-            } catch (e) {
-              // 如果解码失败，保持原样
-              console.warn('文件名解码失败，使用原始文件名:', filename)
-            }
-          }
-        }
-
-        // 根据Content-Type确定文件扩展名
-        const contentType = blob.type || response.headers.get('content-type') || ''
-        if (contentType.includes('application/pdf')) {
-          if (!filename.endsWith('.pdf')) {
-            filename += '.pdf'
-          }
-          console.log("✅ PDF文件生成成功")
-        } else if (contentType.includes('text/markdown')) {
-          if (!filename.endsWith('.md')) {
-            filename += '.md'
-          }
-          if (pdfError) {
-            console.warn("⚠️ PDF生成失败，返回Markdown文件")
-            filename = filename.replace('.pdf', '_PDF失败已转为MD.md')
-          }
-        } else if (contentType.includes('text/plain')) {
-          if (!filename.endsWith('.txt')) {
-            filename += '.txt'
-          }
-        }
-
-        console.log("最终文件名:", filename)
-
-        // 创建下载链接
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = filename
-        a.style.display = 'none'
-
-        // 添加到DOM并触发点击
+        a.download = `AI评估报告_${new Date().toLocaleDateString()}.pdf`
         document.body.appendChild(a)
-
-        // 使用用户手势触发下载
-        try {
-          a.click()
-        } catch (clickError) {
-          console.error("点击下载失败:", clickError)
-          // 备用方案：使用window.open
-          window.open(url, '_blank')
-        }
-
-        // 清理资源
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url)
-          document.body.removeChild(a)
-        }, 100)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
 
         toast({
           title: "下载成功",
-          description: `${filename} 已下载到您的设备`,
+          description: "完整评估报告已下载",
         })
-
       } else {
-        const errorText = await response.text()
-        console.error("下载失败，服务器响应:", errorText)
-        throw new Error(`下载失败 (${response.status}): ${response.statusText}`)
+        throw new Error("下载失败")
       }
     } catch (error) {
-      console.error("下载报告失败:", error)
       toast({
         title: "下载失败",
-        description: error instanceof Error ? error.message : "无法下载报告，请稍后重试",
+        description: "无法下载报告，请稍后重试",
         variant: "destructive",
       })
-    } finally {
-      setIsDownloading(false)
     }
   }
 
@@ -730,7 +629,7 @@ export default function PageContent() {
             <h1 className="text-4xl font-bold tracking-tight">企业级AI需求计算器</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            全面评估您的AI解决方案的资源可行性、技术合理性和商业价值
+            全面评估您的AI解决方案的资源可行性、技术合理性和场景价值
           </p>
         </div>
 
@@ -782,11 +681,17 @@ export default function PageContent() {
                       <SelectValue placeholder="选择硬件" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="昆仑芯 P800">昆仑芯 P800</SelectItem>
+                      <SelectItem value="昇腾 910B">昇腾 910B</SelectItem>
+                      <SelectItem value="海光 K100">海光 K100</SelectItem>
+                      <SelectItem value="寒武纪MLU590">寒武纪MLU590</SelectItem>
+                      <SelectItem value="曦云 C500">曦云 C500</SelectItem>
+                      <SelectItem value="思元 MLU370">思元 MLU370</SelectItem>
                       <SelectItem value="NVIDIA A100 (80GB)">NVIDIA A100 (80GB)</SelectItem>
                       <SelectItem value="NVIDIA A100 (40GB)">NVIDIA A100 (40GB)</SelectItem>
                       <SelectItem value="NVIDIA H100">NVIDIA H100</SelectItem>
                       <SelectItem value="NVIDIA V100">NVIDIA V100</SelectItem>
-                      <SelectItem value="NVIDIA A10">NVIDIA A10</SelectItem>
+                      <SelectItem value="NVIDIA V100">NVIDIA A10</SelectItem>
                       <SelectItem value="NVIDIA RTX 4090">NVIDIA RTX 4090</SelectItem>
                       <SelectItem value="NVIDIA RTX 3090">NVIDIA RTX 3090</SelectItem>
                     </SelectContent>
@@ -985,8 +890,8 @@ export default function PageContent() {
                     },
                     {
                       id: 'business',
-                      name: '商业价值评估',
-                      description: 'AI深度评估该方案的商业价值',
+                      name: '场景价值评估',
+                      description: 'AI深度评估该方案的场景价值',
                       status: moduleStatuses.business,
                     },
                   ]}
@@ -1156,7 +1061,7 @@ export default function PageContent() {
                   <Card className="shadow-lg animate-in fade-in-50 slide-in-from-top-4">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
-                        <span>商业价值评估</span>
+                        <span>场景价值评估</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground">评分:</span>
                           <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
@@ -1165,7 +1070,7 @@ export default function PageContent() {
                           </div>
                         </div>
                       </CardTitle>
-                      <CardDescription>AI深度评估该方案的商业价值</CardDescription>
+                      <CardDescription>AI深度评估该方案的场景价值</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="relative py-4 mb-6">
@@ -1363,13 +1268,6 @@ export default function PageContent() {
                   </CardContent>
                 </Card>
 
-                {/* 场景需求分析 */}
-                {evaluation.technicalFeasibility?.detailedEvaluation?.scenarioRequirements && (
-                  <ScenarioRequirements
-                    scenarioRequirements={evaluation.technicalFeasibility.detailedEvaluation.scenarioRequirements}
-                  />
-                )}
-
                 {/* 技术方案合理性评估 */}
                 <Card className="shadow-lg">
                   <CardHeader>
@@ -1465,19 +1363,19 @@ export default function PageContent() {
                   </CardContent>
                 </Card>
 
-                {/* 商业价值评估 */}
+                {/* 场景价值评估 */}
                 {evaluation.businessValue ? (
                   <Card className="shadow-lg">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
-                        <span>商业价值评估</span>
+                        <span>场景价值评估</span>
                         {/* 评分显示 */}
                         <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1">
                           <span className="text-lg font-bold">{evaluation.businessValue?.score}</span>
                           <span className="text-sm">/100</span>
                         </div>
                       </CardTitle>
-                      <CardDescription>AI深度评估该方案的商业价值</CardDescription>
+                      <CardDescription>AI深度评估该方案的场景价值</CardDescription>
                     </CardHeader>
                     <CardContent>
                       {/* 评分条 */}
@@ -1551,13 +1449,13 @@ export default function PageContent() {
                 ) : (
                   <Card className="shadow-lg">
                     <CardHeader>
-                      <CardTitle>商业价值评估</CardTitle>
+                      <CardTitle>场景价值评估</CardTitle>
                       <CardDescription>评估暂时不可用</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="p-8 text-center text-muted-foreground">
                         <Info className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-sm">商业价值评估服务暂时不可用，请稍后重试</p>
+                        <p className="text-sm">场景价值评估服务暂时不可用，请稍后重试</p>
                         <p className="text-xs mt-2 opacity-70">技术方案评估和资源可行性评估已完成</p>
                       </div>
                     </CardContent>
@@ -1570,20 +1468,10 @@ export default function PageContent() {
                     variant="default"
                     size="lg"
                     onClick={handleDownloadReport}
-                    disabled={isDownloading}
                     className="gap-2"
                   >
-                    {isDownloading ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        正在生成报告...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-5 w-5" />
-                        下载完整报告
-                      </>
-                    )}
+                    <Download className="h-5 w-5" />
+                    下载完整报告
                   </Button>
                 </div>
               </>
