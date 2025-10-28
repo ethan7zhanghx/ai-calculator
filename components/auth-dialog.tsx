@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,24 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
+  // 网络状态监控
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("🌐 [网络状态] 网络连接已恢复")
+    }
+    const handleOffline = () => {
+      console.log("📡 [网络状态] 网络连接已断开")
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
   // 登录表单状态
   const [loginPhone, setLoginPhone] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
@@ -34,14 +52,39 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
     e.preventDefault()
     setIsLoading(true)
 
+    // 开始登录日志
+    console.log("🔑 [登录开始] 用户开始登录流程")
+    console.log("📱 [输入数据] 手机号:", loginPhone)
+    console.log("🔑 [输入数据] 密码长度:", loginPassword.length, "个字符")
+    console.log("⏰ [时间戳] 开始时间:", new Date().toISOString())
+
     try {
+      console.log("🚀 [API请求] 发送登录请求到 /api/auth/login")
+      console.log("📦 [请求体]", {
+        phone: loginPhone,
+        password: loginPassword.length + "个字符",
+        timestamp: new Date().toISOString()
+      })
+
+      const requestStartTime = Date.now()
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: loginPhone, password: loginPassword }),
       })
 
+      const requestEndTime = Date.now()
+      const requestDuration = requestEndTime - requestStartTime
+
+      console.log("📡 [响应状态] HTTP状态:", response.status, response.statusText)
+      console.log("⏱️ [响应时间] 请求耗时:", requestDuration, "ms")
+      console.log("🔗 [响应头] Content-Type:", response.headers.get('content-type'))
+      console.log("🔗 [响应头] Content-Length:", response.headers.get('content-length'))
+
       const data = await response.json()
+
+      console.log("📋 [响应数据] 完整服务器响应:", JSON.stringify(data, null, 2))
 
       if (data.success) {
         toast({
@@ -49,17 +92,39 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
           description: `欢迎回来, ${data.data.username}!`,
         })
 
-        // 保存token到localStorage
-        localStorage.setItem("token", data.data.token)
-        localStorage.setItem("username", data.data.username)
+        console.log("✅ [登录成功] 用户登录成功")
+        console.log("👤 [用户信息] 用户名:", data.data.username)
+        console.log("🔐 [Token信息] Token长度:", data.data.token?.length || 0, "个字符")
+        console.log("💾 [本地存储] 开始保存用户信息到localStorage")
 
+        // 保存token到localStorage
+        try {
+          localStorage.setItem("token", data.data.token)
+          localStorage.setItem("username", data.data.username)
+          console.log("💾 [本地存储] 用户信息保存成功")
+        } catch (storageError) {
+          console.error("❌ [本地存储失败] localStorage保存错误:", storageError)
+        }
+
+        console.log("🔄 [回调执行] 执行成功回调函数")
         onAuthSuccess?.({ username: data.data.username, token: data.data.token })
+
+        console.log("🚪 [界面更新] 关闭对话框")
         onOpenChange(false)
 
+        console.log("📝 [表单重置] 重置登录表单")
         // 重置表单
         setLoginPhone("")
         setLoginPassword("")
+
+        console.log("🎉 [登录完成] 整个登录流程���束")
       } else {
+        console.log("❌ [登录失败] 服务器返回错误")
+        console.log("📝 [错误信息] 错误代码:", data.error?.code || "未知")
+        console.log("📝 [错误信息] 错误消息:", data.error?.message || "无详细消息")
+        console.log("📝 [错误信息] 错误详情:", data.error?.details || "无详情信息")
+        console.log("📊 [响应状态] HTTP状态:", response.status)
+
         toast({
           title: "登录失败",
           description: data.error?.message || "请检查您的手机号和密码",
@@ -67,13 +132,37 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
         })
       }
     } catch (error) {
+      console.log("💥 [网络错误] 请求过程中发生异常")
+      console.log("🔍 [错误类型] 错误类型:", error?.constructor?.name || "Unknown")
+      console.log("📝 [错误消息] 错误消息:", error?.message || "无错误消息")
+      console.log("📝 [错误堆栈] 错误堆栈:", error?.stack || "无堆栈信息")
+      console.log("🔗 [网络状态] 检查网络连接状态:", navigator.onLine ? "在线" : "离线")
+      console.log("🌐 [用户代理] 浏览器信息:", navigator.userAgent)
+      console.log("🔌 [当前URL] 请求URL:", window.location.origin + "/api/auth/login")
+
+      // 检查是否是特定的网络错误
+      if (error instanceof TypeError) {
+        if (error.message.includes('fetch')) {
+          console.log("🌐 [网络分析] 可能是网络连接问题��服务器不可达")
+        } else if (error.message.includes('JSON')) {
+          console.log("📄 [数据解析] 服务器返回了无效的JSON数据")
+        }
+      }
+
+      // 检查连接状态
+      if (!navigator.onLine) {
+        console.log("📡 [网络诊断] 用户处于离线状态")
+      }
+
       toast({
         title: "登录失败",
         description: "网络错误,请稍后重试",
         variant: "destructive",
       })
     } finally {
+      console.log("⏹️ [状态重置] 重置加载状态")
       setIsLoading(false)
+      console.log("🏁 [登录结束] 登录流程处理完成")
     }
   }
 
@@ -81,7 +170,22 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
     e.preventDefault()
     setIsLoading(true)
 
+    // 开始注册日志
+    console.log("🔥 [注册开始] 用户开始注册流程")
+    console.log("📱 [输入数据] 手机号:", registerPhone)
+    console.log("🔑 [输入数据] 密码长度:", registerPassword.length, "个字符")
+    console.log("⏰ [时间戳] 开始时间:", new Date().toISOString())
+
     try {
+      console.log("🚀 [API请求] 发送注册请求到 /api/auth/register")
+      console.log("📦 [请求体]", {
+        phone: registerPhone,
+        password: registerPassword.length + "个字符",
+        timestamp: new Date().toISOString()
+      })
+
+      const requestStartTime = Date.now()
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,7 +195,17 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
         }),
       })
 
+      const requestEndTime = Date.now()
+      const requestDuration = requestEndTime - requestStartTime
+
+      console.log("📡 [响应状态] HTTP状态:", response.status, response.statusText)
+      console.log("⏱️ [响应时间] 请求耗时:", requestDuration, "ms")
+      console.log("🔗 [响应头] Content-Type:", response.headers.get('content-type'))
+      console.log("🔗 [响应头] Content-Length:", response.headers.get('content-length'))
+
       const data = await response.json()
+
+      console.log("📋 [响应数据] 完整服务器响应:", JSON.stringify(data, null, 2))
 
       if (data.success) {
         toast({
@@ -99,17 +213,39 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
           description: `欢迎加入, ${data.data.username}!`,
         })
 
-        // 保存token到localStorage
-        localStorage.setItem("token", data.data.token)
-        localStorage.setItem("username", data.data.username)
+        console.log("✅ [注册成功] 用户注册成功")
+        console.log("👤 [用户信息] 用户名:", data.data.username)
+        console.log("🔐 [Token信息] Token长度:", data.data.token?.length || 0, "个字符")
+        console.log("💾 [本地存储] 开始保存用户信息到localStorage")
 
+        // 保存token到localStorage
+        try {
+          localStorage.setItem("token", data.data.token)
+          localStorage.setItem("username", data.data.username)
+          console.log("💾 [本地存储] 用户信息保存成功")
+        } catch (storageError) {
+          console.error("❌ [本地存储失败] localStorage保存错误:", storageError)
+        }
+
+        console.log("🔄 [回调执行] 执行成功回调函数")
         onAuthSuccess?.({ username: data.data.username, token: data.data.token })
+
+        console.log("🚪 [界面更新] 关闭对话框")
         onOpenChange(false)
 
+        console.log("📝 [表单重置] 重置注册表单")
         // 重置表单
         setRegisterPhone("")
         setRegisterPassword("")
+
+        console.log("🎉 [注册完成] ���个注册流程结束")
       } else {
+        console.log("❌ [注册失败] 服务器返回错误")
+        console.log("📝 [错误信息] 错误代码:", data.error?.code || "未知")
+        console.log("📝 [错误信息] 错误消息:", data.error?.message || "无详细消息")
+        console.log("📝 [错误信息] 错误详情:", data.error?.details || "无详情信息")
+        console.log("📊 [响应状态] HTTP状态:", response.status)
+
         toast({
           title: "注册失败",
           description: data.error?.message || "请检查您的输入",
@@ -117,13 +253,37 @@ export function AuthDialog({ open, onOpenChange, defaultTab = "login", onAuthSuc
         })
       }
     } catch (error) {
+      console.log("💥 [网络错误] 请求过程中发生异常")
+      console.log("🔍 [错误类型] 错误类型:", error?.constructor?.name || "Unknown")
+      console.log("📝 [错误消息] 错误消息:", error?.message || "无错误消息")
+      console.log("📝 [错误堆栈] 错误堆栈:", error?.stack || "无堆栈信息")
+      console.log("🔗 [网络状态] 检查网络连接状态:", navigator.onLine ? "在线" : "离线")
+      console.log("🌐 [用户代理] 浏览器信息:", navigator.userAgent)
+      console.log("🔌 [当前URL] 请求URL:", window.location.origin + "/api/auth/register")
+
+      // 检查是否是特定的网络错误
+      if (error instanceof TypeError) {
+        if (error.message.includes('fetch')) {
+          console.log("🌐 [网络分析] 可能是���络连接问题或服务器不可达")
+        } else if (error.message.includes('JSON')) {
+          console.log("📄 [数据解析] 服务器返回了无效的JSON数据")
+        }
+      }
+
+      // 检查连接状态
+      if (!navigator.onLine) {
+        console.log("📡 [网络诊断] 用户处于离线状态")
+      }
+
       toast({
         title: "注册失败",
         description: "网络错误,请稍后重试",
         variant: "destructive",
       })
     } finally {
+      console.log("⏹️ [状态重置] 重置加载状态")
       setIsLoading(false)
+      console.log("🏁 [注册结束] 注册流程处理完成")
     }
   }
 
