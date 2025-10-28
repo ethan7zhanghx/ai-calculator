@@ -83,11 +83,11 @@ export function FeedbackButton() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
-            size="icon"
+            className="fixed bottom-6 right-6 h-20 px-5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
             title="反馈"
           >
-            <MessageSquare className="h-6 w-6" />
+            <MessageSquare className="h-5 w-5" />
+            <span className="text-sm font-medium">反馈建议</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[525px]">

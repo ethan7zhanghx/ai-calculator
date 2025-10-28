@@ -8,7 +8,10 @@
     "dev": "prisma generate && next dev",
     "lint": "eslint .",
     "start": "next start",
-    "use:prod:db": "shx cp prisma/schema.production.prisma prisma/schema.prisma"
+    "use:prod:db": "shx cp prisma/schema.production.prisma prisma/schema.prisma",
+    "benchmark": "node scripts/run-benchmark.js",
+    "benchmark:help": "node scripts/run-benchmark.js --help",
+    "benchmark:dry": "node scripts/run-benchmark.js --dry-run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
