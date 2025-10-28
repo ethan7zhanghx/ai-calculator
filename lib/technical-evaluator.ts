@@ -189,7 +189,7 @@ export async function evaluateTechnicalSolution(
     if (error instanceof SyntaxError) {
       console.error("JSON解析错误详情:")
       console.error("- 错误消息:", error.message)
-      console.error("- 原始内容:", content)
+      console.error("- 原始内容:", error.message.includes("AI返回了空内容") ? "空内容" : "解析失败的内容")
       throw new Error(`AI返回的JSON格式无效: ${error.message}`)
     }
 
@@ -659,21 +659,21 @@ function buildEvaluationPrompt(
   return `# 现在请评估以下项目
 
 ## 模型信息
-\${modelInfo}
+${modelInfo}
 
 ## 用户需求
-**业务场景：** \${req.businessScenario}
+**业务场景：** ${req.businessScenario}
 
-**训练数据：** \${dataDescription}，数据质量：\${qualityStr}
+**训练数据：** ${dataDescription}，数据质量：${qualityStr}
 
-**性能需求：** TPS \${req.performanceRequirements.tps}，并发 \${req.performanceRequirements.concurrency}
+**性能需求：** TPS ${req.performanceRequirements.tps}，并发 ${req.performanceRequirements.concurrency}
 
-**硬件配置：** \${req.hardware}，\${req.machineCount}机 × \${req.cardsPerMachine}卡 = \${totalCards}张
+**硬件配置：** ${req.hardware}，${req.machineCount}机 × ${req.cardsPerMachine}卡 = ${totalCards}张
 
 ---
 
 ## 硬件资源可行性评估（预计算结果）
-- **硬件资源可行性得分**：\${Math.round(resourceFeasibilityScore)} / 100
+- **硬件资源可行性得分**：${Math.round(resourceFeasibilityScore)} / 100
 - **说明**：这个分数已经通过精确计算得出（基于显存占用率、模型大小等），请直接采纳该分数作为"硬件资源可行性"维度的评分。你只需简要说明硬件是否充足即可，无需展开讨论显存细节。重点是，硬件资源不足不应影响其他维度（如模型选型匹配度）的独立评估。
 
 ---
