@@ -115,7 +115,14 @@ async function generatePDFWithCloudSupport(markdownContent: string): Promise<Buf
     const isCloudEnv = process.env.AWS_REGION || process.env.VERCEL || process.env.NODE_ENV === 'production'
 
     if (isCloudEnv) {
-      console.log("检测到云端环境，使用特殊配置...")
+      console.log("检测到云端环境，尝试安装Chrome并使用特殊配置...")
+
+      try {
+        // 在云端环境尝试安装Chrome
+        await puppeteer.createBrowserFetcher().download("141.0.7390.122")
+      } catch (installError) {
+        console.warn("Chrome安装失败，使用默认配置:", installError)
+      }
 
       // 云端环境配置
       browser = await puppeteer.launch({
@@ -131,7 +138,8 @@ async function generatePDFWithCloudSupport(markdownContent: string): Promise<Buf
           '--disable-renderer-backgrounding',
           '--disable-features=TranslateUI',
           '--disable-ipc-flooding-protection',
-          '--enable-features=NetworkService'
+          '--enable-features=NetworkService',
+          '--single-process' // 在资源受限的环境中
         ]
       })
     } else {
@@ -315,9 +323,9 @@ function generateMarkdownReport(evaluation: any): string {
   // 1. 评估总览
   markdown += `## 📊 评估总览\n\n`
 
-  // 使用技术评估时保存的硬件评分，如果不存在则降级到简单平均分计算
-  const resourceScore = data.technicalFeasibility?.hardwareScore ??
-    (data as any).hardwareScore ??
+  // 使用保存的硬件评分，确保历史记录显示一致性
+  const resourceScore = (data as any).hardwareScore ??
+    data.technicalFeasibility?.hardwareScore ??
     Math.round((
       calculateResourceScore(data.resourceFeasibility?.pretraining?.memoryUsagePercent ?? 0) +
       calculateResourceScore(data.resourceFeasibility?.fineTuning?.memoryUsagePercent ?? 0) +
