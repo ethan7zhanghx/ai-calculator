@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs"
 
-const SALT_ROUNDS = 10
+const SALT_ROUNDS = 8 // 降低轮数，提高性能
 
 /**
  * 对密码进行哈希加密

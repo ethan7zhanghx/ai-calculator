@@ -6,6 +6,12 @@ import { signToken } from "@/lib/jwt"
 
 export async function POST(request: NextRequest) {
   const prisma = getPrismaClient();
+
+  // 设置请求超时时间（增加超时处理）
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('请求超时')), 30000); // 30秒超时
+  });
+
   try {
     const body: AuthRequest = await request.json()
     const { email, phone, password } = body
@@ -72,15 +78,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 检查邮箱或手机号是否已存在
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          email ? { email } : {},
-          phone ? { phone } : {},
-        ].filter(obj => Object.keys(obj).length > 0),
-      },
-    })
+    // 检查邮箱或手机号是否已存在（添加重试机制）
+    let existingUser = null;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        existingUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              email ? { email } : {},
+              phone ? { phone } : {},
+            ].filter(obj => Object.keys(obj).length > 0),
+          },
+        });
+        break;
+      } catch (dbError) {
+        console.error(`数据库查询失败，剩余重试次数: ${retries - 1}`, dbError);
+        retries--;
+        if (retries === 0) throw dbError;
+        await new Promise(resolve => setTimeout(resolve, 500)); // 等待500ms
+      }
+    }
 
     if (existingUser) {
       return NextResponse.json<ApiResponse>(
@@ -98,15 +116,27 @@ export async function POST(request: NextRequest) {
     // 对密码进行加密
     const hashedPassword = await hashPassword(password)
 
-    // 创建新用户
-    const user = await prisma.user.create({
-      data: {
-        email: email || `${phone}@placeholder.com`, // 如果没有邮箱,使用手机号生成占位邮箱
-        phone: phone || null,
-        password: hashedPassword,
-        name: phone || email?.split("@")[0], // 使用手机号或邮箱前缀作为默认用户名
-      },
-    })
+    // 创建新用户（添加重试机制）
+    let user = null;
+    retries = 3;
+    while (retries > 0) {
+      try {
+        user = await prisma.user.create({
+          data: {
+            email: email || `${phone}@placeholder.com`, // 如果没有邮箱,使用手机号生成占位邮箱
+            phone: phone || null,
+            password: hashedPassword,
+            name: phone || email?.split("@")[0], // 使用手机号或邮箱前缀作为默认用户名
+          },
+        });
+        break;
+      } catch (dbError) {
+        console.error(`数据库创建失败，剩余重试次数: ${retries - 1}`, dbError);
+        retries--;
+        if (retries === 0) throw dbError;
+        await new Promise(resolve => setTimeout(resolve, 500)); // 等待500ms
+      }
+    }
 
     // 生成 JWT token
     const token = signToken({
@@ -127,16 +157,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 201 })
   } catch (error) {
     console.error("Registration error:", error)
+
+    // 更详细的错误信息
+    let errorMessage = "服务器内部错误";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      if (error.message.includes('请求超时')) {
+        errorMessage = "请求超时，请重试";
+        statusCode = 408;
+      } else if (error.message.includes('database') || error.message.includes('Prisma')) {
+        errorMessage = "数据库连接错误，请稍后重试";
+        statusCode = 503;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
-          message: "服务器内部错误",
+          message: errorMessage,
           details: error instanceof Error ? error.message : "未知错误",
         },
       },
-      { status: 500 }
+      { status: statusCode }
     )
   }
 }
