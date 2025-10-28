@@ -84,7 +84,10 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
                 {getStatusIcon(dim.status)}
               </span>
             </div>
-            <div className="text-lg font-bold">{dim.value}</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-bold">{dim.value}</span>
+              <span className="text-xs text-muted-foreground">/ 100</span>
+            </div>
           </div>
         ))}
       </div>
