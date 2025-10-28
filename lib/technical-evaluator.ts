@@ -179,19 +179,8 @@ export async function evaluateTechnicalSolution(
       throw new Error("AI返回了空内容，可能是API问题或prompt过长")
     }
 
-    // 尝试修复常见的JSON格式问题
-    let processedContent = content.trim()
-
-    // 如果内容被包裹在代码块中，提取JSON部分
-    if (processedContent.startsWith('```json')) {
-      processedContent = processedContent.replace(/```json\s*/, '').replace(/\s*```$/, '')
-    } else if (processedContent.startsWith('```')) {
-      processedContent = processedContent.replace(/```\s*/, '').replace(/\s*```$/, '')
-    }
-
-    console.log("处理后的内容:", processedContent)
-
-    const result = JSON.parse(processedContent) as TechnicalEvaluationResult
+    // 直接解析JSON，和商业评估模块保持一致
+    const result = JSON.parse(content) as TechnicalEvaluationResult
     return result
   } catch (error) {
     console.error("技术评估失败:", error)
