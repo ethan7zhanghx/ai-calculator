@@ -760,7 +760,7 @@ export default function PageContent() {
                 <div className="space-y-2">
                   <LabelWithTooltip
                     htmlFor="dataQuality"
-                    tooltip="数据治理指是否对数据进行过清洗、标注、去重等预处理工作。良好的数据治理能显著提升模型效果。"
+                    tooltip="数据治理指是否对数据进行过专业标注、生产等预处理工作，良好且一定量级的数据治理能显著提升模型效果。"
                   >
                     数据治理
                   </LabelWithTooltip>
@@ -779,7 +779,7 @@ export default function PageContent() {
                 <div className="space-y-2">
                   <LabelWithTooltip
                     htmlFor="businessScenario"
-                    tooltip="详细描述您想用AI解决的业务问题或实现的功能。例如：智能客服、内容审核、文档摘要等。"
+                    tooltip="详细描述您想用AI解决的业务问题或实现的功能。例如：我是一名从事金融行业智能客服场景的技术人员，目前针对客服智能化场景已有初步市场调研，计划采取大小模型结合的技术方式，有3名AI人员辅助计划12月上线。"
                   >
                     业务场景
                   </LabelWithTooltip>
