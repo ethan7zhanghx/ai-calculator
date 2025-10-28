@@ -38,6 +38,7 @@ import { EvaluationProgress } from "@/components/evaluation-progress"
 import { ModuleLoadingIndicator } from "@/components/module-loading-indicator"
 import { BusinessEvaluationDetailed } from "@/components/business-evaluation-detailed"
 import { InputSummary } from "@/components/input-summary"
+import { ScenarioRequirements } from "@/components/scenario-requirements"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
@@ -1361,6 +1362,13 @@ export default function PageContent() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* 场景需求分析 */}
+                {evaluation.technicalFeasibility?.detailedEvaluation?.scenarioRequirements && (
+                  <ScenarioRequirements
+                    scenarioRequirements={evaluation.technicalFeasibility.detailedEvaluation.scenarioRequirements}
+                  />
+                )}
 
                 {/* 技术方案合理性评估 */}
                 <Card className="shadow-lg">
