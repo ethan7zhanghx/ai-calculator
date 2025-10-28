@@ -216,7 +216,7 @@ export function BusinessEvaluationDetailed({ evaluation }: BusinessEvaluationDet
             <div className="flex items-center justify-between w-full pr-4">
               <div className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                <span className="font-semibold">问题-场景聚焦程度</span>
+                <span className="font-semibold">场景聚焦程度</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">评分: {dimensions.problemScenarioFocus?.score ?? 0}</span>

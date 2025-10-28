@@ -60,7 +60,7 @@ export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpl
 
   // 维度评分数据
   const dimensionScores = [
-    { label: "问题-场景聚焦", value: dimensions?.problemScenarioFocus?.score ?? 0, status: dimensions?.problemScenarioFocus?.painPointClarity ?? 'unclear' },
+    { label: "场景聚焦程度", value: dimensions?.problemScenarioFocus?.score ?? 0, status: dimensions?.problemScenarioFocus?.painPointClarity ?? 'unclear' },
     { label: "技术壁垒优势", value: dimensions?.technicalBarrier?.score ?? 0, status: dimensions?.technicalBarrier?.differentiationLevel ?? 'low' },
     { label: "数据支撑潜力", value: dimensions?.dataSupportPotential?.score ?? 0, status: dimensions?.dataSupportPotential?.flywheelPotential ?? 'weak' },
     { label: "AI人才储备", value: dimensions?.aiTalentReserve?.score ?? 0, status: dimensions?.aiTalentReserve?.talentLevel ?? 'weak' },
