@@ -630,7 +630,7 @@ export default function PageContent() {
             <h1 className="text-4xl font-bold tracking-tight">AI FitCheck 企业级AI需求资源计算器</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            全面评估您的AI解决方案的资源可行性、技术合理性和场景价值
+            企业AI应用提供一键式"智能参谋"，秒级启动资源、技术、场景价值评估
           </p>
         </div>
 
@@ -742,13 +742,13 @@ export default function PageContent() {
                 <div className="space-y-2">
                   <LabelWithTooltip
                     htmlFor="dataDescription"
-                    tooltip="请描述您是否拥有可用于模型微调的业务数据，包括数据类型和大致数量。例如：有10000条客服对话记录用于训练问答模型。"
+                    tooltip="请描述您是否拥有可用于模型微调的业务数据，包括数据类型和大致数量。例如：有「10000条电商领域」的「客服对话记录」数据样例，且该数据「已经过数据治理、精调」。"
                   >
                     微调数据情况
                   </LabelWithTooltip>
                   <Textarea
                     id="dataDescription"
-                    placeholder="请描述您是否有用于微调的业务数据，以及数据量（例如：有10000条客服对话记录，5000条产品说明文档）"
+                    placeholder="请描述您是否有用于微调的业务数据，以及数据量（例如：有「10000条电商领域」的「客服对话记录」数据样例，且该数据「已经过数据治理、精调」）"
                     rows={3}
                     value={dataDescription}
                     onChange={(e) => setDataDescription(e.target.value)}
@@ -1478,7 +1478,7 @@ export default function PageContent() {
                 )}
 
                 {/* 下载完整报告按钮 */}
-                <div className="flex justify-center pt-2">
+                <div className="flex flex-col items-center pt-2 space-y-3">
                   <Button
                     variant="default"
                     size="lg"
@@ -1488,6 +1488,21 @@ export default function PageContent() {
                     <Download className="h-5 w-5" />
                     下载完整报告
                   </Button>
+
+                  {/* AI报告说明提示 */}
+                  <div className="max-w-md text-center">
+                    <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-left">
+                        <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">
+                          报告由AI智能生成
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                          如需专家深度建议或定制化方案，欢迎通过右下角「反馈建议」联系我们，我们将提供专业技术支持。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
