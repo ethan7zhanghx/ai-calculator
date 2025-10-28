@@ -577,7 +577,7 @@ export default function PageContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image src="/paddlepaddle.jpeg" alt="PaddlePaddle Logo" width={32} height={32} className="rounded-md" />
-              <span className="text-xl font-semibold">AI需求计算器</span>
+              <span className="text-xl font-semibold">AI FitCheck 企业级AI需求资源计算器</span>
             </div>
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
@@ -626,7 +626,7 @@ export default function PageContent() {
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
             <Calculator className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold tracking-tight">企业级AI需求计算器</h1>
+            <h1 className="text-4xl font-bold tracking-tight">AI FitCheck 企业级AI需求资源计算器</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             全面评估您的AI解决方案的资源可行性、技术合理性和场景价值
