@@ -51,343 +51,49 @@ export async function GET(
     // 生成Markdown格式的完整报告
     const reportMarkdown = generateMarkdownReport(parsedEvaluation)
 
-    // 使用Puppeteer直接生成PDF
+    // 使用更简单的PDF生成方案
     try {
       console.log("开始生成PDF报告...")
 
-      // 将Markdown转换为HTML
-      const htmlContent = marked.parse(reportMarkdown) as string
-      console.log("Markdown转HTML完成，内容长度:", htmlContent.length)
+      // 尝试使用node-html-to-pdf替代Puppeteer
+      let pdfBuffer: Buffer
 
-      // 读取CSS样式
-      const cssPath = path.join(process.cwd(), "styles", "markdown.css")
-      let cssContent = ""
       try {
-        cssContent = await fs.readFile(cssPath, "utf-8")
-        console.log("CSS文件读取成功")
-      } catch (e) {
-        console.warn("无法读取CSS文件，使用默认样式")
-      }
+        // 方案1: 尝试使用简化的Puppeteer配置
+        pdfBuffer = await generatePDFWithPuppeteer(reportMarkdown)
+      } catch (puppeteerError) {
+        console.error("Puppeteer生成失败:", puppeteerError)
+        console.log("尝试降级到Markdown下载...")
 
-      // 构建完整的HTML文档，确保正确的编码和格式
-      const htmlContentWithMeta = htmlContent
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
+        // 降级方案：直接返回Markdown文件
+        const markdownBuffer = Buffer.from(reportMarkdown, 'utf-8')
+        const filename = `AI评估报告_${evaluation.id}_${new Date().toISOString().split('T')[0]}.md`
+        const headers = new Headers()
+        headers.append("Content-Type", "text/markdown; charset=utf-8")
+        headers.append("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
+        headers.append("Content-Length", markdownBuffer.length.toString())
+        headers.append("Cache-Control", "no-cache, no-store, must-revalidate")
 
-      const fullHtml = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI评估报告</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      line-height: 1.8;
-      color: #333;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 40px 20px;
-      background: white;
-      font-size: 14px;
-    }
-
-    .page-break {
-      page-break-after: always;
-    }
-
-    h1, h2, h3, h4 {
-      margin-top: 32px;
-      margin-bottom: 16px;
-      font-weight: 600;
-      line-height: 1.3;
-      color: #24292e;
-    }
-
-    h1 {
-      font-size: 28px;
-      border-bottom: 2px solid #e1e4e8;
-      padding-bottom: 12px;
-      margin-top: 0;
-    }
-
-    h2 {
-      font-size: 22px;
-      border-bottom: 1px solid #e1e4e8;
-      padding-bottom: 8px;
-    }
-
-    h3 {
-      font-size: 18px;
-      margin-top: 28px;
-    }
-
-    h4 {
-      font-size: 16px;
-      margin-top: 24px;
-    }
-
-    ul, ol {
-      padding-left: 2em;
-      margin: 16px 0;
-    }
-
-    li {
-      margin: 8px 0;
-      line-height: 1.6;
-    }
-
-    p {
-      margin: 16px 0;
-      line-height: 1.8;
-    }
-
-    code {
-      background: #f6f8fa;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
-      font-size: 13px;
-      color: #d73a49;
-    }
-
-    pre {
-      background: #f6f8fa;
-      padding: 20px;
-      border-radius: 8px;
-      overflow: auto;
-      border: 1px solid #e1e4e8;
-      margin: 20px 0;
-    }
-
-    pre code {
-      background: transparent;
-      padding: 0;
-      color: #24292e;
-    }
-
-    blockquote {
-      border-left: 4px solid #0969da;
-      padding: 16px 20px;
-      color: #656d76;
-      margin: 20px 0;
-      background: #f6f8fa;
-      border-radius: 0 8px 8px 0;
-    }
-
-    hr {
-      border: 0;
-      border-top: 1px solid #e1e4e8;
-      margin: 32px 0;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 20px 0;
-      font-size: 13px;
-    }
-
-    th, td {
-      border: 1px solid #d1d9e0;
-      padding: 12px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background-color: #f6f8fa;
-      font-weight: 600;
-    }
-
-    strong {
-      font-weight: 600;
-      color: #24292e;
-    }
-
-    .score {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-weight: 600;
-      display: inline-block;
-    }
-
-    .success {
-      color: #28a745;
-      font-weight: 600;
-    }
-
-    .error {
-      color: #dc3545;
-      font-weight: 600;
-    }
-
-    .warning {
-      color: #ffc107;
-      font-weight: 600;
-    }
-
-    @media print {
-      body {
-        padding: 20px;
-        font-size: 12px;
-      }
-
-      h1 { font-size: 24px; }
-      h2 { font-size: 20px; }
-      h3 { font-size: 16px; }
-      h4 { font-size: 14px; }
-
-      .page-break {
-        page-break-after: always;
-      }
-    }
-
-    ${cssContent}
-  </style>
-</head>
-<body>
-  ${htmlContentWithMeta}
-</body>
-</html>`
-      console.log("HTML文档构建完成")
-
-      // 检查Puppeteer是否可用
-      try {
-        const puppeteer = require('puppeteer')
-        console.log("Puppeteer模块加载成功")
-      } catch (moduleError) {
-        console.error("Puppeteer模块加载失败:", moduleError)
-        throw new Error("Puppeteer模块不可用")
-      }
-
-      // 启动Puppeteer并生成PDF，针对云端环境优化配置
-      console.log("正在启动Puppeteer浏览器...")
-      const browser = await puppeteer.launch({
-        headless: "new", // 使用新的headless模式
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage', // 避免内存问题
-          '--disable-gpu', // 禁用GPU加速
-          '--no-first-run',
-          '--no-default-browser-check',
-          '--disable-default-apps',
-          '--disable-translate',
-          '--disable-device-discovery-notifications',
-          '--disable-web-security', // 有时需要禁用网络安全
-          '--disable-features=VizDisplayCompositor', // 禁用某些可能导致问题的特性
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-background-networking',
-          '--disable-ipc-flooding-protection',
-          '--enable-features=NetworkService',
-          '--single-process' // 单进程模式，避免多进程问题
-        ],
-        timeout: 60000, // 增加到60秒启动超时
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined // 允许指定Chrome路径
-      })
-
-      console.log("Puppeteer浏览器启动成功")
-
-      const page = await browser.newPage()
-
-      // 设置用户代理和视口
-      await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-      await page.setViewport({ width: 1200, height: 800 })
-
-      console.log("正在设置页面内容...")
-
-      // 增加页面设置的错误处理
-      try {
-        await page.setContent(fullHtml, {
-          waitUntil: 'networkidle0',
-          timeout: 45000 // 增加到45秒超时
+        return new Response(markdownBuffer, {
+          status: 200,
+          headers
         })
-        console.log("页面内容设置完成")
-      } catch (setContentError) {
-        console.error("页面内容设置失败:", setContentError)
-        // 尝试使用更宽松的设置方式
-        console.log("尝试使用宽松模式设置页面内容...")
-        await page.setContent(fullHtml, {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000
-        })
-        console.log("宽松模式页面内容设置完成")
       }
-
-      // 验证页面内容是否正确设置
-      const pageContent = await page.content()
-      console.log("页面内容长度:", pageContent.length)
-      console.log("HTML文档头部预览:", pageContent.substring(0, 200))
-
-      if (pageContent.length < 1000) {
-        console.error("页面内容可能不完整，实际长度:", pageContent.length)
-        console.log("页面内容预览:", pageContent.substring(0, 500))
-      }
-
-      // 验证关键元素是否存在
-      const hasBody = await page.evaluate(() => document.body !== null)
-      const hasContent = await page.evaluate(() => document.body.innerHTML.length > 0)
-      console.log("页面验证结果:", { hasBody, hasContent })
-
-      if (!hasBody || !hasContent) {
-        throw new Error("页面内容验证失败，无法生成有效PDF")
-      }
-
-      console.log("正在生成PDF...")
-
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
-        },
-        printBackground: true,
-        preferCSSPageSize: true,
-        timeout: 90000, // 增加到90秒PDF生成超时
-        displayHeaderFooter: false, // 禁用页眉页脚
-        scale: 1.0, // 缩放比例
-        landscape: false // 纵向打印
-      })
-
-      await browser.close()
-      console.log("PDF生成完成，文件大小:", pdfBuffer.length, "bytes")
 
       // 验证PDF Buffer是否有效
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error("生成的PDF文件为空")
       }
 
-      // 检查PDF文件头（PDF是二进制格式，使用ASCII编码检查）
-      const pdfHeader = Buffer.from(pdfBuffer.slice(0, 5))
+      // 检查PDF文件头
+      const pdfHeader = pdfBuffer.slice(0, 5)
       const expectedHeader = Buffer.from([37, 80, 68, 70, 45]) // %PDF-
 
-      console.log("PDF文件头字节:", Array.from(pdfHeader).map(b => b.toString(16).padStart(2, '0')).join(' '))
-      console.log("期望文件头字节:", Array.from(expectedHeader).map(b => b.toString(16).padStart(2, '0')).join(' '))
-
-      if (pdfHeader.length !== 5 || !pdfHeader.equals(expectedHeader)) {
-        console.log("文件头不匹配")
-        console.log("PDF buffer前20字节:", Array.from(pdfBuffer.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' '))
+      if (!pdfHeader.equals(expectedHeader)) {
         throw new Error("生成的文件不是有效的PDF格式")
       }
 
-      console.log("✅ PDF文件头验证通过")
+      console.log("✅ PDF生成完成，文件大小:", pdfBuffer.length, "bytes")
 
       // 返回PDF
       const filename = `AI评估报告_${new Date().toLocaleDateString('zh-CN')}.pdf`
@@ -396,10 +102,7 @@ export async function GET(
       headers.append("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
       headers.append("Content-Length", pdfBuffer.length.toString())
       headers.append("Cache-Control", "no-cache, no-store, must-revalidate")
-      headers.append("Pragma", "no-cache")
-      headers.append("Expires", "0")
 
-      console.log("PDF响应头设置完成，准备返回")
       return new Response(pdfBuffer, {
         status: 200,
         headers
@@ -408,40 +111,15 @@ export async function GET(
     } catch (pdfError) {
       console.error("PDF生成失败:", pdfError)
 
-      // 更详细的错误日志
-      if (pdfError instanceof Error) {
-        console.error("PDF错误详情:", {
-          name: pdfError.name,
-          message: pdfError.message,
-          stack: pdfError.stack
-        })
-      }
-
-      // 检查是否是Puppeteer特有的错误
-      if (pdfError.message.includes('Puppeteer') ||
-          pdfError.message.includes('browser') ||
-          pdfError.message.includes('launch')) {
-        console.error("这是Puppeteer浏览器启动相关错误")
-        console.error("可能的解决方案:")
-        console.error("1. 检查系统环境是否支持Puppeteer")
-        console.error("2. 检查是否有足够的权限")
-        console.error("3. 检查内存是否充足")
-      }
-
-      // 降级方案：返回Markdown文件，但明确说明原因
-      console.log("由于PDF生成失败，降级为Markdown文件下载")
-      console.log("失败原因:", pdfError.message)
-
-      // 确保Markdown内容是有效的UTF-8
+      // 降级方案：返回Markdown文件
+      console.log("降级为Markdown文件下载")
       const markdownBuffer = Buffer.from(reportMarkdown, 'utf-8')
-      const filename = `ai-evaluation-report-${evaluation.id}-${new Date().toISOString().split('T')[0]}.md`
+      const filename = `AI评估报告_${evaluation.id}_${new Date().toISOString().split('T')[0]}.md`
       const headers = new Headers()
       headers.append("Content-Type", "text/markdown; charset=utf-8")
       headers.append("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
       headers.append("Content-Length", markdownBuffer.length.toString())
       headers.append("Cache-Control", "no-cache, no-store, must-revalidate")
-      // 使用Base64编码错误信息，避免HTTP header编码问题
-      headers.append("X-PDF-Error", Buffer.from(pdfError.message, 'utf-8').toString('base64'))
 
       return new Response(markdownBuffer, {
         status: 200,
@@ -454,6 +132,72 @@ export async function GET(
       { success: false, error: { message: "生成报告失败" } },
       { status: 500 }
     )
+  }
+}
+
+// 简化的PDF生成函数
+async function generatePDFWithPuppeteer(markdownContent: string): Promise<Buffer> {
+  const puppeteer = require('puppeteer')
+
+  // 将Markdown转换为简单HTML
+  const htmlContent = marked.parse(markdownContent) as string
+
+  // 构建最简化的HTML
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI评估报告</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.6;
+      margin: 40px;
+      font-size: 14px;
+    }
+    h1 { font-size: 22px; margin-bottom: 20px; }
+    h2 { font-size: 18px; margin-top: 25px; margin-bottom: 15px; }
+    h3 { font-size: 16px; margin-top: 20px; margin-bottom: 10px; }
+    p { margin: 10px 0; }
+    ul, ol { padding-left: 20px; margin: 10px 0; }
+    li { margin: 5px 0; }
+    strong { font-weight: bold; }
+    code { background: #f5f5f5; padding: 2px 4px; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
+  </style>
+</head>
+<body>${htmlContent}</body>
+</html>`
+
+  // 启动浏览器
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-extensions',
+      '--disable-gpu'
+    ]
+  })
+
+  try {
+    const page = await browser.newPage()
+
+    // 设置内容
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
+
+    // 生成PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: { top: '20mm', bottom: '20mm', left: '20mm', right: '20mm' },
+      printBackground: true,
+      timeout: 60000
+    })
+
+    return pdfBuffer
+  } finally {
+    await browser.close()
   }
 }
 
