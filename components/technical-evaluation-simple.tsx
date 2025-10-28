@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, XCircle, AlertCircle, Lightbulb, AlertTriangle } from "lucide-react"
 
@@ -22,6 +23,9 @@ interface TechnicalEvaluationSimpleProps {
 }
 
 export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSimpleProps) {
+  const [showAllIssues, setShowAllIssues] = useState(false)
+  const [showAllRecommendations, setShowAllRecommendations] = useState(false)
+
   if (!evaluation) {
     return null
   }
@@ -95,21 +99,26 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
               关键问题 ({evaluation.criticalIssues.length + evaluation.warnings.length})
             </h4>
             <ul className="space-y-1">
-              {evaluation.criticalIssues.slice(0, 2).map((issue, index) => (
+              {evaluation.criticalIssues.slice(0, showAllIssues ? evaluation.criticalIssues.length : 2).map((issue, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
                   <span className="text-red-500 mt-0.5">•</span>
-                  <span className="line-clamp-2">{issue}</span>
+                  <span>{issue}</span>
                 </li>
               ))}
-              {evaluation.warnings.slice(0, 2).map((warning, index) => (
+              {evaluation.warnings.slice(0, showAllIssues ? evaluation.warnings.length : 2).map((warning, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
                   <span className="text-amber-500 mt-0.5">•</span>
-                  <span className="line-clamp-2">{warning}</span>
+                  <span>{warning}</span>
                 </li>
               ))}
               {(evaluation.criticalIssues.length + evaluation.warnings.length > 4) && (
-                <li className="text-xs text-muted-foreground italic">
-                  还有 {evaluation.criticalIssues.length + evaluation.warnings.length - 4} 项...
+                <li>
+                  <button
+                    onClick={() => setShowAllIssues(!showAllIssues)}
+                    className="text-xs text-muted-foreground italic hover:underline"
+                  >
+                    {showAllIssues ? "收起" : `展开另外 ${evaluation.criticalIssues.length + evaluation.warnings.length - 4} 项...`}
+                  </button>
                 </li>
               )}
             </ul>
@@ -124,20 +133,32 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
               核心建议 ({evaluation.recommendations.length})
             </h4>
             <ul className="space-y-1">
-              {evaluation.recommendations.slice(0, 4).map((rec, index) => (
+              {evaluation.recommendations.slice(0, showAllRecommendations ? evaluation.recommendations.length : 4).map((rec, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-blue-800 dark:text-blue-200">
                   <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span className="line-clamp-2">{rec}</span>
+                  <span>{rec}</span>
                 </li>
               ))}
               {evaluation.recommendations.length > 4 && (
-                <li className="text-xs text-muted-foreground italic">
-                  还有 {evaluation.recommendations.length - 4} 项...
+                <li>
+                  <button
+                    onClick={() => setShowAllRecommendations(!showAllRecommendations)}
+                    className="text-xs text-muted-foreground italic hover:underline"
+                  >
+                    {showAllRecommendations ? "收起" : `展开另外 ${evaluation.recommendations.length - 4} 项...`}
+                  </button>
                 </li>
               )}
             </ul>
           </div>
         )}
+      </div>
+
+      {/* 下载完整报告提示 */}
+      <div className="mt-4 p-3 text-center rounded-lg bg-secondary/20 border border-border">
+        <p className="text-sm text-muted-foreground">
+          想深入了解？页面底部可下载<span className="font-semibold text-primary">完整版评估报告</span>。
+        </p>
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, XCircle, AlertCircle, Lightbulb, TrendingUp, AlertTriangle, Shield } from "lucide-react"
 
@@ -23,6 +24,10 @@ interface BusinessEvaluationSimpleProps {
 }
 
 export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpleProps) {
+  const [showAllOpportunities, setShowAllOpportunities] = useState(false)
+  const [showAllRisks, setShowAllRisks] = useState(false)
+  const [showAllRecommendations, setShowAllRecommendations] = useState(false)
+
   if (!evaluation) {
     return null
   }
@@ -110,15 +115,20 @@ export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpl
               商业机会 ({evaluation.opportunities.length})
             </h4>
             <ul className="space-y-1">
-              {evaluation.opportunities.slice(0, 3).map((opportunity, index) => (
+              {evaluation.opportunities.slice(0, showAllOpportunities ? evaluation.opportunities.length : 3).map((opportunity, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-green-800 dark:text-green-200">
                   <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span className="line-clamp-2">{opportunity}</span>
+                  <span>{opportunity}</span>
                 </li>
               ))}
               {evaluation.opportunities.length > 3 && (
-                <li className="text-xs text-muted-foreground italic">
-                  还有 {evaluation.opportunities.length - 3} 项...
+                <li>
+                  <button
+                    onClick={() => setShowAllOpportunities(!showAllOpportunities)}
+                    className="text-xs text-muted-foreground italic hover:underline"
+                  >
+                    {showAllOpportunities ? "收起" : `展开另外 ${evaluation.opportunities.length - 3} 项...`}
+                  </button>
                 </li>
               )}
             </ul>
@@ -133,15 +143,20 @@ export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpl
               潜在风险 ({evaluation.risks.length})
             </h4>
             <ul className="space-y-1">
-              {evaluation.risks.slice(0, 3).map((risk, index) => (
+              {evaluation.risks.slice(0, showAllRisks ? evaluation.risks.length : 3).map((risk, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-red-800 dark:text-red-200">
                   <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span className="line-clamp-2">{risk}</span>
+                  <span>{risk}</span>
                 </li>
               ))}
               {evaluation.risks.length > 3 && (
-                <li className="text-xs text-muted-foreground italic">
-                  还有 {evaluation.risks.length - 3} 项...
+                <li>
+                  <button
+                    onClick={() => setShowAllRisks(!showAllRisks)}
+                    className="text-xs text-muted-foreground italic hover:underline"
+                  >
+                    {showAllRisks ? "收起" : `展开另外 ${evaluation.risks.length - 3} 项...`}
+                  </button>
                 </li>
               )}
             </ul>
@@ -157,20 +172,32 @@ export function BusinessEvaluationSimple({ evaluation }: BusinessEvaluationSimpl
             行动建议 ({evaluation.recommendations.length})
           </h4>
           <ul className="space-y-1">
-            {evaluation.recommendations.slice(0, 3).map((rec, index) => (
+            {evaluation.recommendations.slice(0, showAllRecommendations ? evaluation.recommendations.length : 3).map((rec, index) => (
               <li key={index} className="flex items-start gap-1.5 text-xs text-blue-800 dark:text-blue-200">
                 <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span className="line-clamp-2">{rec}</span>
+                <span>{rec}</span>
               </li>
             ))}
             {evaluation.recommendations.length > 3 && (
-              <li className="text-xs text-muted-foreground italic">
-                还有 {evaluation.recommendations.length - 3} 项...
+              <li>
+                <button
+                  onClick={() => setShowAllRecommendations(!showAllRecommendations)}
+                  className="text-xs text-muted-foreground italic hover:underline"
+                >
+                  {showAllRecommendations ? "收起" : `展开另外 ${evaluation.recommendations.length - 3} 项...`}
+                </button>
               </li>
             )}
           </ul>
         </div>
       )}
+
+      {/* 下载完整报告提示 */}
+      <div className="mt-4 p-3 text-center rounded-lg bg-secondary/20 border border-border">
+        <p className="text-sm text-muted-foreground">
+          想深入了解？页面底部可下载<span className="font-semibold text-primary">完整版评估报告</span>。
+        </p>
+      </div>
     </div>
   )
 }
