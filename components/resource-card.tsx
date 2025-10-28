@@ -74,7 +74,7 @@ export function ResourceCard({
         </div>
 
         {/* 环形进度条和显存信息 */}
-        <div className="flex items-start gap-4 mb-3">
+        <div className="flex flex-col xl:flex-row items-center xl:items-start gap-4 mb-3">
           <div className="flex-shrink-0">
             <CircularProgress
               percentage={displayUsagePercent}
@@ -84,14 +84,14 @@ export function ResourceCard({
             />
           </div>
 
-          <div className="flex-1 space-y-2 min-w-0">
+          <div className="flex-1 space-y-2 min-w-0 w-full">
             {/* 显存条形图 */}
             <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium">显存需求</span>
-                <span className="text-muted-foreground">
+              <div className="text-xs mb-1">
+                <div className="font-medium whitespace-nowrap">显存需求</div>
+                <div className="text-muted-foreground whitespace-nowrap">
                   {memoryRequired}GB / {memoryAvailable}GB
-                </span>
+                </div>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div

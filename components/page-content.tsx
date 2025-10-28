@@ -934,7 +934,7 @@ export default function PageContent() {
                           suggestions={partialEvaluation.resourceFeasibility.inference.suggestions}
                           extraInfo={
                             <div className="space-y-2">
-                              <div className="grid grid-cols-2 gap-1.5">
+                              <div className="flex flex-col gap-1.5">
                                 <div className="text-center p-1.5 rounded bg-primary/10">
                                   <div className="text-sm font-bold text-primary">
                                     {partialEvaluation.resourceFeasibility.inference.supportedThroughput}
@@ -1202,7 +1202,7 @@ export default function PageContent() {
                         suggestions={evaluation.resourceFeasibility.inference.suggestions}
                         extraInfo={
                           <div className="space-y-2">
-                            <div className="grid grid-cols-2 gap-1.5">
+                            <div className="flex flex-col gap-1.5">
                               <div className="text-center p-1.5 rounded bg-primary/10">
                                 <div className="text-sm font-bold text-primary">
                                   {evaluation.resourceFeasibility.inference.supportedThroughput}
