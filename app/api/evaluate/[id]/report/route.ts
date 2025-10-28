@@ -9,11 +9,11 @@ import fs from "fs/promises"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const prisma = getPrismaClient();
   try {
-    const evaluationId = params.id
+    const { id: evaluationId } = await params
 
     // 可选：验证用户token
     const authHeader = request.headers.get("authorization")
@@ -148,7 +148,17 @@ export async function GET(
       `
       console.log("HTML文档构建完成")
 
+      // 检查Puppeteer是否可用
+      try {
+        const puppeteer = require('puppeteer')
+        console.log("Puppeteer模块加载成功")
+      } catch (moduleError) {
+        console.error("Puppeteer模块加载失败:", moduleError)
+        throw new Error("Puppeteer模块不可用")
+      }
+
       // 启动Puppeteer并生成PDF，增加更多兼容性参数
+      console.log("正在启动Puppeteer浏览器...")
       const browser = await puppeteer.launch({
         headless: "new", // 使用新的headless模式
         args: [
@@ -160,8 +170,11 @@ export async function GET(
           '--no-default-browser-check',
           '--disable-default-apps',
           '--disable-translate',
-          '--disable-device-discovery-notifications'
-        ]
+          '--disable-device-discovery-notifications',
+          '--disable-web-security', // 有时需要禁用网络安全
+          '--disable-features=VizDisplayCompositor' // 禁用某些可能导致问题的特性
+        ],
+        timeout: 30000 // 30秒启动超时
       })
 
       console.log("Puppeteer浏览器启动成功")
@@ -172,12 +185,13 @@ export async function GET(
       await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
       await page.setViewport({ width: 1200, height: 800 })
 
+      console.log("正在设置页面内容...")
       await page.setContent(fullHtml, {
         waitUntil: 'networkidle0',
         timeout: 30000 // 30秒超时
       })
 
-      console.log("页面内容设置完成")
+      console.log("页面内容设置完成，正在生成PDF...")
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -200,11 +214,20 @@ export async function GET(
         throw new Error("生成的PDF文件为空")
       }
 
-      // 检查PDF文件头
-      const pdfHeader = pdfBuffer.slice(0, 5).toString()
-      if (pdfHeader !== '%PDF-') {
+      // 检查PDF文件头（PDF是二进制格式，使用ASCII编码检查）
+      const pdfHeader = Buffer.from(pdfBuffer.slice(0, 5))
+      const expectedHeader = Buffer.from([37, 80, 68, 70, 45]) // %PDF-
+
+      console.log("PDF文件头字节:", Array.from(pdfHeader).map(b => b.toString(16).padStart(2, '0')).join(' '))
+      console.log("期望文件头字节:", Array.from(expectedHeader).map(b => b.toString(16).padStart(2, '0')).join(' '))
+
+      if (pdfHeader.length !== 5 || !pdfHeader.equals(expectedHeader)) {
+        console.log("文件头不匹配")
+        console.log("PDF buffer前20字节:", Array.from(pdfBuffer.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' '))
         throw new Error("生成的文件不是有效的PDF格式")
       }
+
+      console.log("✅ PDF文件头验证通过")
 
       // 返回PDF
       const filename = `AI评估报告_${new Date().toLocaleDateString('zh-CN')}.pdf`
@@ -234,8 +257,20 @@ export async function GET(
         })
       }
 
-      // 降级方案：返回Markdown文件
-      console.log("降级为Markdown文件下载")
+      // 检查是否是Puppeteer特有的错误
+      if (pdfError.message.includes('Puppeteer') ||
+          pdfError.message.includes('browser') ||
+          pdfError.message.includes('launch')) {
+        console.error("这是Puppeteer浏览器启动相关错误")
+        console.error("可能的解决方案:")
+        console.error("1. 检查系统环境是否支持Puppeteer")
+        console.error("2. 检查是否有足够的权限")
+        console.error("3. 检查内存是否充足")
+      }
+
+      // 降级方案：返回Markdown文件，但明确说明原因
+      console.log("由于PDF生成失败，降级为Markdown文件下载")
+      console.log("失败原因:", pdfError.message)
 
       // 确保Markdown内容是有效的UTF-8
       const markdownBuffer = Buffer.from(reportMarkdown, 'utf-8')
@@ -245,6 +280,8 @@ export async function GET(
       headers.append("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
       headers.append("Content-Length", markdownBuffer.length.toString())
       headers.append("Cache-Control", "no-cache, no-store, must-revalidate")
+      // 使用Base64编码错误信息，避免HTTP header编码问题
+      headers.append("X-PDF-Error", Buffer.from(pdfError.message, 'utf-8').toString('base64'))
 
       return new Response(markdownBuffer, {
         status: 200,
