@@ -105,21 +105,6 @@ export function ResourceCard({
             {extraInfo && <div className="pt-1">{extraInfo}</div>}
           </div>
         </div>
-
-        {/* 建议列表 */}
-        {suggestions.length > 0 && (
-          <div className="space-y-1.5 pt-3 border-t">
-            <h5 className="text-xs font-semibold text-muted-foreground">建议:</h5>
-            <ul className="space-y-1.5">
-              {suggestions.map((suggestion, i) => (
-                <li key={i} className="flex gap-1.5 text-xs">
-                  <span className="text-primary mt-0.5">→</span>
-                  <span className="flex-1">{suggestion}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
