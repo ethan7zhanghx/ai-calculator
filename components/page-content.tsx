@@ -38,6 +38,7 @@ import { EvaluationProgress } from "@/components/evaluation-progress"
 import { ModuleLoadingIndicator } from "@/components/module-loading-indicator"
 import { BusinessEvaluationDetailed } from "@/components/business-evaluation-detailed"
 import { InputSummary } from "@/components/input-summary"
+import { ScenarioRequirements } from "@/components/scenario-requirements"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
@@ -981,6 +982,13 @@ export default function PageContent() {
                   </Card>
                 )}
 
+                {/* 场景需求分析 - 仅在技术评估包含场景需求时显示 */}
+                {partialEvaluation.technicalFeasibility?.detailedEvaluation?.scenarioRequirements && (
+                  <ScenarioRequirements
+                    scenarioRequirements={partialEvaluation.technicalFeasibility.detailedEvaluation.scenarioRequirements}
+                  />
+                )}
+
                 {partialEvaluation.technicalFeasibility && (
                   <Card className="shadow-lg animate-in fade-in-50 slide-in-from-top-4">
                     <CardHeader>
@@ -1165,6 +1173,13 @@ export default function PageContent() {
               <>
                 {/* 评估总览仪表盘 */}
                 <EvaluationDashboard evaluation={evaluation} />
+
+                {/* 场景需求分析 - 仅在技术评估包含场景需求时显示 */}
+                {evaluation.technicalFeasibility?.detailedEvaluation?.scenarioRequirements && (
+                  <ScenarioRequirements
+                    scenarioRequirements={evaluation.technicalFeasibility.detailedEvaluation.scenarioRequirements}
+                  />
+                )}
 
                 {/* 资源可行性评估 - 使用增强卡片 */}
                 <Card className="shadow-lg">
