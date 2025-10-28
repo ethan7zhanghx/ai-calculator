@@ -10,6 +10,7 @@ const hardwareSpecs: Record<string, { vram: number }> = {
   "NVIDIA A100 (40GB)": { vram: 40 },
   "NVIDIA H100": { vram: 80 },
   "NVIDIA V100": { vram: 32 },
+  "NVIDIA A10": { vram: 24 },
   "NVIDIA RTX 4090": { vram: 24 },
   "NVIDIA RTX 3090": { vram: 24 },
 }
