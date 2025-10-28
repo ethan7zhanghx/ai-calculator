@@ -78,47 +78,50 @@ export interface BusinessValue {
     summary: string
     disclaimer: string
     dimensions: {
-      problemSolutionFit: {
+      // 1. 问题-场景聚焦程度 (15%)
+      problemScenarioFocus: {
         score: number
-        status: "strong" | "moderate" | "weak"
         analysis: string
-        painPoints: string[]
-        aiNecessity: "high" | "medium" | "low"
+        painPointClarity: "clear" | "moderate" | "unclear"
+        aiNecessity: "essential" | "helpful" | "unnecessary"
       }
+      // 2. 技术壁垒优势 (15%)
+      technicalBarrier: {
+        score: number
+        analysis: string
+        differentiationLevel: "high" | "medium" | "low"
+        competitiveAdvantages: string[]
+      }
+      // 3. 数据支撑潜力 (20%)
+      dataSupportPotential: {
+        score: number
+        analysis: string
+        dataCompleteness: number // 0-100
+        dataAccuracy: number // 0-100
+        dataTimeliness: number // 0-100
+        flywheelPotential: "strong" | "moderate" | "weak"
+      }
+      // 4. AI人才储备 (20%)
+      aiTalentReserve: {
+        score: number
+        analysis: string
+        talentLevel: "strong" | "moderate" | "weak"
+        capabilityGaps: string[]
+        developmentSuggestions: string[]
+      }
+      // 5. ROI合理度 (15%)
       roiFeasibility: {
         score: number
         analysis: string
-        considerations: string[]
+        investmentLevel: "high" | "medium" | "low"
+        returnPath: string[]
       }
-      competitiveAdvantage: {
+      // 6. 市场竞争力 (15%)
+      marketCompetitiveness: {
         score: number
-        level: "differentiated" | "parity" | "lagging"
         analysis: string
-        barriers: string[]
-      }
-      scalability: {
-        score: number
-        level: "high" | "medium" | "low"
-        analysis: string
-        growthPotential: string[]
-      }
-      implementationRisk: {
-        score: number
-        level: "low" | "medium" | "high"
-        analysis: string
-        risks: {
-          technical: string[]
-          business: string[]
-          compliance: string[]
-          organizational: string[]
-        }
-        mitigations: string[]
-      }
-      marketTiming: {
-        score: number
-        status: "optimal" | "acceptable" | "poor"
-        analysis: string
-        urgency: "high" | "medium" | "low"
+        marketTiming: "optimal" | "acceptable" | "poor"
+        competitivePosition: "leading" | "following" | "lagging"
       }
     }
     opportunities: string[]
