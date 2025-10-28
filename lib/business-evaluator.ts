@@ -501,7 +501,7 @@ ${req.businessScenario}
 
 ## 技术方案
 - 模型选择：${req.model}
-- 硬件配置：${req.hardware} x ${req.cardCount}张
+- 硬件配置：${req.hardware} x ${req.machineCount * req.cardsPerMachine}张
 - 训练数据：${dataDescription}，数据质量：${qualityStr}
 - 性能需求：TPS ${req.performanceRequirements.tps}，并发${req.performanceRequirements.concurrency}
 
@@ -517,7 +517,8 @@ ${req.businessScenario}
 }
 
 export async function evaluateBusinessValue(
-  req: EvaluationRequest
+  req: EvaluationRequest,
+  modelName: string
 ): Promise<BusinessValueResult> {
   const apiKey = process.env.QIANFAN_API_KEY
 
@@ -541,7 +542,7 @@ export async function evaluateBusinessValue(
           "X-Appbuilder-Authorization": apiKey, // IAM鉴权必需的header
         },
         body: JSON.stringify({
-          model: "ernie-4.5-turbo-128k",
+          model: modelName,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "system", content: FEW_SHOT_EXAMPLES },

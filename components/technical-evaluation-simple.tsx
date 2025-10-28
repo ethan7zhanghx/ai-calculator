@@ -1,65 +1,44 @@
 "use client"
 
 import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, XCircle, AlertCircle, Lightbulb, AlertTriangle } from "lucide-react"
+import { TechnicalEvaluationResult } from "@/lib/technical-evaluator"
 
 interface TechnicalEvaluationSimpleProps {
-  evaluation: {
-    score: number
-    summary: string
-    dimensions: {
-      modelTaskAlignment: { status: "matched" | "mismatched" | "partial"; score?: number }
-      llmNecessity: { status: "necessary" | "unnecessary" | "debatable"; score?: number }
-      fineTuning: { necessary: boolean; dataAdequacy: "sufficient" | "marginal" | "insufficient"; score?: number }
-      implementationRoadmap: { feasible: boolean; score?: number }
-      performanceRequirements: { reasonable: boolean; score?: number }
-      costEfficiency: { level: "reasonable" | "high" | "excessive"; score?: number }
-    }
-    criticalIssues: string[]
-    warnings: string[]
-    recommendations: string[]
-  }
+  evaluation: TechnicalEvaluationResult
 }
 
 export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSimpleProps) {
   const [showAllIssues, setShowAllIssues] = useState(false)
   const [showAllRecommendations, setShowAllRecommendations] = useState(false)
 
-  if (!evaluation) {
+  if (!evaluation || !evaluation.dimensions) {
     return null
   }
   const { dimensions } = evaluation
 
   // 维度评分数据
   const dimensionScores = [
-    { label: "模型匹配度", value: dimensions?.modelTaskAlignment?.score ?? 0, status: dimensions?.modelTaskAlignment?.status ?? 'mismatched' },
-    { label: "LLM必要性", value: dimensions?.llmNecessity?.score ?? 0, status: dimensions?.llmNecessity?.status ?? 'unnecessary' },
-    { label: "微调数据", value: dimensions?.fineTuning?.score ?? 0, status: dimensions?.fineTuning?.dataAdequacy ?? 'insufficient' },
-    { label: "实施路径", value: dimensions?.implementationRoadmap?.score ?? 0, status: dimensions?.implementationRoadmap?.feasible ? "good" : "bad" },
-    { label: "性能需求", value: dimensions?.performanceRequirements?.score ?? 0, status: dimensions?.performanceRequirements?.reasonable ? "good" : "bad" },
-    { label: "成本效益", value: dimensions?.costEfficiency?.score ?? 0, status: dimensions?.costEfficiency?.level ?? 'excessive' },
+    { label: "技术可行性", score: dimensions.technicalFeasibility?.score ?? 0 },
+    { label: "LLM必要性", score: dimensions.llmNecessity?.score ?? 0 },
+    { label: "模型适配度", score: dimensions.modelFit?.score ?? 0 },
+    { label: "数据质量", score: dimensions.dataAdequacy?.score ?? 0 },
+    { label: "硬件性能", score: dimensions.hardwarePerformanceFit?.score ?? 0 },
+    { label: "实施风险", score: dimensions.implementationRisk?.score ?? 0 },
   ]
 
-  const getStatusColor = (status: string) => {
-    if (status === "matched" || status === "necessary" || status === "sufficient" || status === "good" || status === "reasonable") {
-      return "text-green-600"
+  const getDimensionStyle = (score: number) => {
+    if (score >= 80) {
+      return { color: "text-green-600", Icon: CheckCircle2 }
     }
-    if (status === "partial" || status === "debatable" || status === "marginal" || status === "high") {
-      return "text-amber-600"
+    if (score >= 50) {
+      return { color: "text-amber-600", Icon: AlertCircle }
     }
-    return "text-red-600"
+    return { color: "text-red-600", Icon: XCircle }
   }
 
-  const getStatusIcon = (status: string) => {
-    if (status === "matched" || status === "necessary" || status === "sufficient" || status === "good" || status === "reasonable") {
-      return <CheckCircle2 className="h-3 w-3" />
-    }
-    if (status === "partial" || status === "debatable" || status === "marginal" || status === "high") {
-      return <AlertCircle className="h-3 w-3" />
-    }
-    return <XCircle className="h-3 w-3" />
-  }
+  const issuesToShow = 2;
+  const recommendationsToShow = 3;
 
   return (
     <div className="space-y-4">
@@ -67,7 +46,7 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
       <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
         <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
           <Lightbulb className="h-4 w-4 text-primary" />
-          评估总结
+          AI评估摘要
         </h4>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {evaluation.summary}
@@ -76,51 +55,48 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
 
       {/* 各维度评分 - 紧凑网格 */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        {dimensionScores.map((dim, index) => (
-          <div key={index} className="p-2 rounded-lg border bg-card">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">{dim.label}</span>
-              <span className={`flex items-center gap-1 ${getStatusColor(dim.status)}`}>
-                {getStatusIcon(dim.status)}
-              </span>
+        {dimensionScores.map((dim, index) => {
+          const { color, Icon } = getDimensionStyle(dim.score)
+          return (
+            <div key={index} className="p-2 rounded-lg border bg-card">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">{dim.label}</span>
+                <span className={`flex items-center gap-1 ${color}`}>
+                  <Icon className="h-3 w-3" />
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-bold">{dim.score}</span>
+                <span className="text-xs text-muted-foreground">/ 100</span>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold">{dim.value}</span>
-              <span className="text-xs text-muted-foreground">/ 100</span>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* 关键问题和建议 - 横向布局 */}
       <div className="grid md:grid-cols-2 gap-3">
         {/* 关键问题 */}
-        {(evaluation.criticalIssues.length > 0 || evaluation.warnings.length > 0) && (
+        {evaluation.criticalIssues.length > 0 && (
           <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800">
             <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm text-amber-900 dark:text-amber-100">
               <AlertTriangle className="h-4 w-4" />
-              关键问题 ({evaluation.criticalIssues.length + evaluation.warnings.length})
+              关键问题 ({evaluation.criticalIssues.length})
             </h4>
             <ul className="space-y-1">
-              {evaluation.criticalIssues.slice(0, showAllIssues ? evaluation.criticalIssues.length : 2).map((issue, index) => (
+              {evaluation.criticalIssues.slice(0, showAllIssues ? evaluation.criticalIssues.length : issuesToShow).map((issue, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
                   <span className="text-red-500 mt-0.5">•</span>
                   <span>{issue}</span>
                 </li>
               ))}
-              {evaluation.warnings.slice(0, showAllIssues ? evaluation.warnings.length : 2).map((warning, index) => (
-                <li key={index} className="flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-200">
-                  <span className="text-amber-500 mt-0.5">•</span>
-                  <span>{warning}</span>
-                </li>
-              ))}
-              {(evaluation.criticalIssues.length + evaluation.warnings.length > 4) && (
+              {evaluation.criticalIssues.length > issuesToShow && (
                 <li>
                   <button
                     onClick={() => setShowAllIssues(!showAllIssues)}
-                    className="text-xs text-muted-foreground italic hover:underline"
+                    className="text-xs text-muted-foreground italic hover:underline mt-1"
                   >
-                    {showAllIssues ? "收起" : `展开另外 ${evaluation.criticalIssues.length + evaluation.warnings.length - 4} 项...`}
+                    {showAllIssues ? "收起" : `还有 ${evaluation.criticalIssues.length - issuesToShow} 项...`}
                   </button>
                 </li>
               )}
@@ -136,19 +112,19 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
               核心建议 ({evaluation.recommendations.length})
             </h4>
             <ul className="space-y-1">
-              {evaluation.recommendations.slice(0, showAllRecommendations ? evaluation.recommendations.length : 4).map((rec, index) => (
+              {evaluation.recommendations.slice(0, showAllRecommendations ? evaluation.recommendations.length : recommendationsToShow).map((rec, index) => (
                 <li key={index} className="flex items-start gap-1.5 text-xs text-blue-800 dark:text-blue-200">
                   <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
                   <span>{rec}</span>
                 </li>
               ))}
-              {evaluation.recommendations.length > 4 && (
+              {evaluation.recommendations.length > recommendationsToShow && (
                 <li>
                   <button
                     onClick={() => setShowAllRecommendations(!showAllRecommendations)}
-                    className="text-xs text-muted-foreground italic hover:underline"
+                    className="text-xs text-muted-foreground italic hover:underline mt-1"
                   >
-                    {showAllRecommendations ? "收起" : `展开另外 ${evaluation.recommendations.length - 4} 项...`}
+                    {showAllRecommendations ? "收起" : `还有 ${evaluation.recommendations.length - recommendationsToShow} 项...`}
                   </button>
                 </li>
               )}
@@ -158,9 +134,9 @@ export function TechnicalEvaluationSimple({ evaluation }: TechnicalEvaluationSim
       </div>
 
       {/* 下载完整报告提示 */}
-      <div className="mt-4 p-3 text-center rounded-lg bg-secondary/20 border border-border">
+      <div className="mt-4 p-3 text-center rounded-lg bg-background/50 border border-border">
         <p className="text-sm text-muted-foreground">
-          想深入了解？页面底部可下载<span className="font-semibold text-primary">完整版评估报告</span>。
+          要点总结如上，您也可以在页面底端下载<span className="font-semibold text-primary">完整版评估报告</span>以深入了解。
         </p>
       </div>
     </div>
