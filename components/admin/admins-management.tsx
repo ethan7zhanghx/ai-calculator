@@ -54,6 +54,7 @@ export function AdminsManagement() {
   const [admins, setAdmins] = useState<Admin[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [isGranting, setIsGranting] = useState(false)
   const [isRevoking, setIsRevoking] = useState(false)
 
@@ -100,9 +101,10 @@ export function AdminsManagement() {
   }
 
   const fetchUsers = async () => {
+    setIsLoadingUsers(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("/api/admin/users?page=1&pageSize=100", {
+      const response = await fetch("/api/admin/users?page=1&pageSize=1000", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,16 +113,39 @@ export function AdminsManagement() {
       const data = await response.json()
       if (data.success) {
         // 只显示普通用户
-        setUsers(data.data.users.filter((u: User) => u.role === "user"))
+        const normalUsers = data.data.users.filter((u: User) => u.role === "user")
+        console.log("加载普通用户列表:", normalUsers.length, "个用户")
+        setUsers(normalUsers)
+
+        if (normalUsers.length === 0) {
+          toast({
+            title: "提示",
+            description: "当前没有可授权的普通用户",
+          })
+        }
+      } else {
+        console.error("加载用户失败:", data.error)
+        toast({
+          title: "加载用户列表失败",
+          description: data.error?.message || "无法加载用户列表",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Failed to fetch users:", error)
+      toast({
+        title: "加载用户列表失败",
+        description: "网络错误",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingUsers(false)
     }
   }
 
   const handleOpenGrantDialog = async () => {
-    await fetchUsers()
     setGrantDialogOpen(true)
+    await fetchUsers()
   }
 
   const handleGrantAdmin = async () => {
@@ -335,18 +360,29 @@ export function AdminsManagement() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>选择用户</Label>
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择要授权的用户" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.email} {user.name && `(${user.name})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingUsers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="ml-2 text-sm text-muted-foreground">正在加载用户列表...</span>
+                </div>
+              ) : users.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground border rounded-md">
+                  当前没有可授权的普通用户
+                </div>
+              ) : (
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`选择要授权的用户 (共 ${users.length} 个)`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.email} {user.name && `(${user.name})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
