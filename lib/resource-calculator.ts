@@ -88,7 +88,7 @@ export function calculateResourceFeasibility(
   // 预训练因其巨大的批处理大小，激活值会占用极高的显存，通常是微调的数倍。
   // 这里我们使用一个更符合业界实践的保守系数：8倍模型大小。
   // 公式: 参数量 * 2 bytes (FP16) * 8 (权重+梯度+Adam+巨大的激活开销)
-  const pretrainingRequired = paramsB * 2 * 8
+  const pretrainingRequired = paramsB * 80 / 3
   const pretrainingPercent = (pretrainingRequired / totalVRAM) * 100
   const pretrainingFeasible = totalVRAM >= pretrainingRequired
 
