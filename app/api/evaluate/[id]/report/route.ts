@@ -69,83 +69,199 @@ export async function GET(
         console.warn("无法读取CSS文件，使用默认样式")
       }
 
-      // 构建完整的HTML文档，添加UTF-8元标签确保中文正确显示
-      const fullHtml = `
-<!DOCTYPE html>
-<html>
+      // 构建完整的HTML文档，确保正确的编码和格式
+      const htmlContentWithMeta = htmlContent
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI评估报告</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      line-height: 1.6;
+      font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.8;
       color: #333;
       max-width: 800px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 40px 20px;
+      background: white;
+      font-size: 14px;
     }
+
+    .page-break {
+      page-break-after: always;
+    }
+
     h1, h2, h3, h4 {
-      margin-top: 24px;
+      margin-top: 32px;
       margin-bottom: 16px;
       font-weight: 600;
-      line-height: 1.25;
+      line-height: 1.3;
+      color: #24292e;
     }
-    h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-    h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-    h3 { font-size: 1.25em; }
-    h4 { font-size: 1em; }
-    ul, ol { padding-left: 2em; }
-    li { margin: 0.25em 0; }
+
+    h1 {
+      font-size: 28px;
+      border-bottom: 2px solid #e1e4e8;
+      padding-bottom: 12px;
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 22px;
+      border-bottom: 1px solid #e1e4e8;
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 18px;
+      margin-top: 28px;
+    }
+
+    h4 {
+      font-size: 16px;
+      margin-top: 24px;
+    }
+
+    ul, ol {
+      padding-left: 2em;
+      margin: 16px 0;
+    }
+
+    li {
+      margin: 8px 0;
+      line-height: 1.6;
+    }
+
+    p {
+      margin: 16px 0;
+      line-height: 1.8;
+    }
+
     code {
       background: #f6f8fa;
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      font-size: 85%;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+      font-size: 13px;
+      color: #d73a49;
     }
+
     pre {
       background: #f6f8fa;
-      padding: 16px;
-      border-radius: 6px;
+      padding: 20px;
+      border-radius: 8px;
       overflow: auto;
+      border: 1px solid #e1e4e8;
+      margin: 20px 0;
     }
+
     pre code {
       background: transparent;
       padding: 0;
+      color: #24292e;
     }
+
     blockquote {
-      border-left: 4px solid #dfe2e5;
-      padding-left: 16px;
-      color: #6a737d;
-      margin: 0;
+      border-left: 4px solid #0969da;
+      padding: 16px 20px;
+      color: #656d76;
+      margin: 20px 0;
+      background: #f6f8fa;
+      border-radius: 0 8px 8px 0;
     }
+
     hr {
       border: 0;
-      border-top: 1px solid #eaecef;
-      margin: 24px 0;
+      border-top: 1px solid #e1e4e8;
+      margin: 32px 0;
     }
+
     table {
       border-collapse: collapse;
       width: 100%;
-      margin: 1em 0;
+      margin: 20px 0;
+      font-size: 13px;
     }
+
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      border: 1px solid #d1d9e0;
+      padding: 12px;
       text-align: left;
+      vertical-align: top;
     }
+
     th {
-      background-color: #f2f2f2;
+      background-color: #f6f8fa;
+      font-weight: 600;
     }
+
+    strong {
+      font-weight: 600;
+      color: #24292e;
+    }
+
+    .score {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .success {
+      color: #28a745;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #dc3545;
+      font-weight: 600;
+    }
+
+    .warning {
+      color: #ffc107;
+      font-weight: 600;
+    }
+
+    @media print {
+      body {
+        padding: 20px;
+        font-size: 12px;
+      }
+
+      h1 { font-size: 24px; }
+      h2 { font-size: 20px; }
+      h3 { font-size: 16px; }
+      h4 { font-size: 14px; }
+
+      .page-break {
+        page-break-after: always;
+      }
+    }
+
     ${cssContent}
   </style>
 </head>
 <body>
-  ${htmlContent}
+  ${htmlContentWithMeta}
 </body>
-</html>
-      `
+</html>`
       console.log("HTML文档构建完成")
 
       // 检查Puppeteer是否可用
@@ -157,7 +273,7 @@ export async function GET(
         throw new Error("Puppeteer模块不可用")
       }
 
-      // 启动Puppeteer并生成PDF，增加更多兼容性参数
+      // 启动Puppeteer并生成PDF，针对云端环境优化配置
       console.log("正在启动Puppeteer浏览器...")
       const browser = await puppeteer.launch({
         headless: "new", // 使用新的headless模式
@@ -172,9 +288,17 @@ export async function GET(
           '--disable-translate',
           '--disable-device-discovery-notifications',
           '--disable-web-security', // 有时需要禁用网络安全
-          '--disable-features=VizDisplayCompositor' // 禁用某些可能导致问题的特性
+          '--disable-features=VizDisplayCompositor', // 禁用某些可能导致问题的特性
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-background-networking',
+          '--disable-ipc-flooding-protection',
+          '--enable-features=NetworkService',
+          '--single-process' // 单进程模式，避免多进程问题
         ],
-        timeout: 30000 // 30秒启动超时
+        timeout: 60000, // 增加到60秒启动超时
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined // 允许指定Chrome路径
       })
 
       console.log("Puppeteer浏览器启动成功")
@@ -186,12 +310,45 @@ export async function GET(
       await page.setViewport({ width: 1200, height: 800 })
 
       console.log("正在设置页面内容...")
-      await page.setContent(fullHtml, {
-        waitUntil: 'networkidle0',
-        timeout: 30000 // 30秒超时
-      })
 
-      console.log("页面内容设置完成，正在生成PDF...")
+      // 增加页面设置的错误处理
+      try {
+        await page.setContent(fullHtml, {
+          waitUntil: 'networkidle0',
+          timeout: 45000 // 增加到45秒超时
+        })
+        console.log("页面内容设置完成")
+      } catch (setContentError) {
+        console.error("页面内容设置失败:", setContentError)
+        // 尝试使用更宽松的设置方式
+        console.log("尝试使用宽松模式设置页面内容...")
+        await page.setContent(fullHtml, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
+        })
+        console.log("宽松模式页面内容设置完成")
+      }
+
+      // 验证页面内容是否正确设置
+      const pageContent = await page.content()
+      console.log("页面内容长度:", pageContent.length)
+      console.log("HTML文档头部预览:", pageContent.substring(0, 200))
+
+      if (pageContent.length < 1000) {
+        console.error("页面内容可能不完整，实际长度:", pageContent.length)
+        console.log("页面内容预览:", pageContent.substring(0, 500))
+      }
+
+      // 验证关键元素是否存在
+      const hasBody = await page.evaluate(() => document.body !== null)
+      const hasContent = await page.evaluate(() => document.body.innerHTML.length > 0)
+      console.log("页面验证结果:", { hasBody, hasContent })
+
+      if (!hasBody || !hasContent) {
+        throw new Error("页面内容验证失败，无法生成有效PDF")
+      }
+
+      console.log("正在生成PDF...")
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -203,7 +360,10 @@ export async function GET(
         },
         printBackground: true,
         preferCSSPageSize: true,
-        timeout: 60000 // 60秒PDF生成超时
+        timeout: 90000, // 增加到90秒PDF生成超时
+        displayHeaderFooter: false, // 禁用页眉页脚
+        scale: 1.0, // 缩放比例
+        landscape: false // 纵向打印
       })
 
       await browser.close()
