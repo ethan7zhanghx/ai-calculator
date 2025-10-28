@@ -250,16 +250,17 @@ const SYSTEM_PROMPT = `你是一位顶级的AI技术架构师，你的任务是�
 1.  **总分(score)**: 按权重加权平均计算的总分(0-100)。
 2.  **总结(summary)**: 用2-3句话总结核心评估结论、主要亮点和关键风险。
 3.  **维度分析(dimensions)**:
-    *   **technicalFeasibility**: 在`analysis`中深入分析技术路线的合理性。在`implementationPath`中明确推荐一种技术范式(`paradigm`)，并给出`shortTerm`（1-2个月）和`midTerm`（3-6个月）的可行步骤。
-    *   **llmNecessity**: 在`analysis`中分析必要性。如果非必要，在`alternatives`中提供具体的替代方案（如“XGBoost模型”、“BERT分类器”、“PaddleOCR”）。
-    *   **modelFit**: 在`analysis`中分析模型选型是否合理，包括模型尺寸是否合适、模型模态是否合适。
-    *   **dataAdequacy**: 在`analysis`中分析数据策略。对应业务场景是否有必要微调，如果需要微调，在`qualityAssessment`和`quantityAssessment`中分别对数据质量和数量给出简短评价。
-    *   **hardwarePerformanceFit**: 在`analysis`中分析硬件与性能的匹配度。如果存在不匹配，必须在`recommendations`数组中提供具体、可操作的建议。
-    *   **implementationRisk**: 在`analysis`中总结**纯技术风险**，并在`riskItems`中列出具体风险点。
+    *   **technicalFeasibility**: 在\`analysis\`中深入分析技术路线的合理性。在\`implementationPath\`中明确推荐一种技术范式(\`paradigm\`)，并给出\`shortTerm\`（1-2个月）和\`midTerm\`（3-6个月）的可行步骤。
+    *   **llmNecessity**: 在\`analysis\`中分析必要性。如果非必要，在\`alternatives\`中提供具体的替代方案（如“XGBoost模型”、“BERT分类器”、“PaddleOCR”）。
+    *   **modelFit**: 在\`analysis\`中分析模型选型是否合理，包括模型尺寸是否合适、模型模态是否合适。
+    *   **dataAdequacy**: 在\`analysis\`中分析数据策略。对应业务场景是否有必要微调，如果需要微调，在\`qualityAssessment\`和\`quantityAssessment\`中分别对数据质量和数量给出简短评价。
+    *   **hardwarePerformanceFit**: 在\`analysis\`中分析硬件与性能的匹配度。如果存在不匹配，必须在\`recommendations\`数组中提供具体、可操作的建议。
+    *   **implementationRisk**: 在\`analysis\`中总结**纯技术风险**，并在\`riskItems\`中列出具体风险点。
 4.  **关键问题(criticalIssues)**: 只列出导致方案无法实施或需要推倒重来的阻断性问题。
 5.  **总体建议(recommendations)**: 提供3-5条全局性的、可操作的最终建议。
 
-请严格按照以上要求，必须以JSON格式输出评估结果。`
+请严格按照以上要求，必须以JSON格式输出评估结果。
+`
 
 /**
  * Few-Shot评估案例（固定，会被千帆缓存）
@@ -516,9 +517,7 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
     },
     "modelFit": {
       "score": 80,
-      "analysis": "选用ERNIE-4.5这种顶级的多模态模型是合理的，因为医疗场景对准确性要求极高。其多模态能力未来可用于解读化验单、影像图片等，有很大潜力。但当前阶段，其能力远未被充分利用。",
-      "qualityAssessment": "数据由专业医生标注，质量高。",
-      "quantityAssessment": "3000条数据对于复杂的医疗领域来说严重不足。"
+      "analysis": "选用ERNIE-4.5这种顶级的多模态模型是合理的，因为医疗场景对准确性要求极高。其多模态能力未来可用于解读化验单、影像图片等，有很大潜力。但当前阶段，其能力远未被充分利用。"
     },
     "dataAdequacy": {
       "score": 30,
@@ -626,7 +625,8 @@ const FEW_SHOT_EXAMPLES = `# Few-Shot 评估案例
 }
 \`\`\`
 
-请严格参考以上案例的风格和深度进行评估。`
+请严格参考以上案例的风格和深度进行评估。
+`
 
 /**
  * 构建用户评估Prompt（只包含当前用户的具体需求）
@@ -645,21 +645,21 @@ function buildEvaluationPrompt(
   return `# 现在请评估以下项目
 
 ## 模型信息
-${modelInfo}
+\${modelInfo}
 
 ## 用户需求
-**业务场景：** ${req.businessScenario}
+**业务场景：** \${req.businessScenario}
 
-**训练数据：** ${dataDescription}，数据质量：${qualityStr}
+**训练数据：** \${dataDescription}，数据质量：\${qualityStr}
 
-**性能需求：** TPS ${req.performanceRequirements.tps}，并发 ${req.performanceRequirements.concurrency}
+**性能需求：** TPS \${req.performanceRequirements.tps}，并发 \${req.performanceRequirements.concurrency}
 
-**硬件配置：** ${req.hardware}，${req.machineCount}机 × ${req.cardsPerMachine}卡 = ${totalCards}张
+**硬件配置：** \${req.hardware}，\${req.machineCount}机 × \${req.cardsPerMachine}卡 = \${totalCards}张
 
 ---
 
 ## 硬件资源可行性评估（预计算结果）
-- **硬件资源可行性得分**：${Math.round(resourceFeasibilityScore)} / 100
+- **硬件资源可行性得分**：\${Math.round(resourceFeasibilityScore)} / 100
 - **说明**：这个分数已经通过精确计算得出（基于显存占用率、模型大小等），请直接采纳该分数作为"硬件资源可行性"维度的评分。你只需简要说明硬件是否充足即可，无需展开讨论显存细节。重点是，硬件资源不足不应影响其他维度（如模型选型匹配度）的独立评估。
 
 ---
