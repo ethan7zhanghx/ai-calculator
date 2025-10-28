@@ -115,6 +115,9 @@ export default function PageContent() {
     business: null,
   })
 
+  // 下载状态
+  const [isDownloading, setIsDownloading] = useState(false)
+
   // 从URL加载评估结果
   useEffect(() => {
     const evaluationId = searchParams.get("evaluationId")
@@ -529,6 +532,9 @@ export default function PageContent() {
   const handleDownloadReport = async () => {
     if (!evaluation) return
 
+    // 添加下载中状态
+    setIsDownloading(true)
+
     try {
       console.log("开始下载报告...")
       const token = localStorage.getItem("token")
@@ -542,10 +548,12 @@ export default function PageContent() {
         headers,
       })
 
+      console.log("=== 开始下载报告调试信息 ===")
       console.log("下载响应状态:", response.status, response.statusText)
       console.log("响应头 Content-Type:", response.headers.get('content-type'))
       console.log("响应头 Content-Length:", response.headers.get('content-length'))
       console.log("响应头 Content-Disposition:", response.headers.get('content-disposition'))
+      console.log("响应URL:", `/api/evaluate/${evaluation.evaluationId}/report`)
 
       // 检查是否有PDF生成错误
       const pdfErrorHeader = response.headers.get('x-pdf-error')
@@ -578,7 +586,15 @@ export default function PageContent() {
         if (contentDisposition) {
           const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
           if (filenameMatch && filenameMatch[1]) {
+            // 解码可能被编码的文件名
             filename = filenameMatch[1].replace(/['"]/g, '')
+            try {
+              // 尝试解码 UTF-8 编码的文件名
+              filename = decodeURIComponent(filename)
+            } catch (e) {
+              // 如果解码失败，保持原样
+              console.warn('文件名解码失败，使用原始文件名:', filename)
+            }
           }
         }
 
@@ -647,6 +663,8 @@ export default function PageContent() {
         description: error instanceof Error ? error.message : "无法下载报告，请稍后重试",
         variant: "destructive",
       })
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -1544,10 +1562,20 @@ export default function PageContent() {
                     variant="default"
                     size="lg"
                     onClick={handleDownloadReport}
+                    disabled={isDownloading}
                     className="gap-2"
                   >
-                    <Download className="h-5 w-5" />
-                    下载完整报告
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        正在生成报告...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-5 w-5" />
+                        下载完整报告
+                      </>
+                    )}
                   </Button>
                 </div>
               </>
