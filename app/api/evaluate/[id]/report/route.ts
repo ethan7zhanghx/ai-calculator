@@ -188,11 +188,17 @@ function generateMarkdownReport(evaluation: any): string {
   // 1. 评估总览
   markdown += `## 📊 评估总览\n\n`
 
-  const pretrainingScore = calculateResourceScore(data.resourceFeasibility.pretraining.memoryUsagePercent)
-  const fineTuningScore = calculateResourceScore(data.resourceFeasibility.fineTuning.memoryUsagePercent)
-  const inferenceScore = calculateResourceScore(data.resourceFeasibility.inference.memoryUsagePercent)
-  const resourceScore = Math.round((pretrainingScore + fineTuningScore + inferenceScore) / 3)
-  const technicalScore = data.technicalFeasibility.score
+  // 使用技术评估时保存的硬件评分，如果不存在则降级到简单平均分计算
+  const resourceScore = data.technicalFeasibility?.hardwareScore ??
+    (data as any).hardwareScore ??
+    Math.round((
+      calculateResourceScore(data.resourceFeasibility?.pretraining?.memoryUsagePercent ?? 0) +
+      calculateResourceScore(data.resourceFeasibility?.fineTuning?.memoryUsagePercent ?? 0) +
+      calculateResourceScore(data.resourceFeasibility?.inference?.memoryUsagePercent ?? 0)
+    ) / 3) // 降级：使用简单平均分
+  // 检查数据结构，兼容新旧格式
+  const techData = data.technicalFeasibility.detailedEvaluation || data.technicalFeasibility
+  const technicalScore = techData.score
   const businessScore = data.businessValue?.score || 0
   const overallScore = data.businessValue
     ? Math.round((resourceScore + technicalScore + businessScore) / 3)
@@ -251,15 +257,14 @@ function generateMarkdownReport(evaluation: any): string {
 
   // 3. 技术方案合理性评估
   markdown += `## 🔧 技术方案合理性评估\n\n`
-  markdown += `### 评分: **${data.technicalFeasibility.score}** / 100\n\n`
+  markdown += `### 评分: **${techData.score}** / 100\n\n`
 
-  if (data.technicalFeasibility.summary) {
-    const tech = data.technicalFeasibility
-    markdown += `**评估总结**:\n${tech.summary}\n\n`
+  if (techData && techData.summary) {
+    markdown += `**评估总结**:\n${techData.summary}\n\n`
 
-    if (tech.criticalIssues && tech.criticalIssues.length > 0) {
+    if (techData.criticalIssues && techData.criticalIssues.length > 0) {
       markdown += `### ⚠️ 致命问题\n\n`
-      tech.criticalIssues.forEach((issue: string) => {
+      techData.criticalIssues.forEach((issue: string) => {
         markdown += `- ${issue}\n`
       })
       markdown += `\n`
@@ -269,76 +274,77 @@ function generateMarkdownReport(evaluation: any): string {
     markdown += `### 详细维度分析\n\n`
 
     markdown += `#### 1. 技术可行性\n`
-    markdown += `**评分**: ${tech.dimensions.technicalFeasibility.score} / 100\n\n`
-    markdown += `**分析**: ${tech.dimensions.technicalFeasibility.analysis}\n\n`
-    markdown += `**推荐技术范式**: ${tech.dimensions.technicalFeasibility.implementationPath.paradigm}\n\n`
+    markdown += `**评分**: ${techData.dimensions.technicalFeasibility.score} / 100\n\n`
+    markdown += `**分析**: ${techData.dimensions.technicalFeasibility.analysis}\n\n`
+    markdown += `**推荐技术范式**: ${techData.dimensions.technicalFeasibility.implementationPath.paradigm}\n\n`
 
-    if (tech.dimensions.technicalFeasibility.implementationPath.shortTerm && tech.dimensions.technicalFeasibility.implementationPath.shortTerm.length > 0) {
+    if (techData.dimensions.technicalFeasibility.implementationPath.shortTerm && techData.dimensions.technicalFeasibility.implementationPath.shortTerm.length > 0) {
       markdown += `**短期可落地** (1-2个月):\n`
-      tech.dimensions.technicalFeasibility.implementationPath.shortTerm.forEach((item: string) => {
+      techData.dimensions.technicalFeasibility.implementationPath.shortTerm.forEach((item: string) => {
         markdown += `- ${item}\n`
       })
       markdown += `\n`
     }
 
-    if (tech.dimensions.technicalFeasibility.implementationPath.midTerm && tech.dimensions.technicalFeasibility.implementationPath.midTerm.length > 0) {
+    if (techData.dimensions.technicalFeasibility.implementationPath.midTerm && techData.dimensions.technicalFeasibility.implementationPath.midTerm.length > 0) {
       markdown += `**中期可落地** (3-6个月):\n`
-      tech.dimensions.technicalFeasibility.implementationPath.midTerm.forEach((item: string) => {
+      techData.dimensions.technicalFeasibility.implementationPath.midTerm.forEach((item: string) => {
         markdown += `- ${item}\n`
       })
       markdown += `\n`
     }
 
     markdown += `#### 2. 大模型必要性\n`
-    markdown += `**评分**: ${tech.dimensions.llmNecessity.score} / 100\n\n`
-    markdown += `**分析**: ${tech.dimensions.llmNecessity.analysis}\n\n`
-    if (tech.dimensions.llmNecessity.alternatives) {
-      markdown += `**替代方案**: ${tech.dimensions.llmNecessity.alternatives}\n\n`
+    markdown += `**评分**: ${techData.dimensions.llmNecessity.score} / 100\n\n`
+    markdown += `**分析**: ${techData.dimensions.llmNecessity.analysis}\n\n`
+    if (techData.dimensions.llmNecessity.alternatives) {
+      markdown += `**替代方案**: ${techData.dimensions.llmNecessity.alternatives}\n\n`
     }
 
     markdown += `#### 3. 模型适配度\n`
-    markdown += `**评分**: ${tech.dimensions.modelFit.score} / 100\n\n`
-    markdown += `**分析**: ${tech.dimensions.modelFit.analysis}\n\n`
+    markdown += `**评分**: ${techData.dimensions.modelFit.score} / 100\n\n`
+    markdown += `**分析**: ${techData.dimensions.modelFit.analysis}\n\n`
 
     markdown += `#### 4. 数据质量与充足性\n`
-    markdown += `**评分**: ${tech.dimensions.dataAdequacy.score} / 100\n\n`
-    markdown += `**分析**: ${tech.dimensions.dataAdequacy.analysis}\n\n`
-    markdown += `**数据质量评估**: ${tech.dimensions.dataAdequacy.qualityAssessment}\n\n`
-    markdown += `**数据数量评估**: ${tech.dimensions.dataAdequacy.quantityAssessment}\n\n`
+    markdown += `**评分**: ${techData.dimensions.dataAdequacy.score} / 100\n\n`
+    markdown += `**分析**: ${techData.dimensions.dataAdequacy.analysis}\n\n`
+    markdown += `**数据质量评估**: ${techData.dimensions.dataAdequacy.qualityAssessment}\n\n`
+    markdown += `**数据数量评估**: ${techData.dimensions.dataAdequacy.quantityAssessment}\n\n`
 
     markdown += `#### 5. 硬件与性能匹配度\n`
-    markdown += `**评分**: ${tech.dimensions.hardwarePerformanceFit.score} / 100\n\n`
-    markdown += `**分析**: ${tech.dimensions.hardwarePerformanceFit.analysis}\n\n`
+    markdown += `**评分**: ${techData.dimensions.hardwarePerformanceFit.score} / 100\n\n`
+    markdown += `**分析**: ${techData.dimensions.hardwarePerformanceFit.analysis}\n\n`
 
-    if (tech.dimensions.hardwarePerformanceFit.recommendations && tech.dimensions.hardwarePerformanceFit.recommendations.length > 0) {
+    if (techData.dimensions.hardwarePerformanceFit.recommendations && techData.dimensions.hardwarePerformanceFit.recommendations.length > 0) {
       markdown += `**硬件建议**:\n`
-      tech.dimensions.hardwarePerformanceFit.recommendations.forEach((rec: string) => {
+      techData.dimensions.hardwarePerformanceFit.recommendations.forEach((rec: string) => {
         markdown += `- ${rec}\n`
       })
       markdown += `\n`
     }
 
     markdown += `#### 6. 实施风险\n`
-    markdown += `**评分**: ${tech.dimensions.implementationRisk.score} / 100\n\n`
-    markdown += `**分析**: ${tech.dimensions.implementationRisk.analysis}\n\n`
+    markdown += `**评分**: ${techData.dimensions.implementationRisk.score} / 100\n\n`
+    markdown += `**分析**: ${techData.dimensions.implementationRisk.analysis}\n\n`
 
-    if (tech.dimensions.implementationRisk.riskItems && tech.dimensions.implementationRisk.riskItems.length > 0) {
+    if (techData.dimensions.implementationRisk.riskItems && techData.dimensions.implementationRisk.riskItems.length > 0) {
       markdown += `**具体风险点**:\n`
-      tech.dimensions.implementationRisk.riskItems.forEach((risk: string) => {
+      techData.dimensions.implementationRisk.riskItems.forEach((risk: string) => {
         markdown += `- ${risk}\n`
       })
       markdown += `\n`
     }
 
-    if (tech.recommendations && tech.recommendations.length > 0) {
+    if (techData.recommendations && techData.recommendations.length > 0) {
       markdown += `### 💡 总体建议\n\n`
-      tech.recommendations.forEach((rec: string) => {
+      techData.recommendations.forEach((rec: string) => {
         markdown += `- ${rec}\n`
       })
       markdown += `\n`
     }
   } else {
-    if (data.technicalFeasibility.issues.length > 0) {
+    // 兼容旧数据格式
+    if (data.technicalFeasibility.issues && data.technicalFeasibility.issues.length > 0) {
       markdown += `### 发现的问题\n\n`
       data.technicalFeasibility.issues.forEach((issue: string) => {
         markdown += `- ${issue}\n`
@@ -346,7 +352,7 @@ function generateMarkdownReport(evaluation: any): string {
       markdown += `\n`
     }
 
-    if (data.technicalFeasibility.recommendations.length > 0) {
+    if (data.technicalFeasibility.recommendations && data.technicalFeasibility.recommendations.length > 0) {
       markdown += `### 改进建议\n\n`
       data.technicalFeasibility.recommendations.forEach((rec: string) => {
         markdown += `- ${rec}\n`

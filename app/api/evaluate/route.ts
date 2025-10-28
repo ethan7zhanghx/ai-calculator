@@ -7,6 +7,77 @@ import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 import { evaluateBusinessValue } from "@/lib/business-evaluator"
 import { calculateResourceFeasibility } from "@/lib/resource-calculator"
 
+/**
+ * 从技术评估的角度计算硬件评分（与technical-evaluator.ts中的逻辑保持一致）
+ */
+async function calculateHardwareScoreFromTechnical(req: EvaluationRequest): Promise<number> {
+  const totalCards = req.machineCount * req.cardsPerMachine
+
+  // 计算资源可行性
+  const resourceFeasibility = calculateResourceFeasibility(
+    req.model,
+    req.hardware,
+    totalCards,
+    req.performanceRequirements.tps
+  )
+
+  if (!resourceFeasibility) return 0
+
+  // 使用与技术评估模块相同的逻辑
+  const { pretraining, fineTuning, inference } = resourceFeasibility
+
+  // 分析业务场景需求（与技术评估模块保持一致）
+  const scenarioLower = req.businessScenario.toLowerCase()
+
+  const needsInference = true // 默认都需要推理
+  const needsFineTuning = scenarioLower.includes('微调') ||
+                         scenarioLower.includes('训练') ||
+                         scenarioLower.includes('定制') ||
+                         scenarioLower.includes('领域') ||
+                         scenarioLower.includes('专业') ||
+                         scenarioLower.includes('优化') ||
+                         scenarioLower.includes('特定') ||
+                         scenarioLower.includes('个性化')
+  const needsPretraining = scenarioLower.includes('预训练') ||
+                           scenarioLower.includes('从头训练') ||
+                           scenarioLower.includes('基础模型') ||
+                           scenarioLower.includes('自训练')
+
+  // 计算各项任务的得分
+  const getTaskScore = (usagePercent: number) => {
+    if (usagePercent > 100) return 0 // 不可行
+    if (usagePercent <= 60) return 100 // 最佳范围
+    if (usagePercent <= 90) return 100 - (usagePercent - 60) * 2 // 高效范围，线性下降
+    return Math.max(0, 40 - (usagePercent - 90) * 4) // 警告范围，急剧下降
+  }
+
+  const inferenceScore = getTaskScore(inference.memoryUsagePercent)
+  const fineTuningScore = getTaskScore(fineTuning.memoryUsagePercent)
+  const pretrainingScore = getTaskScore(pretraining.memoryUsagePercent)
+
+  // 根据场景需求筛选相关任务，计算加权平均分
+  const taskScores = []
+
+  if (needsInference) {
+    taskScores.push(inferenceScore)
+  }
+
+  if (needsFineTuning) {
+    taskScores.push(fineTuningScore)
+  }
+
+  if (needsPretraining) {
+    taskScores.push(pretrainingScore)
+  }
+
+  // 计算相关任务的平均分作为最终得分
+  const finalScore = taskScores.length > 0
+    ? Math.round(taskScores.reduce((sum, score) => sum + score, 0) / taskScores.length)
+    : 0
+
+  return finalScore
+}
+
 // 配置函数最大执行时间(240秒,给两个串行LLM调用留足时间: 技术60s+商业120s+缓冲60s)
 export const maxDuration = 240
 
@@ -74,10 +145,15 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
 
           // 第2步：执行技术方案评估
           let technicalEvaluation
+          let hardwareScore = 0
           try {
             console.log("开始技术方案评估...")
             technicalEvaluation = await evaluateTechnicalSolution(body, "ernie-4.5-turbo-128k")
             console.log("技术方案评估完成,得分:", technicalEvaluation.score)
+
+            // 计算硬件资源评分（与技术评估时LLM看到的评分保持一致）
+            hardwareScore = await calculateHardwareScoreFromTechnical(body)
+            console.log("硬件资源评分:", hardwareScore)
 
             const technicalScore = technicalEvaluation.score
             const technicalIssues = technicalEvaluation.criticalIssues
@@ -91,11 +167,14 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
               detailedEvaluation: technicalEvaluation,
             }
 
-            // 发送技术评估结果
+            // 发送技术评估结果（包含硬件评分）
             if (controller.desiredSize) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'technical',
-                data: { technicalFeasibility }
+                data: {
+                  technicalFeasibility,
+                  hardwareScore // 传递技术评估时计算的硬件评分
+                }
               })}\n\n`))
             }
 
@@ -163,6 +242,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
                 issues: technicalIssues,
                 recommendations: technicalRecommendations,
                 detailedEvaluation: technicalEvaluation,
+                hardwareScore, // 保存硬件评分以供报告使用
               }
 
               const businessValue = businessEvaluation ? {

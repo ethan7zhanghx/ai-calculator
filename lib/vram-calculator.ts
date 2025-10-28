@@ -411,6 +411,12 @@ export const GPU_SPECS: Record<string, GPUSpec> = {
     tflops: 125,
     bandwidth: 900
   },
+  "NVIDIA A10": {
+    name: "NVIDIA V100",
+    vramGB: 24,
+    tflops: 62.5,
+    bandwidth: 600
+  },
   "NVIDIA RTX 4090": {
     name: "NVIDIA RTX 4090",
     vramGB: 24,
