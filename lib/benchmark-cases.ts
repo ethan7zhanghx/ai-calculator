@@ -12,8 +12,8 @@ export const benchmarkCases: Record<string, EvaluationRequest> = {
       quality: "high"
     },
     performanceRequirements: {
-      tps: 5,
-      concurrency: 10
+      tps: 50,
+      concurrency: 5
     }
   },
   "case2_cost_inefficiency": {

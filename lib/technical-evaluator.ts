@@ -169,14 +169,39 @@ export async function evaluateTechnicalSolution(
 
     const content = data.choices[0].message.content
 
-    const result = JSON.parse(content) as TechnicalEvaluationResult
+    // 添加调试日志，记录AI返回的原始内容
+    console.log("技术评估AI返回原始内容:", content)
+    console.log("内容长度:", content?.length || 0)
+    console.log("内容类型:", typeof content)
+
+    // 检查内容是否为空或无效
+    if (!content || content.trim() === '') {
+      throw new Error("AI返回了空内容，可能是API问题或prompt过长")
+    }
+
+    // 尝试修复常见的JSON格式问题
+    let processedContent = content.trim()
+
+    // 如果内容被包裹在代码块中，提取JSON部分
+    if (processedContent.startsWith('```json')) {
+      processedContent = processedContent.replace(/```json\s*/, '').replace(/\s*```$/, '')
+    } else if (processedContent.startsWith('```')) {
+      processedContent = processedContent.replace(/```\s*/, '').replace(/\s*```$/, '')
+    }
+
+    console.log("处理后的内容:", processedContent)
+
+    const result = JSON.parse(processedContent) as TechnicalEvaluationResult
     return result
   } catch (error) {
     console.error("技术评估失败:", error)
 
     // 如果是JSON解析错误,提供更详细的信息
     if (error instanceof SyntaxError) {
-      throw new Error("AI返回的JSON格式无效,请重试")
+      console.error("JSON解析错误详情:")
+      console.error("- 错误消息:", error.message)
+      console.error("- 原始内容:", content)
+      throw new Error(`AI返回的JSON格式无效: ${error.message}`)
     }
 
     // 如果是网络或API错误,保持原错误信息
