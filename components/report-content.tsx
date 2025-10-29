@@ -14,6 +14,20 @@ export function ReportContent({ evaluation }: ReportContentProps) {
   const router = useRouter()
   const { toast } = useToast()
 
+  const handleBack = () => {
+    // 如果有历史记录可以返回，则返回
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      // 否则关闭当前标签页或跳转到主页
+      window.close()
+      // 如果无法关闭（浏览器限制），则跳转到主页
+      setTimeout(() => {
+        router.push('/')
+      }, 100)
+    }
+  }
+
   const handlePrint = () => {
     window.print()
   }
@@ -52,7 +66,7 @@ export function ReportContent({ evaluation }: ReportContentProps) {
       {/* 工具栏 - 只在屏幕显示，打印时隐藏 */}
       <div className="print:hidden sticky top-0 z-50 bg-white border-b shadow-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="ghost" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
           </Button>
