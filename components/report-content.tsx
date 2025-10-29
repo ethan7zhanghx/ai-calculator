@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Printer, Download } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { calculateResourceScore } from "@/lib/resource-calculator"
 import { useToast } from "@/hooks/use-toast"
@@ -26,10 +26,6 @@ export function ReportContent({ evaluation }: ReportContentProps) {
         router.push('/')
       }, 100)
     }
-  }
-
-  const handlePrint = () => {
-    window.print()
   }
 
   const handleSaveAsPDF = () => {
@@ -71,16 +67,10 @@ export function ReportContent({ evaluation }: ReportContentProps) {
             返回
           </Button>
           <h1 className="text-lg font-semibold">AI需求评估完整报告</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              打印
-            </Button>
-            <Button onClick={handleSaveAsPDF}>
-              <Download className="h-4 w-4 mr-2" />
-              保存为PDF
-            </Button>
-          </div>
+          <Button onClick={handleSaveAsPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            保存为PDF
+          </Button>
         </div>
       </div>
 
