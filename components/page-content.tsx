@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -116,11 +116,25 @@ export default function PageContent() {
     business: null,
   })
 
+  // 标记是否正在主动清除evaluation（点击重新编辑）
+  const isManualClearRef = useRef(false)
+
   // 从URL加载评估结果
   useEffect(() => {
     const evaluationId = searchParams.get("evaluationId")
 
-    console.log("[useEffect] 触发 - evaluationId:", evaluationId, "evaluation:", evaluation?.evaluationId)
+    console.log("[useEffect] 触发 - evaluationId:", evaluationId, "evaluation:", evaluation?.evaluationId, "isManualClear:", isManualClearRef.current)
+
+    // 如果是主动清除（点击重新编辑），不要重新加载
+    if (isManualClearRef.current) {
+      console.log("[useEffect] 检测到主动清除标记，跳过加载")
+      // 重置标记，但只在URL也变成空时才重置
+      if (!evaluationId) {
+        console.log("[useEffect] URL已清除，重置主动清除标记")
+        isManualClearRef.current = false
+      }
+      return
+    }
 
     // 如果URL中没有evaluationId，不做任何操作（避免在点击"重新编辑"时重新加载）
     if (!evaluationId) {
@@ -844,10 +858,13 @@ export default function PageContent() {
                 concurrency={concurrency}
                 onEdit={() => {
                   console.log("[onEdit] 点击重新编辑 - 当前evaluation:", evaluation?.evaluationId)
+                  // 设置主动清除标记，防止useEffect重新加载
+                  isManualClearRef.current = true
+                  console.log("[onEdit] 已设置主动清除标记")
                   // 先清除evaluation状态，确保界面立即切换到输入表单
                   setEvaluation(null)
                   console.log("[onEdit] 已调用setEvaluation(null)")
-                  // 然后清除URL中的ID（这不会触发useEffect重新加载，因为evaluation已经是null了）
+                  // 然后清除URL中的ID
                   router.replace("/")
                   console.log("[onEdit] 已调用router.replace(\"/\")")
                 }}
