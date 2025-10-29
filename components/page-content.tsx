@@ -120,15 +120,21 @@ export default function PageContent() {
   useEffect(() => {
     const evaluationId = searchParams.get("evaluationId")
 
+    console.log("[useEffect] 触发 - evaluationId:", evaluationId, "evaluation:", evaluation?.evaluationId)
+
     // 如果URL中没有evaluationId，不做任何操作（避免在点击"重新编辑"时重新加载）
     if (!evaluationId) {
+      console.log("[useEffect] URL中没有evaluationId，退出")
       return
     }
 
     // 只有当URL中的evaluationId与当前不一致时才加载
     if (evaluation && evaluation.evaluationId === evaluationId) {
+      console.log("[useEffect] evaluationId一致，无需重新加载")
       return
     }
+
+    console.log("[useEffect] 开始加载evaluation:", evaluationId)
 
     const fetchEvaluation = async (id: string) => {
       try {
@@ -837,10 +843,13 @@ export default function PageContent() {
                 tps={tps}
                 concurrency={concurrency}
                 onEdit={() => {
+                  console.log("[onEdit] 点击重新编辑 - 当前evaluation:", evaluation?.evaluationId)
                   // 先清除evaluation状态，确保界面立即切换到输入表单
                   setEvaluation(null)
+                  console.log("[onEdit] 已调用setEvaluation(null)")
                   // 然后清除URL中的ID（这不会触发useEffect重新加载，因为evaluation已经是null了）
                   router.replace("/")
+                  console.log("[onEdit] 已调用router.replace(\"/\")")
                 }}
               />
             )}
