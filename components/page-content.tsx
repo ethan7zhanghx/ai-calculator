@@ -837,8 +837,10 @@ export default function PageContent() {
                 tps={tps}
                 concurrency={concurrency}
                 onEdit={() => {
+                  // 先清除evaluation状态，确保界面立即切换到输入表单
                   setEvaluation(null)
-                  router.replace("/") // 清除URL中的ID
+                  // 然后清除URL中的ID（这不会触发useEffect重新加载，因为evaluation已经是null了）
+                  router.replace("/")
                 }}
               />
             )}
