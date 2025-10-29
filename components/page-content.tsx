@@ -119,57 +119,66 @@ export default function PageContent() {
   // 从URL加载评估结果
   useEffect(() => {
     const evaluationId = searchParams.get("evaluationId")
-    // 当URL中的评估ID与当前评估ID不一致时，重新加载
-    if (evaluationId && (!evaluation || evaluation.evaluationId !== evaluationId)) {
-      const fetchEvaluation = async (id: string) => {
-        try {
-          const response = await fetch(`/api/evaluate/${id}`)
-          const result = await response.json()
 
-          if (result.success) {
-            const data = result.data
-            // 恢复所有相关状态
-            setEvaluation({
-              evaluationId: data.evaluationId,
-              resourceFeasibility: data.resourceFeasibility,
-              technicalFeasibility: data.technicalFeasibility,
-              businessValue: data.businessValue,
-              createdAt: data.createdAt,
-            })
-            // 填充表单输入以供摘要卡使用
-            setModel(data.model || "")
-            setHardware(data.hardware || "")
-            setMachineCount(data.machineCount || "")
-            setCardsPerMachine(data.cardsPerMachine || "")
-            setDataDescription(data.businessDataDescription || "")
-            setDataQuality(data.businessDataQuality || "high")
-            setBusinessScenario(data.businessScenario || "")
-            setTps(data.performanceTPS || "")
-            setConcurrency(data.performanceConcurrency || "")
+    // 如果URL中没有evaluationId，不做任何操作（避免在点击"重新编辑"时重新加载）
+    if (!evaluationId) {
+      return
+    }
 
-            toast({
-              title: "已加载评估记录",
-              description: "已成功从您的历史记录中恢复评估报告。",
-            })
-          } else {
-            toast({
-              title: "无法加载评估记录",
-              description: "该记录可能已被删除或链接无效。",
-              variant: "destructive",
-            })
-            router.replace("/") // 从URL中移除无效ID
-          }
-        } catch (error) {
+    // 只有当URL中的evaluationId与当前不一致时才加载
+    if (evaluation && evaluation.evaluationId === evaluationId) {
+      return
+    }
+
+    const fetchEvaluation = async (id: string) => {
+      try {
+        const response = await fetch(`/api/evaluate/${id}`)
+        const result = await response.json()
+
+        if (result.success) {
+          const data = result.data
+          // 恢复所有相关状态
+          setEvaluation({
+            evaluationId: data.evaluationId,
+            resourceFeasibility: data.resourceFeasibility,
+            technicalFeasibility: data.technicalFeasibility,
+            businessValue: data.businessValue,
+            createdAt: data.createdAt,
+          })
+          // 填充表单输入以供摘要卡使用
+          setModel(data.model || "")
+          setHardware(data.hardware || "")
+          setMachineCount(data.machineCount || "")
+          setCardsPerMachine(data.cardsPerMachine || "")
+          setDataDescription(data.businessDataDescription || "")
+          setDataQuality(data.businessDataQuality || "high")
+          setBusinessScenario(data.businessScenario || "")
+          setTps(data.performanceTPS || "")
+          setConcurrency(data.performanceConcurrency || "")
+
           toast({
-            title: "加载失败",
-            description: "网络错误，请稍后重试。",
+            title: "已加载评估记录",
+            description: "已成功从您的历史记录中恢复评估报告。",
+          })
+        } else {
+          toast({
+            title: "无法加载评估记录",
+            description: "该记录可能已被删除或链接无效。",
             variant: "destructive",
           })
-          router.replace("/")
+          router.replace("/") // 从URL中移除无效ID
         }
+      } catch (error) {
+        toast({
+          title: "加载失败",
+          description: "网络错误，请稍后重试。",
+          variant: "destructive",
+        })
+        router.replace("/")
       }
-      fetchEvaluation(evaluationId)
     }
+
+    fetchEvaluation(evaluationId)
   }, [searchParams, router, toast, evaluation])
 
 
