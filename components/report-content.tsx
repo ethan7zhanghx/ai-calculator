@@ -411,9 +411,9 @@ export function ReportContent({ evaluation }: ReportContentProps) {
                       <div className="space-y-4 mt-6">
                         <h3 className="text-lg font-semibold mb-2">详细维度分析</h3>
 
-                        {/* 1. 问题-解决方案匹配度 */}
+                        {/* 1. 解决方案匹配度 */}
                         <div className="page-break-inside-avoid">
-                          <h4 className="font-semibold mb-1">1. 问题-解决方案匹配度</h4>
+                          <h4 className="font-semibold mb-1">1. 解决方案匹配度</h4>
                           <p className="text-sm mb-1">
                             <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit?.score || 0} / 100
                           </p>
