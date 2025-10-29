@@ -364,6 +364,12 @@ export function ReportContent({ evaluation }: ReportContentProps) {
                       <p className="text-sm leading-relaxed">{evaluation.businessValue.detailedEvaluation.summary}</p>
                     </div>
 
+                    {evaluation.businessValue.detailedEvaluation.disclaimer && (
+                      <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200 print:bg-white">
+                        <p className="text-xs text-gray-600">{evaluation.businessValue.detailedEvaluation.disclaimer}</p>
+                      </div>
+                    )}
+
                     {evaluation.businessValue.detailedEvaluation.opportunities && evaluation.businessValue.detailedEvaluation.opportunities.length > 0 && (
                       <div>
                         <h3 className="text-lg font-semibold mb-2">📈 商业机会</h3>
@@ -386,8 +392,203 @@ export function ReportContent({ evaluation }: ReportContentProps) {
                       </div>
                     )}
 
+                    {/* 详细维度分析 */}
+                    {evaluation.businessValue.detailedEvaluation.dimensions && (
+                      <div className="space-y-4 mt-6">
+                        <h3 className="text-lg font-semibold mb-2">详细维度分析</h3>
+
+                        {/* 1. 问题-解决方案匹配度 */}
+                        <div className="page-break-inside-avoid">
+                          <h4 className="font-semibold mb-1">1. 问题-解决方案匹配度</h4>
+                          <p className="text-sm mb-1">
+                            <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit?.score || 0} / 100
+                          </p>
+                          <p className="text-sm mb-1">
+                            <strong>状态:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit?.status || '未评估'}
+                          </p>
+                          <p className="text-sm mb-2">
+                            {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit?.analysis || '暂无分析'}
+                          </p>
+                          {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit?.painPoints &&
+                           evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit.painPoints.length > 0 && (
+                            <div className="mb-2">
+                              <strong className="text-sm">业务痛点:</strong>
+                              <ul className="list-disc pl-5 mt-1">
+                                {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit.painPoints.map((point: string, i: number) => (
+                                  <li key={i} className="text-sm">{point}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit?.aiNecessity && (
+                            <p className="text-sm">
+                              <strong>AI必要性:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.problemSolutionFit.aiNecessity}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* 2. ROI预期合理性 */}
+                        <div className="page-break-inside-avoid">
+                          <h4 className="font-semibold mb-1">2. ROI预期合理性</h4>
+                          <p className="text-sm mb-1">
+                            <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.roiFeasibility?.score || 0} / 100
+                          </p>
+                          <p className="text-sm mb-2">
+                            {evaluation.businessValue.detailedEvaluation.dimensions.roiFeasibility?.analysis || '暂无分析'}
+                          </p>
+                          {evaluation.businessValue.detailedEvaluation.dimensions.roiFeasibility?.considerations &&
+                           evaluation.businessValue.detailedEvaluation.dimensions.roiFeasibility.considerations.length > 0 && (
+                            <div className="mb-2">
+                              <strong className="text-sm">关键考量因素:</strong>
+                              <ul className="list-disc pl-5 mt-1">
+                                {evaluation.businessValue.detailedEvaluation.dimensions.roiFeasibility.considerations.map((item: string, i: number) => (
+                                  <li key={i} className="text-sm">{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 3. 市场竞争优势 */}
+                        <div className="page-break-inside-avoid">
+                          <h4 className="font-semibold mb-1">3. 市场竞争优势</h4>
+                          <p className="text-sm mb-1">
+                            <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.competitiveAdvantage?.score || 0} / 100
+                          </p>
+                          <p className="text-sm mb-1">
+                            <strong>等级:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.competitiveAdvantage?.level || '未评估'}
+                          </p>
+                          <p className="text-sm mb-2">
+                            {evaluation.businessValue.detailedEvaluation.dimensions.competitiveAdvantage?.analysis || '暂无分析'}
+                          </p>
+                          {evaluation.businessValue.detailedEvaluation.dimensions.competitiveAdvantage?.barriers &&
+                           evaluation.businessValue.detailedEvaluation.dimensions.competitiveAdvantage.barriers.length > 0 && (
+                            <div className="mb-2">
+                              <strong className="text-sm">潜在竞争壁垒:</strong>
+                              <ul className="list-disc pl-5 mt-1">
+                                {evaluation.businessValue.detailedEvaluation.dimensions.competitiveAdvantage.barriers.map((barrier: string, i: number) => (
+                                  <li key={i} className="text-sm">{barrier}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 4. 可扩展性与增长潜力 */}
+                        <div className="page-break-inside-avoid">
+                          <h4 className="font-semibold mb-1">4. 可扩展性与增长潜力</h4>
+                          <p className="text-sm mb-1">
+                            <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.scalability?.score || 0} / 100
+                          </p>
+                          <p className="text-sm mb-1">
+                            <strong>等级:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.scalability?.level || '未评估'}
+                          </p>
+                          <p className="text-sm mb-2">
+                            {evaluation.businessValue.detailedEvaluation.dimensions.scalability?.analysis || '暂无分析'}
+                          </p>
+                          {evaluation.businessValue.detailedEvaluation.dimensions.scalability?.growthPotential &&
+                           evaluation.businessValue.detailedEvaluation.dimensions.scalability.growthPotential.length > 0 && (
+                            <div className="mb-2">
+                              <strong className="text-sm">增长潜力:</strong>
+                              <ul className="list-disc pl-5 mt-1">
+                                {evaluation.businessValue.detailedEvaluation.dimensions.scalability.growthPotential.map((potential: string, i: number) => (
+                                  <li key={i} className="text-sm">{potential}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 5. 落地风险评估 */}
+                        <div className="page-break-inside-avoid">
+                          <h4 className="font-semibold mb-1">5. 落地风险评估</h4>
+                          <p className="text-sm mb-1">
+                            <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk?.score || 0} / 100
+                          </p>
+                          <p className="text-sm mb-1">
+                            <strong>风险等级:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk?.level || '未评估'}
+                          </p>
+                          <p className="text-sm mb-2">
+                            {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk?.analysis || '暂无分析'}
+                          </p>
+                          {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk?.risks && (
+                            <>
+                              {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.technical?.length > 0 && (
+                                <div className="mb-2">
+                                  <strong className="text-sm">技术风险:</strong>
+                                  <ul className="list-disc pl-5 mt-1">
+                                    {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.technical.map((risk: string, i: number) => (
+                                      <li key={i} className="text-sm">{risk}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.business?.length > 0 && (
+                                <div className="mb-2">
+                                  <strong className="text-sm">业务风险:</strong>
+                                  <ul className="list-disc pl-5 mt-1">
+                                    {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.business.map((risk: string, i: number) => (
+                                      <li key={i} className="text-sm">{risk}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.compliance?.length > 0 && (
+                                <div className="mb-2">
+                                  <strong className="text-sm">合规风险:</strong>
+                                  <ul className="list-disc pl-5 mt-1">
+                                    {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.compliance.map((risk: string, i: number) => (
+                                      <li key={i} className="text-sm">{risk}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.organizational?.length > 0 && (
+                                <div className="mb-2">
+                                  <strong className="text-sm">组织风险:</strong>
+                                  <ul className="list-disc pl-5 mt-1">
+                                    {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.risks.organizational.map((risk: string, i: number) => (
+                                      <li key={i} className="text-sm">{risk}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk?.mitigations &&
+                           evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.mitigations.length > 0 && (
+                            <div className="mb-2">
+                              <strong className="text-sm">风险缓解措施:</strong>
+                              <ul className="list-disc pl-5 mt-1">
+                                {evaluation.businessValue.detailedEvaluation.dimensions.implementationRisk.mitigations.map((mitigation: string, i: number) => (
+                                  <li key={i} className="text-sm">{mitigation}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 6. 时间窗口与紧迫性 */}
+                        <div className="page-break-inside-avoid">
+                          <h4 className="font-semibold mb-1">6. 时间窗口与紧迫性</h4>
+                          <p className="text-sm mb-1">
+                            <strong>评分:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.marketTiming?.score || 0} / 100
+                          </p>
+                          <p className="text-sm mb-1">
+                            <strong>时机:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.marketTiming?.status || '未评估'}
+                          </p>
+                          <p className="text-sm mb-1">
+                            <strong>紧迫性:</strong> {evaluation.businessValue.detailedEvaluation.dimensions.marketTiming?.urgency || '未评估'}
+                          </p>
+                          <p className="text-sm mb-2">
+                            {evaluation.businessValue.detailedEvaluation.dimensions.marketTiming?.analysis || '暂无分析'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {evaluation.businessValue.detailedEvaluation.recommendations && evaluation.businessValue.detailedEvaluation.recommendations.length > 0 && (
-                      <div>
+                      <div className="mt-4">
                         <h3 className="text-lg font-semibold mb-2">💡 行动建议</h3>
                         <ul className="list-disc pl-5 space-y-1">
                           {evaluation.businessValue.detailedEvaluation.recommendations.map((rec: string, i: number) => (
