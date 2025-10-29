@@ -5,8 +5,8 @@ import { verifyToken } from "@/lib/jwt"
 import { calculateResourceScore } from "@/lib/resource-calculator"
 import { marked } from "marked"
 import fs from "fs/promises"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
+import PDFDocument from "pdfkit"
+import { Readable } from "stream"
 
 export async function GET(
   request: NextRequest,
@@ -56,7 +56,7 @@ export async function GET(
     try {
       console.log("开始生成PDF报告...")
 
-      const pdfBuffer = await generatePDFWithHtml2Canvas(reportMarkdown)
+      const pdfBuffer = await generatePDFWithPDFKit(reportMarkdown)
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error("生成的PDF文件为空")
@@ -104,159 +104,151 @@ export async function GET(
   }
 }
 
-// 使用纯jsPDF生成PDF（云端友好方案）
-async function generatePDFWithHtml2Canvas(markdownContent: string): Promise<Buffer> {
-  console.log("启动jsPDF PDF生成...")
+// 使用PDFKit生成PDF（支持中文）
+async function generatePDFWithPDFKit(markdownContent: string): Promise<Buffer> {
+  console.log("启动PDFKit PDF生成...")
 
-  try {
-    // 创建jsPDF实例
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    })
+  return new Promise((resolve, reject) => {
+    try {
+      // 创建PDF文档
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        bufferPages: true,
+      })
 
-    // 设置中文字体支持
-    pdf.setFont('helvetica') // 使用内置字体，避免中文显示问题
+      // 收集PDF数据
+      const chunks: Buffer[] = []
+      doc.on('data', (chunk) => chunks.push(chunk))
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks)
+        console.log("PDFKit生成完成，文件大小:", pdfBuffer.length, "bytes")
+        resolve(pdfBuffer)
+      })
+      doc.on('error', reject)
 
-    let yPosition = 20 // 起始Y位置
-    const pageHeight = pdf.internal.pageSize.height
-    const pageWidth = pdf.internal.pageSize.width
-    const margin = 15
-    const contentWidth = pageWidth - 2 * margin
+      // 页面配置
+      const pageWidth = doc.page.width
+      const pageHeight = doc.page.height
+      const margin = 50
+      const contentWidth = pageWidth - 2 * margin
 
-    // 解析markdown内容并逐行添加到PDF
-    const lines = markdownContent.split('\n')
+      // 解析markdown内容并逐行添加到PDF
+      const lines = markdownContent.split('\n')
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim()
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim()
 
-      if (!line) {
-        yPosition += 5 // 空行
-        continue
-      }
+        if (!line) {
+          doc.moveDown(0.5) // 空行
+          continue
+        }
 
-      // 检查是否需要新页面
-      if (yPosition > pageHeight - 30) {
-        pdf.addPage()
-        yPosition = 20
-      }
+        // 检查是否需要新页面
+        if (doc.y > pageHeight - 100) {
+          doc.addPage()
+        }
 
-      // 解析markdown语法
-      if (line.startsWith('# ')) {
-        // 一级标题
-        pdf.setFontSize(20)
-        pdf.setFont('helvetica', 'bold')
-        const text = line.substring(2).trim()
-        pdf.text(text, margin, yPosition)
-        yPosition += 15
-      } else if (line.startsWith('## ')) {
-        // 二级标题
-        pdf.setFontSize(16)
-        pdf.setFont('helvetica', 'bold')
-        const text = line.substring(3).trim()
-        pdf.text(text, margin, yPosition)
-        yPosition += 12
-      } else if (line.startsWith('### ')) {
-        // 三级标题
-        pdf.setFontSize(14)
-        pdf.setFont('helvetica', 'bold')
-        const text = line.substring(4).trim()
-        pdf.text(text, margin, yPosition)
-        yPosition += 10
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        // 列表项
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
-        const text = line.substring(2).trim()
-        pdf.text(`• ${text}`, margin + 5, yPosition)
-        yPosition += 8
-      } else if (line.match(/^\d+\. /)) {
-        // 有序列表项
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
-        const text = line.replace(/^\d+\. /, '').trim()
-        const num = line.match(/^\d+/)?.[0] || ''
-        pdf.text(`${num}. ${text}`, margin + 5, yPosition)
-        yPosition += 8
-      } else if (line.startsWith('**') && line.endsWith('**')) {
-        // 粗体文本
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'bold')
-        const text = line.substring(2, line.length - 2).trim()
-        pdf.text(text, margin, yPosition)
-        yPosition += 8
-      } else if (line === '---') {
-        // 分隔线
-        yPosition += 5
-        pdf.setLineWidth(0.5)
-        pdf.line(margin, yPosition, pageWidth - margin, yPosition)
-        yPosition += 10
-      } else if (line.startsWith('**生成时间**')) {
-        // 生成时间特殊处理
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
-        pdf.text(line, margin, yPosition)
-        yPosition += 10
-      } else if (line.includes('综合评分:') || line.includes('资源可行性:') ||
-                 line.includes('技术合理性:') || line.includes('场景价值:')) {
-        // 评分信息
-        pdf.setFontSize(14)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text(line, margin, yPosition)
-        yPosition += 10
-      } else if (line.includes('✅ 可行') || line.includes('❌ 不可行')) {
-        // 可行性信息
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
-        pdf.text(line, margin, yPosition)
-        yPosition += 8
-      } else if (line.includes('评估总结:') || line.includes('分析:') ||
-                 line.includes('建议') || line.includes('问题')) {
-        // 章节标题
-        pdf.setFontSize(14)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text(line, margin, yPosition)
-        yPosition += 10
-      } else if (!line.includes('📊') && !line.includes('💻') && !line.includes('🔧') &&
-                 !line.includes('💰') && !line.includes('⚠️') && !line.includes('📈')) {
-        // 普通文本（排除emoji行）
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
-
-        // 长文本自动换行处理
-        const textLines = pdf.splitTextToSize(line, contentWidth)
-        textLines.forEach((textLine: string) => {
-          if (yPosition > pageHeight - 20) {
-            pdf.addPage()
-            yPosition = 20
+        // 解析markdown语法
+        if (line.startsWith('# ')) {
+          // 一级标题
+          const text = line.substring(2).trim()
+          doc.fontSize(24).font('Helvetica-Bold').text(text, { align: 'left' })
+          doc.moveDown(1)
+        } else if (line.startsWith('## ')) {
+          // 二级标题
+          const text = line.substring(3).trim()
+          doc.fontSize(18).font('Helvetica-Bold').text(text, { align: 'left' })
+          doc.moveDown(0.8)
+        } else if (line.startsWith('### ')) {
+          // 三级标题
+          const text = line.substring(4).trim()
+          doc.fontSize(14).font('Helvetica-Bold').text(text, { align: 'left' })
+          doc.moveDown(0.6)
+        } else if (line.startsWith('#### ')) {
+          // 四级标题
+          const text = line.substring(5).trim()
+          doc.fontSize(12).font('Helvetica-Bold').text(text, { align: 'left' })
+          doc.moveDown(0.5)
+        } else if (line.startsWith('- ') || line.startsWith('* ')) {
+          // 列表项
+          const text = line.substring(2).trim()
+          doc.fontSize(11).font('Helvetica').text(`• ${text}`, {
+            indent: 10,
+            width: contentWidth - 10,
+            align: 'left'
+          })
+          doc.moveDown(0.3)
+        } else if (line.match(/^\d+\. /)) {
+          // 有序列表项
+          const text = line.replace(/^\d+\. /, '').trim()
+          const num = line.match(/^\d+/)?.[0] || ''
+          doc.fontSize(11).font('Helvetica').text(`${num}. ${text}`, {
+            indent: 10,
+            width: contentWidth - 10,
+            align: 'left'
+          })
+          doc.moveDown(0.3)
+        } else if (line === '---') {
+          // 分隔线
+          doc.moveDown(0.5)
+          doc.moveTo(margin, doc.y)
+             .lineTo(pageWidth - margin, doc.y)
+             .stroke()
+          doc.moveDown(0.5)
+        } else if (line.match(/^\*\*.*\*\*:?\s*\d+/)) {
+          // 评分信息或粗体标签（如：**评分**: 85）
+          doc.fontSize(12).font('Helvetica-Bold').text(line.replace(/\*\*/g, ''), { align: 'left' })
+          doc.moveDown(0.5)
+        } else if (line.startsWith('**') && line.endsWith('**')) {
+          // 独立粗体文本
+          const text = line.substring(2, line.length - 2).trim()
+          doc.fontSize(11).font('Helvetica-Bold').text(text, { align: 'left' })
+          doc.moveDown(0.4)
+        } else {
+          // 普通文本
+          // 过滤掉emoji（PDFKit默认字体不支持emoji）
+          const cleanText = line.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim()
+          if (cleanText) {
+            doc.fontSize(11).font('Helvetica').text(cleanText, {
+              width: contentWidth,
+              align: 'left'
+            })
+            doc.moveDown(0.4)
           }
-          pdf.text(textLine, margin, yPosition)
-          yPosition += 7
-        })
+        }
       }
+
+      // 添加页脚（页码）
+      const range = doc.bufferedPageRange()
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i)
+
+        // 底部居中页脚
+        doc.fontSize(9).font('Helvetica-Oblique')
+           .text('*本报告由AI需求计算器自动生成*',
+             margin,
+             pageHeight - 30,
+             { align: 'center', width: contentWidth }
+           )
+
+        // 页码（右下角）
+        doc.fontSize(9).font('Helvetica')
+           .text(`页 ${i + 1} / ${range.count}`,
+             margin,
+             pageHeight - 30,
+             { align: 'right', width: contentWidth }
+           )
+      }
+
+      // 结束文档
+      doc.end()
+
+    } catch (error) {
+      console.error("PDF生成过程中出错:", error)
+      reject(error)
     }
-
-    // 添加页脚
-    const totalPages = pdf.internal.getNumberOfPages()
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i)
-      pdf.setFontSize(10)
-      pdf.setFont('helvetica', 'italic')
-      pdf.text('*本报告由AI需求计算器自动生成*', pageWidth / 2, pageHeight - 10, { align: 'center' })
-      pdf.text(`页 ${i} / ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
-    }
-
-    // 生成PDF Buffer
-    const pdfBuffer = Buffer.from(pdf.output('arraybuffer'))
-    console.log("jsPDF生成完成，文件大小:", pdfBuffer.length, "bytes")
-
-    return pdfBuffer
-
-  } catch (error) {
-    console.error("PDF生成过程中出错:", error)
-    throw error
-  }
+  })
 }
 
 function generateMarkdownReport(evaluation: any): string {
