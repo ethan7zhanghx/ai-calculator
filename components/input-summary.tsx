@@ -13,6 +13,7 @@ interface InputSummaryProps {
   cardsPerMachine: string
   dataDescription: string
   dataQuality: string
+  businessScenario: string
   tps: string
   concurrency: string
   onEdit?: () => void
@@ -25,6 +26,7 @@ export function InputSummary({
   cardsPerMachine,
   dataDescription,
   dataQuality,
+  businessScenario,
   tps,
   concurrency,
   onEdit,
@@ -55,6 +57,14 @@ export function InputSummary({
             <span className="text-muted-foreground">总卡数</span>
             <span className="font-medium">{totalCards} 张</span>
           </div>
+        </div>
+
+        <Separator />
+
+        {/* 业务场景 */}
+        <div>
+          <div className="text-muted-foreground mb-1">业务场景</div>
+          <p className="text-sm font-medium leading-relaxed">{businessScenario}</p>
         </div>
 
         <Separator />
