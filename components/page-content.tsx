@@ -526,47 +526,11 @@ export default function PageContent() {
   }
 
 
-  // 下载完整报告
-  const handleDownloadReport = async () => {
+  // 查看完整报告
+  const handleViewReport = () => {
     if (!evaluation) return
-
-    try {
-      const token = localStorage.getItem("token")
-      const headers: HeadersInit = {}
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`
-      }
-
-      const response = await fetch(`/api/evaluate/${evaluation.evaluationId}/report`, {
-        method: "GET",
-        headers,
-      })
-
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `AI评估报告_${new Date().toLocaleDateString()}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-
-        toast({
-          title: "下载成功",
-          description: "完整评估报告已下载",
-        })
-      } else {
-        throw new Error("下载失败")
-      }
-    } catch (error) {
-      toast({
-        title: "下载失败",
-        description: "无法下载报告，请稍后重试",
-        variant: "destructive",
-      })
-    }
+    // 在新标签页打开报告页面
+    window.open(`/report/${evaluation.evaluationId}`, '_blank')
   }
 
   const isFormComplete = model && hardware && machineCount && cardsPerMachine && dataDescription && businessScenario && tps && concurrency
@@ -1477,16 +1441,16 @@ export default function PageContent() {
                   </Card>
                 )}
 
-                {/* 下载完整报告按钮 */}
+                {/* 查看完整报告按钮 */}
                 <div className="flex flex-col items-center pt-2 space-y-3">
                   <Button
                     variant="default"
                     size="lg"
-                    onClick={handleDownloadReport}
+                    onClick={handleViewReport}
                     className="gap-2"
                   >
                     <Download className="h-5 w-5" />
-                    下载完整报告
+                    查看完整报告
                   </Button>
 
                   {/* AI报告说明提示 */}
@@ -1498,7 +1462,7 @@ export default function PageContent() {
                           报告由AI智能生成
                         </p>
                         <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                          如需专家深度建议或定制化方案，欢迎通过右下角「反馈建议」联系我们，我们将提供专业技术支持。
+                          点击查看完整报告后，可使用浏览器打印功能（Ctrl+P / Cmd+P）保存为PDF。如需专家深度建议或定制化方案，欢迎通过右下角「反馈建议」联系我们。
                         </p>
                       </div>
                     </div>
