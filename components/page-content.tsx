@@ -119,8 +119,8 @@ export default function PageContent() {
   // 从URL加载评估结果
   useEffect(() => {
     const evaluationId = searchParams.get("evaluationId")
-    // 只有在没有当前评估结果时才从URL加载，以避免覆盖现有状态
-    if (evaluationId && !evaluation) {
+    // 当URL中的评估ID与当前评估ID不一致时，重新加载
+    if (evaluationId && (!evaluation || evaluation.evaluationId !== evaluationId)) {
       const fetchEvaluation = async (id: string) => {
         try {
           const response = await fetch(`/api/evaluate/${id}`)
