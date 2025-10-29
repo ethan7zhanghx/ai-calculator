@@ -73,9 +73,10 @@ export interface TechnicalEvaluationResult {
 /**
  * 使用LLM智能分析业务场景所需的任务类型
  * @param scenario 业务场景描述
+ * @param modelName 使用的模型名称
  * @returns 所需任务类型的布尔值
  */
-async function analyzeRequiredTasks(scenario: string): Promise<{
+async function analyzeRequiredTasks(scenario: string, modelName: string): Promise<{
   needsInference: boolean
   needsFineTuning: boolean
   needsPretraining: boolean
@@ -99,7 +100,7 @@ async function analyzeRequiredTasks(scenario: string): Promise<{
           "X-Appbuilder-Authorization": apiKey,
         },
         body: JSON.stringify({
-          model: "ERNIE-4.5-8K", // 使用较小的模型进行快速分析
+          model: modelName, // 使用与主评估相同的模型
           messages: [
             {
               role: "user",
@@ -207,12 +208,13 @@ function fallbackAnalyzeRequiredTasks(scenario: string): {
  */
 async function calculateObjectiveHardwareScore(
   req: EvaluationRequest,
-  resourceFeasibility: any
+  resourceFeasibility: any,
+  modelName: string
 ): Promise<number> {
   if (!resourceFeasibility) return 0
 
   const { pretraining, fineTuning, inference } = resourceFeasibility
-  const requiredTasks = await analyzeRequiredTasks(req.businessScenario)
+  const requiredTasks = await analyzeRequiredTasks(req.businessScenario, modelName)
 
   console.log(`场景需求分析 - ${req.businessScenario}`)
   console.log(`- 需要推理: ${requiredTasks.needsInference ? '✅' : '❌'}`)
@@ -545,14 +547,14 @@ export async function evaluateTechnicalSolution(
     )
 
     // 2. 分析场景需求（推理/微调/预训练）
-    const requiredTasks = await analyzeRequiredTasks(req.businessScenario)
+    const requiredTasks = await analyzeRequiredTasks(req.businessScenario, modelName)
     console.log(`场景需求分析完成 - ${req.businessScenario}`)
     console.log(`- 需要推理: ${requiredTasks.needsInference ? '✅' : '❌'}`)
     console.log(`- 需要微调: ${requiredTasks.needsFineTuning ? '✅' : '❌'}`)
     console.log(`- 需要预训练: ${requiredTasks.needsPretraining ? '✅' : '❌'}`)
 
     // 3. 基于场景需求计算客观的硬件评分
-    const hardwareScore = await calculateObjectiveHardwareScore(req, resourceFeasibility)
+    const hardwareScore = await calculateObjectiveHardwareScore(req, resourceFeasibility, modelName)
 
     // 4. 构建Prompt，传递客观评分和详细硬件信息
     const prompt = buildEvaluationPrompt(req, totalCards, hardwareScore, resourceFeasibility)
