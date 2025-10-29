@@ -64,35 +64,27 @@ export function EvaluationDashboard({ evaluation }: EvaluationDashboardProps) {
         { label: "技术方案", value: technicalScore, color: "#10b981" },
       ]
 
-  // 关键指标 - 只在场景价值存在时包含
+  // 关键指标 - 专注关键性能指标，避免重复显示评分
   const keyMetrics = [
-    {
-      label: "资源可行性",
-      value: resourceScore,
-      trend: resourceScore >= 70 ? "up" : "down",
-      status: resourceScore >= 70 ? "good" : "poor",
-    },
-    {
-      label: "技术合理性",
-      value: technicalScore,
-      trend: technicalScore >= 70 ? "up" : "down",
-      status: technicalScore >= 70 ? "good" : "poor",
-    },
-    ...(evaluation.businessValue
-      ? [
-          {
-            label: "场景价值",
-            value: businessScore,
-            trend: businessScore >= 70 ? "up" : "down",
-            status: businessScore >= 70 ? "good" : "poor",
-          },
-        ]
-      : []),
     {
       label: "支持QPS",
       value: evaluation.resourceFeasibility?.inference?.supportedQPS ?? 0,
       trend: evaluation.resourceFeasibility?.inference?.meetsRequirements ? "up" : "down",
       status: evaluation.resourceFeasibility?.inference?.meetsRequirements ? "good" : "poor",
+      isMetric: true,
+    },
+    {
+      label: "TPS",
+      value: evaluation.resourceFeasibility?.inference?.supportedThroughput ?? 0,
+      trend: evaluation.resourceFeasibility?.inference?.meetsRequirements ? "up" : "down",
+      status: evaluation.resourceFeasibility?.inference?.meetsRequirements ? "good" : "poor",
+      isMetric: true,
+    },
+    {
+      label: "推理内存",
+      value: `${Math.round(evaluation.resourceFeasibility?.inference?.memoryRequired || 0)}GB`,
+      trend: evaluation.resourceFeasibility?.inference?.feasible ? "up" : "down",
+      status: evaluation.resourceFeasibility?.inference?.feasible ? "good" : "poor",
       isMetric: true,
     },
   ]
