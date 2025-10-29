@@ -824,6 +824,7 @@ export default function PageContent() {
                 cardsPerMachine={cardsPerMachine}
                 dataDescription={dataDescription}
                 dataQuality={dataQuality}
+                businessScenario={businessScenario}
                 tps={tps}
                 concurrency={concurrency}
                 onEdit={() => {
