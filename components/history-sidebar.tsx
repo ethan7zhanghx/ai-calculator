@@ -136,7 +136,7 @@ export function HistorySidebar() {
                     {/* 标题和评分 */}
                     <div className="flex items-start justify-between mb-3">
                       <p className="font-semibold text-sm line-clamp-2 pr-4">
-                        {item.businessScenario}
+                        {item.businessScenario || item.businessDataDescription || "评估记录"}
                       </p>
                       <Badge variant={item.score && item.score >= 70 ? "default" : "secondary"}>
                         {item.score ?? 'N/A'}
