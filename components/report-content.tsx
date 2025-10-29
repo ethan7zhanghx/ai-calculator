@@ -1,9 +1,10 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Printer } from "lucide-react"
+import { ArrowLeft, Printer, Download } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { calculateResourceScore } from "@/lib/resource-calculator"
+import { useToast } from "@/hooks/use-toast"
 
 interface ReportContentProps {
   evaluation: any
@@ -11,9 +12,23 @@ interface ReportContentProps {
 
 export function ReportContent({ evaluation }: ReportContentProps) {
   const router = useRouter()
+  const { toast } = useToast()
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleSaveAsPDF = () => {
+    // 显示提示
+    toast({
+      title: "准备保存为PDF",
+      description: "请在打印对话框中选择\"保存为PDF\"或\"Microsoft Print to PDF\"",
+    })
+
+    // 延迟一下让用户看到提示
+    setTimeout(() => {
+      window.print()
+    }, 500)
   }
 
   // 使用保存的硬件评分，确保历史记录显示一致性
@@ -42,10 +57,16 @@ export function ReportContent({ evaluation }: ReportContentProps) {
             返回
           </Button>
           <h1 className="text-lg font-semibold">AI需求评估完整报告</h1>
-          <Button onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            打印报告
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              打印
+            </Button>
+            <Button onClick={handleSaveAsPDF}>
+              <Download className="h-4 w-4 mr-2" />
+              保存为PDF
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -388,6 +409,42 @@ export function ReportContent({ evaluation }: ReportContentProps) {
             <p>*本报告由AI需求计算器自动生成*</p>
           </footer>
         </article>
+
+        {/* 使用提示 - 只在屏幕显示 */}
+        <div className="print:hidden mt-8 max-w-3xl mx-auto">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              如何保存此报告？
+            </h3>
+            <div className="space-y-3 text-sm text-blue-800">
+              <div>
+                <strong>方法1：使用"保存为PDF"按钮</strong>
+                <p className="mt-1 text-blue-700">
+                  点击顶部的"保存为PDF"按钮，在弹出的打印对话框中：
+                </p>
+                <ul className="list-disc pl-5 mt-1 text-blue-700 space-y-1">
+                  <li><strong>Windows:</strong> 选择"Microsoft Print to PDF"或"保存为PDF"</li>
+                  <li><strong>Mac:</strong> 点击左下角的"PDF"按钮，选择"存储为PDF"</li>
+                  <li><strong>Chrome:</strong> 目标打印机选择"另存为PDF"</li>
+                </ul>
+              </div>
+              <div>
+                <strong>方法2：使用键盘快捷键</strong>
+                <p className="mt-1 text-blue-700">
+                  按 <kbd className="px-2 py-1 bg-blue-100 rounded border border-blue-300 font-mono text-xs">Ctrl+P</kbd> (Windows)
+                  或 <kbd className="px-2 py-1 bg-blue-100 rounded border border-blue-300 font-mono text-xs">Cmd+P</kbd> (Mac)，
+                  然后按上述方法选择保存为PDF
+                </p>
+              </div>
+              <div className="pt-2 border-t border-blue-200">
+                <p className="text-blue-700">
+                  💡 <strong>提示：</strong>如需专家深度建议或定制化方案，欢迎通过主页的「反馈建议」联系我们。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 打印样式 */}

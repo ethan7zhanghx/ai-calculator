@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { getPrismaClient } from "@/lib/prisma"
 import { calculateResourceScore } from "@/lib/resource-calculator"
 import { ReportContent } from "@/components/report-content"
+import { Toaster } from "@/components/ui/toaster"
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const prisma = getPrismaClient()
@@ -28,7 +29,12 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       businessValue: evaluation.businessValue ? JSON.parse(evaluation.businessValue as string) : null,
     }
 
-    return <ReportContent evaluation={parsedEvaluation} />
+    return (
+      <>
+        <ReportContent evaluation={parsedEvaluation} />
+        <Toaster />
+      </>
+    )
   } catch (error) {
     console.error("加载报告失败:", error)
     notFound()
