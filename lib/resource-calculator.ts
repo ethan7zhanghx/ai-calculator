@@ -79,8 +79,8 @@ export function calculateResourceFeasibility(
   // --- 评估各项任务所需显存 (基于FP16精度) ---
 
   // 1. 推理 (Inference)
-  // 公式: 参数量 * 2 bytes (FP16) * 1.2 (经验开销)
-  const inferenceRequired = paramsB * 2 * 1.2
+  // 公式: 参数量 * 2 bytes (FP16) * 1.7 (经验开销)
+  const inferenceRequired = paramsB * 2 * 1.7
   const inferencePercent = (inferenceRequired / totalVRAM) * 100
   const inferenceFeasible = totalVRAM >= inferenceRequired
 
