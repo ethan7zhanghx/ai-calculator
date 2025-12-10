@@ -23,31 +23,31 @@ export const MODEL_KNOWLEDGE: Record<string, ModelInfo> = {
     modality: "text",
     contextWindow: "128K"
   },
-  "ERNIE-4.5-VL-424B-A47B-PT": {
+  "ERNIE-4.5-VL-424B-A47B": {
     parameterSizeB: 424,
     architecture: "MoE",
     modality: "multimodal",
     contextWindow: "128K",
   },
-  "ERNIE-4.5-300B-A47B-PT": {
+  "ERNIE-4.5-300B-A47B": {
     parameterSizeB: 300,
     architecture: "MoE",
     modality: "text",
     contextWindow: "128K",
   },
-  "ERNIE-4.5-VL-28B-A3B-PT": {
+  "ERNIE-4.5-VL-28B-A3B": {
     parameterSizeB: 28,
     architecture: "MoE",
     modality: "multimodal",
     contextWindow: "128K",
   },
-  "ERNIE-4.5-21B-A3B-PT": {
+  "ERNIE-4.5-21B-A3B": {
     parameterSizeB: 21,
     architecture: "MoE",
     modality: "text",
     contextWindow: "128K",
   },
-  "ERNIE-4.5-0.3B-PT": {
+  "ERNIE-4.5-0.3B": {
     parameterSizeB: 0.36,
     architecture: "dense",
     modality: "text",
@@ -76,6 +76,90 @@ export const MODEL_KNOWLEDGE: Record<string, ModelInfo> = {
     architecture: "dense",
     modality: "text",
     contextWindow: "8K",
+  },
+  "Qwen3-235B-A22B": {
+    parameterSizeB: 235,
+    architecture: "MoE",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-30B-A3B": {
+    parameterSizeB: 30,
+    architecture: "MoE",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-4B": {
+    parameterSizeB: 4,
+    architecture: "dense",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-32B": {
+    parameterSizeB: 32,
+    architecture: "dense",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-14B": {
+    parameterSizeB: 14,
+    architecture: "dense",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-8B": {
+    parameterSizeB: 8,
+    architecture: "dense",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-1.7B": {
+    parameterSizeB: 1.7,
+    architecture: "dense",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-0.6B": {
+    parameterSizeB: 0.6,
+    architecture: "dense",
+    modality: "text",
+    contextWindow: "",
+  },
+  "Qwen3-VL-235B-A22B": {
+    parameterSizeB: 235,
+    architecture: "MoE",
+    modality: "multimodal",
+    contextWindow: "",
+  },
+  "Qwen3-VL-30B-A3B": {
+    parameterSizeB: 30,
+    architecture: "MoE",
+    modality: "multimodal",
+    contextWindow: "",
+  },
+  "Qwen3-VL-8B": {
+    parameterSizeB: 8,
+    architecture: "dense",
+    modality: "multimodal",
+    contextWindow: "",
+  },
+  "Qwen3-VL-4B": {
+    parameterSizeB: 4,
+    architecture: "dense",
+    modality: "multimodal",
+    contextWindow: "",
+  },
+  "Qwen3-VL-2B": {
+    parameterSizeB: 2,
+    architecture: "dense",
+    modality: "multimodal",
+    contextWindow: "",
+  },
+  "Qwen3-VL-32B": {
+    parameterSizeB: 32,
+    architecture: "dense",
+    modality: "multimodal",
+    contextWindow: "",
   },
 }
 
