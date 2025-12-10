@@ -5,7 +5,7 @@
 import { MODEL_KNOWLEDGE } from "./model-knowledge-base"
 
 // 硬件规格数据
-const hardwareSpecs: Record<string, { vram: number }> = {
+export const hardwareSpecs: Record<string, { vram: number }> = {
   "昆仑芯 P800": { vram: 96 },
   "昇腾 910B": { vram: 64 },
   "海光 K100": { vram: 64 },
@@ -24,6 +24,9 @@ const hardwareSpecs: Record<string, { vram: number }> = {
   "NVIDIA RTX 4090": { vram: 24 },
   "NVIDIA RTX 3090": { vram: 24 },
 }
+
+// 提供硬件下拉选项，保持与硬件规格表一致
+export const HARDWARE_OPTIONS = Object.keys(hardwareSpecs)
 
 export interface ResourceFeasibility {
   pretraining: {
