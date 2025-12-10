@@ -42,7 +42,7 @@ import { ScenarioRequirements } from "@/components/scenario-requirements"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
-import { calculateResourceFeasibility, type ResourceFeasibility } from "@/lib/resource-calculator"
+import { calculateResourceFeasibility, type ResourceFeasibility, HARDWARE_OPTIONS } from "@/lib/resource-calculator"
 import type {
   DataQuality,
   EvaluationResponse,
@@ -675,19 +675,11 @@ export default function PageContent() {
                       <SelectValue placeholder="选择硬件" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="昆仑芯 P800">昆仑芯 P800</SelectItem>
-                      <SelectItem value="昇腾 910B">昇腾 910B</SelectItem>
-                      <SelectItem value="海光 K100">海光 K100</SelectItem>
-                      <SelectItem value="寒武纪MLU590">寒武纪MLU590</SelectItem>
-                      <SelectItem value="曦云 C500">曦云 C500</SelectItem>
-                      <SelectItem value="思元 MLU370">思元 MLU370</SelectItem>
-                      <SelectItem value="NVIDIA A100 (80GB)">NVIDIA A100 (80GB)</SelectItem>
-                      <SelectItem value="NVIDIA A100 (40GB)">NVIDIA A100 (40GB)</SelectItem>
-                      <SelectItem value="NVIDIA H100">NVIDIA H100</SelectItem>
-                      <SelectItem value="NVIDIA V100">NVIDIA V100</SelectItem>
-                      <SelectItem value="NVIDIA A10">NVIDIA A10</SelectItem>
-                      <SelectItem value="NVIDIA RTX 4090">NVIDIA RTX 4090</SelectItem>
-                      <SelectItem value="NVIDIA RTX 3090">NVIDIA RTX 3090</SelectItem>
+                      {HARDWARE_OPTIONS.map((hw) => (
+                        <SelectItem key={hw} value={hw}>
+                          {hw}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

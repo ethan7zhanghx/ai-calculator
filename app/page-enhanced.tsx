@@ -33,6 +33,8 @@ import type {
   ModuleType,
   FeedbackType,
 } from "@/lib/types"
+import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
+import { HARDWARE_OPTIONS } from "@/lib/resource-calculator"
 
 export default function AIRequirementsCalculator() {
   const { toast } = useToast()
@@ -290,14 +292,11 @@ export default function AIRequirementsCalculator() {
                     <SelectValue placeholder="选择AI模型" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GPT-4">GPT-4</SelectItem>
-                    <SelectItem value="GPT-3.5">GPT-3.5</SelectItem>
-                    <SelectItem value="Claude 3 Opus">Claude 3 Opus</SelectItem>
-                    <SelectItem value="Claude 3 Sonnet">Claude 3 Sonnet</SelectItem>
-                    <SelectItem value="Llama 3 70B">Llama 3 70B</SelectItem>
-                    <SelectItem value="Llama 3 8B">Llama 3 8B</SelectItem>
-                    <SelectItem value="Mistral Large">Mistral Large</SelectItem>
-                    <SelectItem value="Mistral 7B">Mistral 7B</SelectItem>
+                    {Object.keys(MODEL_KNOWLEDGE).map((modelName) => (
+                      <SelectItem key={modelName} value={modelName}>
+                        {modelName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -307,19 +306,18 @@ export default function AIRequirementsCalculator() {
                 <div className="space-y-2">
                   <Label htmlFor="hardware">硬件型号</Label>
                   <Select value={hardware} onValueChange={setHardware}>
-                    <SelectTrigger id="hardware">
-                      <SelectValue placeholder="选择硬件" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NVIDIA A100 (80GB)">NVIDIA A100 (80GB)</SelectItem>
-                      <SelectItem value="NVIDIA A100 (40GB)">NVIDIA A100 (40GB)</SelectItem>
-                      <SelectItem value="NVIDIA H100">NVIDIA H100</SelectItem>
-                      <SelectItem value="NVIDIA V100">NVIDIA V100</SelectItem>
-                      <SelectItem value="NVIDIA RTX 4090">NVIDIA RTX 4090</SelectItem>
-                      <SelectItem value="NVIDIA RTX 3090">NVIDIA RTX 3090</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <SelectTrigger id="hardware">
+                    <SelectValue placeholder="选择硬件" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HARDWARE_OPTIONS.map((hw) => (
+                      <SelectItem key={hw} value={hw}>
+                        {hw}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="cardCount">卡数</Label>
