@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -569,10 +570,10 @@ export default function PageContent() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
               <Image src="/paddlepaddle.jpeg" alt="PaddlePaddle Logo" width={32} height={32} className="rounded-md" />
               <span className="text-xl font-semibold">AI FitCheck 企业级AI需求资源计算器</span>
-            </div>
+            </Link>
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
                 <>
