@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   Megaphone,
+  History as HistoryIcon,
 } from "lucide-react"
 import { AuthDialog } from "@/components/auth-dialog"
 import { FeedbackButton } from "@/components/feedback-button"
@@ -48,6 +49,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useToast } from "@/hooks/use-toast"
 import { MODEL_KNOWLEDGE } from "@/lib/model-knowledge-base"
 import { calculateResourceFeasibility, type ResourceFeasibility, HARDWARE_OPTIONS } from "@/lib/resource-calculator"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import type {
   DataQuality,
   EvaluationResponse,
@@ -122,11 +128,13 @@ export default function PageContent() {
   const [siteStatus, setSiteStatus] = useState<{
     maintenance: boolean
     maintenanceMessage: string
-    announcement: { title: string; content: string } | null
+    announcement: { title: string; content: string; updatedAt?: string } | null
+    announcementHistory: { id: string; title: string; content: string; updatedAt?: string }[]
   }>({
     maintenance: false,
     maintenanceMessage: "",
     announcement: null,
+    announcementHistory: [],
   })
 
   // 待评估标记 - 用于登录后自动评估
@@ -277,8 +285,10 @@ export default function PageContent() {
               ? {
                   title: data.data.announcement.title,
                   content: data.data.announcement.content,
+                  updatedAt: data.data.announcement.updatedAt,
                 }
               : null,
+            announcementHistory: data.data.announcementHistory || [],
           })
         }
       } catch (error) {
@@ -670,10 +680,37 @@ export default function PageContent() {
         </div>
       )}
       {siteStatus.announcement && (
-        <div className="bg-blue-50 text-blue-900 px-4 py-3 text-sm flex items-center gap-2 justify-center">
-          <Megaphone className="h-4 w-4 shrink-0" />
-          <span className="font-semibold">{siteStatus.announcement.title}：</span>
-          <span>{siteStatus.announcement.content}</span>
+        <div className="bg-blue-50 text-blue-900 px-4 py-3 text-sm flex items-center gap-3 justify-center flex-wrap">
+          <div className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4 shrink-0" />
+            <span className="font-semibold">{siteStatus.announcement.title}：</span>
+            <span>{siteStatus.announcement.content}</span>
+          </div>
+          {siteStatus.announcementHistory.length > 1 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-xs underline flex items-center gap-1 text-blue-900/80 hover:text-blue-900">
+                  <HistoryIcon className="h-3 w-3" />
+                  查看历史
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 text-sm space-y-3">
+                {siteStatus.announcementHistory.map((item) => (
+                  <div key={item.id} className="space-y-1 border-b last:border-0 pb-2 last:pb-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{item.title}</span>
+                      {item.updatedAt && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(item.updatedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{item.content}</p>
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       )}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">

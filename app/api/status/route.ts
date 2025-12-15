@@ -4,27 +4,36 @@ import { getPrismaClient } from "@/lib/prisma"
 export async function GET() {
   const prisma = getPrismaClient();
   try {
-    const [config, announcement] = await Promise.all([
+    const [config, announcements] = await Promise.all([
       prisma.siteConfig.findUnique({ where: { id: 1 } }),
-      prisma.announcement.findFirst({
+      prisma.announcement.findMany({
         where: { active: true },
         orderBy: { updatedAt: "desc" },
+        take: 5, // 提供最近5条公告历史
       }),
     ])
+
+    const latest = announcements?.[0]
 
     return NextResponse.json({
       success: true,
       data: {
         maintenance: config?.maintenance || false,
         maintenanceMessage: config?.maintenanceMessage || "",
-        announcement: announcement
+        announcement: latest
           ? {
-              id: announcement.id,
-              title: announcement.title,
-              content: announcement.content,
-              updatedAt: announcement.updatedAt,
+              id: latest.id,
+              title: latest.title,
+              content: latest.content,
+              updatedAt: latest.updatedAt,
             }
           : null,
+        announcementHistory: (announcements || []).map((a) => ({
+          id: a.id,
+          title: a.title,
+          content: a.content,
+          updatedAt: a.updatedAt,
+        })),
       },
     })
   } catch (error) {
