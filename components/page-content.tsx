@@ -335,6 +335,7 @@ export default function PageContent() {
         }
 
         let buffer = ''
+        let intentRejected = false
 
         while (true) {
           const { done, value } = await reader.read()
@@ -377,6 +378,8 @@ export default function PageContent() {
                   businessValue: data.data.businessValue,
                 }))
               } else if (data.type === 'intent_rejected') {
+                intentRejected = true
+                finalEvaluationId = undefined
                 setModuleStatuses(prev => ({ ...prev, technical: 'error', business: 'error' }))
                 toast({
                   title: "意图校验未通过",
@@ -415,20 +418,24 @@ export default function PageContent() {
         setModuleFeedbacks({ resource: null, technical: null, business: null })
 
         // 更新URL以包含评估ID
-        if (finalEvaluationId) {
+        if (finalEvaluationId && !intentRejected) {
           const newUrl = `${window.location.pathname}?evaluationId=${finalEvaluationId}`
           window.history.pushState({ path: newUrl }, "", newUrl)
         }
 
-        toast({
-          title: "评估完成",
-          description: "AI分析报告已生成"
-        })
+        if (!intentRejected) {
+          toast({
+            title: "评估完成",
+            description: "AI分析报告已生成"
+          })
+        }
 
         // 自动滚动到结果
-        setTimeout(() => {
-          document.getElementById("evaluation-results")?.scrollIntoView({ behavior: "smooth", block: "start" })
-        }, 100)
+        if (!intentRejected) {
+          setTimeout(() => {
+            document.getElementById("evaluation-results")?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }, 100)
+        }
 
       } else {
         // 降级处理：非流式响应（兼容旧版本）
