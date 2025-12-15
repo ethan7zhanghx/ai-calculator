@@ -25,6 +25,9 @@ import {
   Download,
   History,
   HelpCircle,
+  AlertTriangle,
+  ShieldAlert,
+  CheckCircle2,
 } from "lucide-react"
 import { AuthDialog } from "@/components/auth-dialog"
 import { FeedbackButton } from "@/components/feedback-button"
@@ -106,6 +109,13 @@ export default function PageContent() {
 
   // 实时硬件资源评估
   const [resourceEvaluation, setResourceEvaluation] = useState<ResourceFeasibility | null>(null)
+
+  // 意图检测结果
+  const [intentResult, setIntentResult] = useState<{
+    allowed: boolean
+    reason: string
+    severity: "info" | "warn" | "block"
+  } | null>(null)
 
   // 待评估标记 - 用于登录后自动评估
   const [pendingEvaluation, setPendingEvaluation] = useState(false)
@@ -280,6 +290,7 @@ export default function PageContent() {
     setIsAuthenticated(false)
     setUsername("")
     setEvaluation(null) // 登出时清除评估结果
+    setIntentResult(null) // 清空意图检测结果
     setModuleFeedbacks({ resource: null, technical: null, business: null }) // 清除反馈状态
     toast({ title: "已登出" })
   }
@@ -288,6 +299,7 @@ export default function PageContent() {
   const performEvaluation = async (token?: string) => {
     setIsEvaluating(true)
     setPartialEvaluation({}) // 重置部分评估结果
+    setIntentResult(null) // 重置意图检测结果
     setModuleStatuses({
       resource: 'pending',
       technical: 'pending',
@@ -296,6 +308,7 @@ export default function PageContent() {
 
     try {
       let finalEvaluationId: string | undefined = undefined
+      let intentBlocked = false
       const authToken = token || localStorage.getItem("token")
       const headers: HeadersInit = { "Content-Type": "application/json" }
       if (authToken) {
@@ -361,6 +374,25 @@ export default function PageContent() {
                   resourceFeasibility: data.data.resourceFeasibility,
                   createdAt: data.data.createdAt,
                 }))
+              } else if (data.type === 'intent') {
+                const result = data.data
+                if (result?.allowed) {
+                  // 通过不展示
+                  setIntentResult(null)
+                } else {
+                  // 未通过时提示
+                  setIntentResult(result)
+                  setModuleStatuses(prev => ({ ...prev, technical: 'error', business: 'error' }))
+                  intentBlocked = true
+                  if (result?.severity !== 'info') {
+                    toast({
+                      title: "请完善需求信息",
+                      description: result?.reason || "请关注填写注意事项，聚焦企业AI项目场景，避免无关或信息不足的内容。",
+                      variant: "destructive",
+                    })
+                  }
+                  break
+                }
               } else if (data.type === 'technical') {
                 // 技术评估完成（包含硬件评分）
                 setModuleStatuses(prev => ({ ...prev, resource: 'completed', technical: 'completed' }))
@@ -402,6 +434,7 @@ export default function PageContent() {
               console.error("解析流式数据失败:", e)
             }
           }
+          if (intentBlocked) break
         }
 
         // 流式响应完成
@@ -413,15 +446,17 @@ export default function PageContent() {
           window.history.pushState({ path: newUrl }, "", newUrl)
         }
 
-        toast({
-          title: "评估完成",
-          description: "AI分析报告已生成"
-        })
+        if (!intentBlocked) {
+          toast({
+            title: "评估完成",
+            description: "AI分析报告已生成"
+          })
 
-        // 自动滚动到结果
-        setTimeout(() => {
-          document.getElementById("evaluation-results")?.scrollIntoView({ behavior: "smooth", block: "start" })
-        }, 100)
+          // 自动滚动到结果
+          setTimeout(() => {
+            document.getElementById("evaluation-results")?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }, 100)
+        }
 
       } else {
         // 降级处理：非流式响应（兼容旧版本）
@@ -867,6 +902,48 @@ export default function PageContent() {
 
           {/* 评估结果 */}
           <div className="space-y-6" id="evaluation-results">
+            {intentResult && !intentResult.allowed && (
+              <Card className={`shadow-md border ${
+                intentResult.severity === "block"
+                  ? "border-red-200 bg-red-50"
+                  : intentResult.severity === "warn"
+                    ? "border-amber-200 bg-amber-50"
+                    : "border-blue-200 bg-blue-50"
+              }`}>
+                <CardHeader className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    {intentResult.severity === "block" ? (
+                      <ShieldAlert className="h-5 w-5 text-red-600" />
+                    ) : intentResult.severity === "warn" ? (
+                      <AlertTriangle className="h-5 w-5 text-amber-600" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                    )}
+                    <CardTitle className="text-base">意图检测</CardTitle>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      intentResult.severity === "block"
+                        ? "bg-red-100 text-red-700"
+                        : intentResult.severity === "warn"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {intentResult.severity === "block"
+                        ? "拦截"
+                        : intentResult.severity === "warn"
+                          ? "提醒"
+                          : "正常"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      建议按照产品定位补充信息后再评估
+                    </span>
+                  </div>
+                  <CardDescription className="text-sm text-foreground">
+                    {intentResult.reason || "请关注填写注意事项，聚焦企业AI项目场景，避免无关或信息不足的内容。"}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
+
             {isEvaluating ? (
               /* 评估中 - 显示模块加载指示器 */
               <>
