@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
     const pageSize = parseInt(searchParams.get("pageSize") || "10")
+    const includeArchived = searchParams.get("includeArchived") === "1"
     const skip = (page - 1) * pageSize
+    const where = includeArchived ? {} : { archived: false }
 
     // 获取评估列表
     const [evaluations, total] = await Promise.all([
@@ -28,6 +30,7 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: "desc",
         },
+        where,
         include: {
           user: {
             select: {
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
-      prisma.evaluation.count(),
+      prisma.evaluation.count({ where }),
     ])
 
     return NextResponse.json({
@@ -58,6 +61,8 @@ export async function GET(request: NextRequest) {
           businessDataQuality: evaluation.businessDataQuality || "high",
           performanceTPS: evaluation.performanceTPS || 50,
           performanceConcurrency: evaluation.performanceConcurrency || 100,
+          archived: evaluation.archived,
+          archivedAt: evaluation.archivedAt,
           createdAt: evaluation.createdAt,
         })),
         pagination: {

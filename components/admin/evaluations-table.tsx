@@ -20,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 interface Evaluation {
   id: string
@@ -36,6 +38,8 @@ interface Evaluation {
   businessDataQuality: string
   performanceTPS: number
   performanceConcurrency: number
+  archived: boolean
+  archivedAt: string | null
   createdAt: string
 }
 
@@ -58,16 +62,17 @@ export function EvaluationsTable() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [includeArchived, setIncludeArchived] = useState(false)
 
   useEffect(() => {
-    fetchEvaluations(pagination.page)
-  }, [])
+    fetchEvaluations(1)
+  }, [includeArchived])
 
   const fetchEvaluations = async (page: number) => {
     setIsLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(`/api/admin/evaluations?page=${page}&pageSize=10`, {
+      const response = await fetch(`/api/admin/evaluations?page=${page}&pageSize=10&includeArchived=${includeArchived ? "1" : "0"}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,6 +116,36 @@ export function EvaluationsTable() {
     setDialogOpen(true)
   }
 
+  const handleArchiveToggle = async (evaluation: Evaluation, target: boolean) => {
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch(`/api/admin/evaluations/${evaluation.id}/archive`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ archived: target }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({
+          title: target ? "已归档" : "已取消归档",
+          description: target ? "该评估不再出现在默认列表" : "已恢复显示该评估",
+        })
+        fetchEvaluations(pagination.page)
+      } else {
+        throw new Error(data.error?.message || "操作失败")
+      }
+    } catch (error: any) {
+      toast({
+        title: "操作失败",
+        description: error.message || "网络错误",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -122,6 +157,20 @@ export function EvaluationsTable() {
   return (
     <>
       <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            默认隐藏已归档记录，开启开关可查看
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="include-archived" className="text-sm">显示已归档</Label>
+            <Switch
+              id="include-archived"
+              checked={includeArchived}
+              onCheckedChange={(checked) => setIncludeArchived(checked)}
+            />
+          </div>
+        </div>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -130,6 +179,7 @@ export function EvaluationsTable() {
                 <TableHead>模型</TableHead>
                 <TableHead>硬件</TableHead>
                 <TableHead className="text-center">卡数</TableHead>
+                <TableHead className="text-center">状态</TableHead>
                 <TableHead>业务场景</TableHead>
                 <TableHead>评估时间</TableHead>
                 <TableHead className="text-center">操作</TableHead>
@@ -138,7 +188,7 @@ export function EvaluationsTable() {
             <TableBody>
               {evaluations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     暂无数据
                   </TableCell>
                 </TableRow>
@@ -160,6 +210,13 @@ export function EvaluationsTable() {
                     <TableCell className="text-center">
                       <Badge>{evaluation.cardCount}</Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {evaluation.archived ? (
+                        <Badge variant="secondary">已归档</Badge>
+                      ) : (
+                        <Badge variant="default">正常</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate" title={evaluation.businessScenario}>
                       {evaluation.businessScenario}
                     </TableCell>
@@ -167,13 +224,22 @@ export function EvaluationsTable() {
                       {formatDate(evaluation.createdAt)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewDetail(evaluation)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetail(evaluation)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant={evaluation.archived ? "outline" : "destructive"}
+                          size="sm"
+                          onClick={() => handleArchiveToggle(evaluation, !evaluation.archived)}
+                        >
+                          {evaluation.archived ? "取消归档" : "归档"}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
