@@ -376,13 +376,6 @@ export default function PageContent() {
                   ...prev,
                   businessValue: data.data.businessValue,
                 }))
-              } else if (data.type === 'intent_rejected') {
-                setModuleStatuses(prev => ({ ...prev, technical: 'error', business: 'error' }))
-                toast({
-                  title: "意图校验未通过",
-                  description: data.data?.reason || "输入未通过校验，已停止后续评估。",
-                  variant: "destructive",
-                })
               } else if (data.type === 'complete') {
                 // 所有评估完成
                 console.log("所有评估完成")

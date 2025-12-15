@@ -6,7 +6,6 @@ import type { JWTPayload } from "@/lib/jwt"
 import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 import { evaluateBusinessValue } from "@/lib/business-evaluator"
 import { calculateResourceFeasibility } from "@/lib/resource-calculator"
-import { checkEvaluationIntent } from "@/lib/intent-guard"
 
 /**
  * 从技术评估的角度计算硬件评分（与technical-evaluator.ts中的逻辑保持一致）
@@ -144,25 +143,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             })}\n\n`))
           }
 
-          // 第2步：意图识别，过滤不符合要求的请求
-          const intentResult = await checkEvaluationIntent(body, "ernie-4.5-turbo-128k")
-          if (!intentResult.allowed) {
-            console.log("意图识别未通过，跳过后续评估。原因:", intentResult.reason)
-            if (controller.desiredSize) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'intent_rejected',
-                data: {
-                  reason: intentResult.reason || "输入未通过意图校验，请完善后重试。",
-                }
-              })}\n\n`))
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'complete'
-              })}\n\n`))
-            }
-            return
-          }
-
-          // 第3步：执行技术方案评估
+          // 第2步：执行技术方案评估
           let technicalEvaluation
           let hardwareScore = 0
           try {
@@ -209,7 +190,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             }
           }
 
-          // 第4步：执行场景价值评估
+          // 第3步：执行场景价值评估
           let businessEvaluation
           try {
             console.log("开始场景价值评估...")
@@ -247,7 +228,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             }
           }
 
-          // 第5步：保存到数据库
+          // 第4步：保存到数据库
           if (user && technicalEvaluation) {
             try {
               const prisma = getPrismaClient();
@@ -296,7 +277,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             }
           }
 
-          // 第6步：发送完成信号
+          // 第5步：发送完成信号
           if (controller.desiredSize) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'complete'
