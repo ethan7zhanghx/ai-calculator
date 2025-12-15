@@ -150,6 +150,15 @@ export default function PageContent() {
     // 如果URL中没有evaluationId，不做任何操作（避免在点击"重新编辑"时重新加载）
     if (!evaluationId) {
       console.log("[useEffect] URL中没有evaluationId，退出")
+      // 回到首页时清空当前评估结果与部分状态
+      setEvaluation(null)
+      setPartialEvaluation({})
+      setIntentResult(null)
+      setModuleStatuses({
+        resource: 'pending',
+        technical: 'pending',
+        business: 'pending',
+      })
       return
     }
 
@@ -187,25 +196,28 @@ export default function PageContent() {
           setTps(data.performanceTPS || "")
           setConcurrency(data.performanceConcurrency || "")
 
-          toast({
-            title: "已加载评估记录",
-            description: "已成功从您的历史记录中恢复评估报告。",
-          })
+          // 加载成功时不弹出提示，避免干扰
         } else {
-          toast({
-            title: "无法加载评估记录",
-            description: "该记录可能已被删除或链接无效。",
-            variant: "destructive",
-          })
           router.replace("/") // 从URL中移除无效ID
+          setEvaluation(null)
+          setPartialEvaluation({})
+          setIntentResult(null)
+          setModuleStatuses({
+            resource: 'pending',
+            technical: 'pending',
+            business: 'pending',
+          })
         }
       } catch (error) {
-        toast({
-          title: "加载失败",
-          description: "网络错误，请稍后重试。",
-          variant: "destructive",
-        })
         router.replace("/")
+        setEvaluation(null)
+        setPartialEvaluation({})
+        setIntentResult(null)
+        setModuleStatuses({
+          resource: 'pending',
+          technical: 'pending',
+          business: 'pending',
+        })
       }
     }
 
@@ -348,6 +360,7 @@ export default function PageContent() {
         }
 
         let buffer = ''
+        let hasTechnical = false
 
         while (true) {
           const { done, value } = await reader.read()
@@ -395,6 +408,7 @@ export default function PageContent() {
                 }
               } else if (data.type === 'technical') {
                 // 技术评估完成（包含硬件评分）
+                hasTechnical = true
                 setModuleStatuses(prev => ({ ...prev, resource: 'completed', technical: 'completed' }))
                 setPartialEvaluation(prev => ({
                   ...prev,
@@ -441,7 +455,7 @@ export default function PageContent() {
         setModuleFeedbacks({ resource: null, technical: null, business: null })
 
         // 更新URL以包含评估ID
-        if (finalEvaluationId) {
+        if (!intentBlocked && finalEvaluationId && hasTechnical) {
           const newUrl = `${window.location.pathname}?evaluationId=${finalEvaluationId}`
           window.history.pushState({ path: newUrl }, "", newUrl)
         }

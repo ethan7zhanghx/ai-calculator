@@ -54,6 +54,14 @@ export function HistorySidebar() {
 
       const result = await response.json()
 
+      // 处理认证失效
+      if (response.status === 401) {
+        localStorage.removeItem("token")
+        localStorage.removeItem("username")
+        setHistory([])
+        throw new Error("登录已过期，请重新登录后查看历史记录")
+      }
+
       if (result.success) {
         setHistory(result.data)
       } else {
