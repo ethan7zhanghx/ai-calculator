@@ -294,12 +294,6 @@ export default function PageContent() {
       business: 'pending',
     })
 
-    // 清理URL中的旧 evaluationId，避免复用历史ID触发404加载
-    if (typeof window !== "undefined" && window.location.search.includes("evaluationId")) {
-      const cleanUrl = window.location.pathname
-      window.history.replaceState({ path: cleanUrl }, "", cleanUrl)
-    }
-
     try {
       let finalEvaluationId: string | undefined = undefined
       const authToken = token || localStorage.getItem("token")
@@ -387,9 +381,6 @@ export default function PageContent() {
                 intentRejected = true
                 finalEvaluationId = undefined
                 setModuleStatuses(prev => ({ ...prev, technical: 'error', business: 'error' }))
-                // 确保URL不带历史ID
-                const cleanUrl = window.location.pathname
-                window.history.replaceState({ path: cleanUrl }, "", cleanUrl)
                 toast({
                   title: "意图校验未通过",
                   description: data.data?.reason || "输入未通过校验，已停止后续评估。",
