@@ -662,16 +662,16 @@ export default function PageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      {/* 维护/公告提示 */}
+      {/* 维护/公告提示（可同时展示） */}
       {siteStatus.maintenance && (
         <div className="bg-amber-100 text-amber-900 px-4 py-3 text-sm flex items-center gap-2 justify-center">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>{siteStatus.maintenanceMessage || "服务维护中，暂不可发起评估。"}</span>
         </div>
       )}
-      {!siteStatus.maintenance && siteStatus.announcement && (
+      {siteStatus.announcement && (
         <div className="bg-blue-50 text-blue-900 px-4 py-3 text-sm flex items-center gap-2 justify-center">
-          <Megaphone className="h-4 w-4" />
+          <Megaphone className="h-4 w-4 shrink-0" />
           <span className="font-semibold">{siteStatus.announcement.title}：</span>
           <span>{siteStatus.announcement.content}</span>
         </div>
