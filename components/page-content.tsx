@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   ShieldAlert,
   CheckCircle2,
+  Megaphone,
 } from "lucide-react"
 import { AuthDialog } from "@/components/auth-dialog"
 import { FeedbackButton } from "@/components/feedback-button"
@@ -116,6 +117,17 @@ export default function PageContent() {
     reason: string
     severity: "info" | "warn" | "block"
   } | null>(null)
+
+  // 公告 & 维护状态
+  const [siteStatus, setSiteStatus] = useState<{
+    maintenance: boolean
+    maintenanceMessage: string
+    announcement: { title: string; content: string } | null
+  }>({
+    maintenance: false,
+    maintenanceMessage: "",
+    announcement: null,
+  })
 
   // 待评估标记 - 用于登录后自动评估
   const [pendingEvaluation, setPendingEvaluation] = useState(false)
@@ -250,6 +262,31 @@ export default function PageContent() {
       setResourceEvaluation(null)
     }
   }, [model, hardware, machineCount, cardsPerMachine, tps])
+
+  // 站点状态（公告/维护）
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/status")
+        const data = await res.json()
+        if (data.success) {
+          setSiteStatus({
+            maintenance: data.data.maintenance,
+            maintenanceMessage: data.data.maintenanceMessage || "",
+            announcement: data.data.announcement
+              ? {
+                  title: data.data.announcement.title,
+                  content: data.data.announcement.content,
+                }
+              : null,
+          })
+        }
+      } catch (error) {
+        // 忽略，保持默认状态
+      }
+    }
+    fetchStatus()
+  }, [])
 
   // 监听部分评估完成，更新最终评估结果
   useEffect(() => {
@@ -521,6 +558,15 @@ export default function PageContent() {
   }
 
   const handleEvaluate = async () => {
+    if (siteStatus.maintenance) {
+      toast({
+        title: "服务维护中",
+        description: siteStatus.maintenanceMessage || "当前暂不可进行评估，请稍后再试。",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!model || !hardware || !machineCount || !cardsPerMachine || !dataDescription || !businessScenario || !tps || !concurrency) {
       toast({
         title: "请填写完整信息",
@@ -616,6 +662,20 @@ export default function PageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      {/* 维护/公告提示 */}
+      {siteStatus.maintenance && (
+        <div className="bg-amber-100 text-amber-900 px-4 py-3 text-sm flex items-center gap-2 justify-center">
+          <AlertTriangle className="h-4 w-4" />
+          <span>{siteStatus.maintenanceMessage || "服务维护中，暂不可发起评估。"}</span>
+        </div>
+      )}
+      {!siteStatus.maintenance && siteStatus.announcement && (
+        <div className="bg-blue-50 text-blue-900 px-4 py-3 text-sm flex items-center gap-2 justify-center">
+          <Megaphone className="h-4 w-4" />
+          <span className="font-semibold">{siteStatus.announcement.title}：</span>
+          <span>{siteStatus.announcement.content}</span>
+        </div>
+      )}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
