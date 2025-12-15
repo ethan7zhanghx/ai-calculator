@@ -52,6 +52,10 @@ model Evaluation {
   technicalFeasibility String @db.Text // JSON
   businessValue        String @db.Text // JSON
 
+  // 管理后台：归档标记
+  archived   Boolean  @default(false)
+  archivedAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([userId])

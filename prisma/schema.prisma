@@ -51,6 +51,10 @@ model Evaluation {
   technicalFeasibility String // JSON
   businessValue        String // JSON
 
+  // 管理后台：归档标记
+  archived   Boolean  @default(false)
+  archivedAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([userId])
