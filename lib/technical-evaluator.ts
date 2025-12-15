@@ -76,7 +76,7 @@ export interface TechnicalEvaluationResult {
  * @param modelName 使用的模型名称
  * @returns 所需任务类型的布尔值
  */
-async function analyzeRequiredTasks(scenario: string, modelName: string): Promise<{
+export async function analyzeRequiredTasks(scenario: string, modelName: string): Promise<{
   needsInference: boolean
   needsFineTuning: boolean
   needsPretraining: boolean
@@ -206,15 +206,20 @@ function fallbackAnalyzeRequiredTasks(scenario: string): {
  * @param resourceFeasibility 硬件资源计算结果
  * @returns 0-100的客观评分
  */
-async function calculateObjectiveHardwareScore(
+export async function calculateObjectiveHardwareScore(
   req: EvaluationRequest,
   resourceFeasibility: any,
-  modelName: string
+  modelName: string,
+  existingTasks?: {
+    needsInference: boolean
+    needsFineTuning: boolean
+    needsPretraining: boolean
+  }
 ): Promise<number> {
   if (!resourceFeasibility) return 0
 
   const { pretraining, fineTuning, inference } = resourceFeasibility
-  const requiredTasks = await analyzeRequiredTasks(req.businessScenario, modelName)
+  const requiredTasks = existingTasks || await analyzeRequiredTasks(req.businessScenario, modelName)
 
   console.log(`场景需求分析 - ${req.businessScenario}`)
   console.log(`- 需要推理: ${requiredTasks.needsInference ? '✅' : '❌'}`)

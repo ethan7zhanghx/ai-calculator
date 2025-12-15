@@ -3,79 +3,26 @@ import type { ApiResponse, EvaluationRequest, EvaluationResponse } from "@/lib/t
 import { withOptionalAuth } from "@/lib/auth-middleware"
 import { getPrismaClient } from "@/lib/prisma"
 import type { JWTPayload } from "@/lib/jwt"
-import { evaluateTechnicalSolution } from "@/lib/technical-evaluator"
+import { calculateObjectiveHardwareScore, evaluateTechnicalSolution } from "@/lib/technical-evaluator"
 import { evaluateBusinessValue } from "@/lib/business-evaluator"
 import { calculateResourceFeasibility } from "@/lib/resource-calculator"
+import { checkIntent } from "@/lib/intent-detector"
 
 /**
  * 从技术评估的角度计算硬件评分（与technical-evaluator.ts中的逻辑保持一致）
  */
-async function calculateHardwareScoreFromTechnical(req: EvaluationRequest): Promise<number> {
-  const totalCards = req.machineCount * req.cardsPerMachine
-
-  // 计算资源可行性
-  const resourceFeasibility = calculateResourceFeasibility(
-    req.model,
-    req.hardware,
-    totalCards,
-    req.performanceRequirements.tps
-  )
-
-  if (!resourceFeasibility) return 0
-
-  // 使用与技术评估模块相同的逻辑
-  const { pretraining, fineTuning, inference } = resourceFeasibility
-
-  // 分析业务场景需求（与技术评估模块保持一致）
-  const scenarioLower = req.businessScenario.toLowerCase()
-
-  const needsInference = true // 默认都需要推理
-  const needsFineTuning = scenarioLower.includes('微调') ||
-                         scenarioLower.includes('训练') ||
-                         scenarioLower.includes('定制') ||
-                         scenarioLower.includes('领域') ||
-                         scenarioLower.includes('专业') ||
-                         scenarioLower.includes('优化') ||
-                         scenarioLower.includes('特定') ||
-                         scenarioLower.includes('个性化')
-  const needsPretraining = scenarioLower.includes('预训练') ||
-                           scenarioLower.includes('从头训练') ||
-                           scenarioLower.includes('基础模型') ||
-                           scenarioLower.includes('自训练')
-
-  // 计算各项任务的得分
-  const getTaskScore = (usagePercent: number) => {
-    if (usagePercent > 100) return 0 // 不可行
-    if (usagePercent <= 60) return 100 // 最佳范围
-    if (usagePercent <= 90) return 100 - (usagePercent - 60) * 2 // 高效范围，线性下降
-    return Math.max(0, 40 - (usagePercent - 90) * 4) // 警告范围，急剧下降
+async function calculateHardwareScoreFromTechnical(
+  req: EvaluationRequest,
+  resourceFeasibility: ReturnType<typeof calculateResourceFeasibility>,
+  scenarioRequirements?: {
+    needsInference: boolean
+    needsFineTuning: boolean
+    needsPretraining: boolean
   }
-
-  const inferenceScore = getTaskScore(inference.memoryUsagePercent)
-  const fineTuningScore = getTaskScore(fineTuning.memoryUsagePercent)
-  const pretrainingScore = getTaskScore(pretraining.memoryUsagePercent)
-
-  // 根据场景需求筛选相关任务，计算加权平均分
-  const taskScores = []
-
-  if (needsInference) {
-    taskScores.push(inferenceScore)
-  }
-
-  if (needsFineTuning) {
-    taskScores.push(fineTuningScore)
-  }
-
-  if (needsPretraining) {
-    taskScores.push(pretrainingScore)
-  }
-
-  // 计算相关任务的平均分作为最终得分
-  const finalScore = taskScores.length > 0
-    ? Math.round(taskScores.reduce((sum, score) => sum + score, 0) / taskScores.length)
-    : 0
-
-  return finalScore
+): Promise<number> {
+  // 使用技术评估阶段的任务需求（若无则回退到内部LLM分析），保持加权一致
+  const modelName = "ernie-4.5-turbo-128k"
+  return calculateObjectiveHardwareScore(req, resourceFeasibility, modelName, scenarioRequirements)
 }
 
 // 配置函数最大执行时间(240秒,给两个串行LLM调用留足时间: 技术60s+商业120s+缓冲60s)
@@ -129,6 +76,7 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
+        let streamClosed = false
 
         try {
           // 第1步：立即发送资源可行性评估结果
@@ -143,7 +91,49 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             })}\n\n`))
           }
 
-          // 第2步：执行技术方案评估
+          // 第2步：意图检测（轻量拦截/记录，不阻断后续流程）
+          try {
+            const intentResult = await checkIntent(body, "ernie-4.5-turbo-128k")
+            console.log("意图检测结果:", intentResult)
+
+            if (controller.desiredSize) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'intent',
+                data: intentResult,
+              })}\n\n`))
+            }
+
+            // 如果不通过，直接终止后续评估
+            if (!intentResult.allowed) {
+              // 通知前端技术/商业模块无法继续
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                module: 'technical',
+                error: '意图检测未通过，已终止技术评估'
+              })}\n\n`))
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                module: 'business',
+                error: '意图检测未通过，已终止场景价值评估'
+              })}\n\n`))
+              // 结束流
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'complete' })}\n\n`))
+              controller.close()
+              streamClosed = true
+              return
+            }
+          } catch (error) {
+            console.error("意图检测失败:", error)
+            if (controller.desiredSize) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                module: 'intent',
+                error: error instanceof Error ? error.message : "意图检测失败"
+              })}\n\n`))
+            }
+          }
+
+          // 第3步：执行技术方案评估
           let technicalEvaluation
           let hardwareScore = 0
           try {
@@ -151,8 +141,8 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             technicalEvaluation = await evaluateTechnicalSolution(body, "ernie-4.5-turbo-128k")
             console.log("技术方案评估完成,得分:", technicalEvaluation.score)
 
-            // 计算硬件资源评分（与技术评估时LLM看到的评分保持一致）
-            hardwareScore = await calculateHardwareScoreFromTechnical(body)
+            // 计算硬件资源评分（使用技术评估阶段已分析的任务需求，避免重复LLM调用）
+            hardwareScore = await calculateHardwareScoreFromTechnical(body, resourceFeasibility, technicalEvaluation?.scenarioRequirements)
             console.log("硬件资源评分:", hardwareScore)
 
             const technicalScore = technicalEvaluation.score
@@ -294,7 +284,10 @@ export const POST = withOptionalAuth(async (request: NextRequest, user: JWTPaylo
             })}\n\n`))
           }
         } finally {
-          controller.close()
+          if (!streamClosed) {
+            controller.close()
+            streamClosed = true
+          }
         }
       }
     })
