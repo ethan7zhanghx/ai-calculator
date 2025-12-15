@@ -12,6 +12,7 @@ import { UsersTable } from "@/components/admin/users-table"
 import { EvaluationsTable } from "@/components/admin/evaluations-table"
 import { FeedbacksTable } from "@/components/admin/feedbacks-table"
 import { AdminsManagement } from "@/components/admin/admins-management"
+import { AnnouncementPanel } from "@/components/admin/announcement-panel"
 
 export default function AdminPage() {
   const router = useRouter()
@@ -138,7 +139,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isSuperAdmin ? 'grid-cols-5' : 'grid-cols-4'} lg:w-auto`}>
+          <TabsList className={`grid w-full ${isSuperAdmin ? 'grid-cols-6' : 'grid-cols-5'} lg:w-auto`}>
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">数据大屏</span>
@@ -154,6 +155,10 @@ export default function AdminPage() {
             <TabsTrigger value="feedbacks" className="gap-2">
               <MessageSquare className="h-4 w-4" />
               <span className="hidden sm:inline">用户反馈</span>
+            </TabsTrigger>
+            <TabsTrigger value="announcement" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">公告&维护</span>
             </TabsTrigger>
             {isSuperAdmin && (
               <TabsTrigger value="admins" className="gap-2">
@@ -201,6 +206,10 @@ export default function AdminPage() {
                 <FeedbacksTable />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="announcement" className="space-y-6">
+            <AnnouncementPanel />
           </TabsContent>
 
           {isSuperAdmin && (
