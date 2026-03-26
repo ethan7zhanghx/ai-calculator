@@ -167,7 +167,7 @@ export default function PageContent() {
       return
     }
 
-    // 如果URL中没有evaluationId，不做任何操作（避免在点击"重新编辑"时重新加载）
+    // URL 中没有 evaluationId 时，恢复首页空态
     if (!evaluationId) {
       console.log("[useEffect] URL中没有evaluationId，退出")
       // 回到首页时清空当前评估结果与部分状态
@@ -242,7 +242,10 @@ export default function PageContent() {
     }
 
     fetchEvaluation(evaluationId)
-  }, [searchParams, router, toast, evaluation])
+  // 这里不要依赖 evaluation：流式评估过程中会先在本地 setEvaluation，
+  // 但 evaluationId 还没写回 URL；如果此 effect 因 evaluation 变化重跑，
+  // 会把结果误清空并退回到“等待评估”空态。
+  }, [searchParams, router])
 
 
   // 检查登录状态
