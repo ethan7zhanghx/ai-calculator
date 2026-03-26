@@ -7,6 +7,45 @@ export interface IntentCheckResult {
   severity: "info" | "warn" | "block"
 }
 
+function normalizeText(value?: string): string {
+  return value?.replace(/\s+/g, " ").trim() ?? ""
+}
+
+function normalizeAllowed(value: unknown): boolean {
+  if (typeof value === "boolean") return value
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    if (["true", "yes", "1", "allow", "allowed", "pass"].includes(normalized)) return true
+    if (["false", "no", "0", "block", "blocked", "deny", "denied"].includes(normalized)) return false
+  }
+  return Boolean(value)
+}
+
+function normalizeSeverity(
+  value: unknown,
+  allowed: boolean
+): "info" | "warn" | "block" {
+  if (value === "info" || value === "warn" || value === "block") {
+    return value
+  }
+
+  return allowed ? "info" : "block"
+}
+
+function parseIntentResponse(content: string): Record<string, unknown> {
+  const trimmed = content.trim()
+
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    const match = trimmed.match(/\{[\s\S]*\}/)
+    if (!match) {
+      throw new Error("意图检测返回的内容不是有效JSON")
+    }
+    return JSON.parse(match[0])
+  }
+}
+
 /**
  * 使用LLM做简单的意图检测，判断用户输入是否符合产品定位（企业级AI需求评估）
  * 如出现与产品无关或明显违规的请求，可在前端做提示或记录。
@@ -26,25 +65,8 @@ export async function checkIntent(
     }
   }
 
-  const prompt = `你是一个负责入口拦截的系统，需要判断用户输入是否符合“企业AI需求评估工具”的使用场景。
-
-请基于以下信息判断：
-- 业务场景描述：${req.businessScenario || "（未填写）"}
-- 精调数据描述：${req.businessData?.description || "（未填写）"}
-
-判定标准：
-1) 符合：与企业/组织的AI项目规划、资源评估、模型选型、落地可行性相关。
-2) 不符合（任一命中即不通过）：
-   - 闲聊、无关话题、个人情感八卦、生活琐事
-   - 非法/色情/极端/暴力等内容
-   - 信息过于模糊或明显无意义：仅填重复字符/数字、空白、占位符，或两条信息总长度少于10个汉字且缺乏业务含义
-
-请严格输出JSON：
-{
-  "allowed": true/false,
-  "severity": "info" | "warn" | "block",
-  "reason": "一句话说明是否符合定位及原因"
-}`
+  const scenario = normalizeText(req.businessScenario)
+  const dataDescription = normalizeText(req.businessData?.description)
 
   try {
     const response = await fetchWithRetry(
@@ -58,9 +80,43 @@ export async function checkIntent(
         },
         body: JSON.stringify({
           model: modelName,
-          messages: [{ role: "user", content: prompt }],
+          messages: [
+            {
+              role: "system",
+              content:
+                `你是“企业AI需求评估工具”的 AI Judge，只负责入口意图判断。
+
+任务：根据用户填写的 businessScenario 和 businessDataDescription，判断该输入是否应该进入“企业AI需求评估”流程。
+
+判定标准：
+1. 只要输入表达的是企业、团队、组织希望评估、建设、部署、优化某种 AI 能力、AI 系统、模型应用、知识库、智能客服、办公自动化、生产经营分析等需求，即使信息不完整，也应判定 allowed=true。
+2. 只有在以下情况明确成立时，才判定 allowed=false：
+   - 输入为空、纯空白、占位符、重复字符、重复数字、或明显无意义；
+   - 输入违法违规；
+   - 输入与企业AI需求评估明显无关，例如纯闲聊、个人生活琐事、情绪表达、娱乐闲谈。
+3. “信息不足”不等于“无关”。方向相关但描述粗略时，也必须放行。
+4. 只能依据用户实际提供的文本判断；不要臆测字段为空，不要把已填写文本误判为“输入为空”。
+
+输出要求：
+- 只能输出一个 JSON 对象
+- 不要输出任何额外文字
+- JSON 必须包含且仅包含字段：allowed, severity, reason
+- allowed 为 boolean
+- allowed=true 时 severity 必须是 "info"
+- allowed=false 时 severity 必须是 "block"
+- reason 用一句简短中文说明原因`,
+            },
+            {
+              role: "user",
+              content: `请对下面这份原始用户输入做意图判定，只输出 JSON：
+{
+  "businessScenario": ${JSON.stringify(scenario || "")},
+  "businessDataDescription": ${JSON.stringify(dataDescription || "")}
+}`,
+            },
+          ],
           response_format: { type: "json_object" },
-          temperature: 0.1,
+          temperature: 0,
         }),
       },
       {
@@ -78,12 +134,17 @@ export async function checkIntent(
       throw new Error("意图检测返回为空")
     }
 
-    const parsed = JSON.parse(data.choices[0].message.content)
+    const parsed = parseIntentResponse(data.choices[0].message.content)
+    const allowed = normalizeAllowed(
+      parsed.allowed ?? parsed.isAllowed ?? parsed.pass ?? parsed.passed
+    )
+    const reason = String(parsed.reason ?? parsed.message ?? "未提供原因")
+    const severity = normalizeSeverity(parsed.severity, allowed)
 
     return {
-      allowed: Boolean(parsed.allowed),
-      reason: parsed.reason || "未提供原因",
-      severity: parsed.severity || "info",
+      allowed,
+      reason,
+      severity,
     }
   } catch (error) {
     console.error("意图检测失败，默认放行:", error)
